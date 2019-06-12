@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+###############################################################################
+#                                                                             #
+#    This program is free software: you can redistribute it and/or modify     #
+#    it under the terms of the GNU General Public License as published by     #
+#    the Free Software Foundation, either version 3 of the License, or        #
+#    (at your option) any later version.                                      #
+#                                                                             #
+#    This program is distributed in the hope that it will be useful,          #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #r
+#    GNU General Public License for more details.                             #
+#                                                                             #
+#    You should have received a copy of the GNU General Public License        #
+#    along with this program. If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                             #
+###############################################################################
+
+__author__ = "Donovan Parks"
+__copyright__ = "Copyright 2019"
+__credits__ = ["Donovan Parks"]
+__license__ = "GPL3"
+__maintainer__ = "Donovan Parks"
+__email__ = "donovan.parks@gmail.com"
+__status__ = "Development"
+
+import os
+import sys
+import ntpath
+import logging
+import argparse
+
+from gtdb_release_tk.main import OptionsParser
+
+from biolib.logger import logger_setup
+from biolib.misc.custom_help_formatter import CustomHelpFormatter
+from biolib.common import make_sure_path_exists
+
+
+def version():
+    """Read program version from file."""
+    import gtdb_release_tk
+    version_file = open(os.path.join(gtdb_release_tk.__path__[0], 'VERSION'))
+    return version_file.readline().strip()
+
+
+def print_help():
+    """Help menu."""
+
+    print('')
+    print('                ...::: GTDB Release Toolkit v' + version() + ' :::...''')
+    print('''\
+
+    Moving to new release:
+      blah
+      blah
+      blah
+
+    Data files for GTDB website:
+      taxonomy_files  -> Generate GTDB taxonomy files
+      tree_files      -> Generate tree files spanning representative genomes
+      sp_cluster_file -> Generate file indicating GTDB species clusters
+      ssu_files       -> Generate 16S rRNA FASTA files
+
+    Plots:
+      genome_types_per_rank -> Plot number of MAGs, SAGs, and isolates for each taxonomic rank
+      
+  Use: gtdb_release_tk <command> -h for command specific help.
+
+  Feature requests or bug reports can be sent to Donovan Parks (donovan.parks@gmail.com)
+    or posted on GitHub (https://github.com/Ecogenomics/gtdb_release_tk).
+    ''')
+
+if __name__ == '__main__':
+
+    # initialize the options parser
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(help="--", dest='subparser_name')
+    
+    # generate taxonomy files for GTDB website
+    taxonomy_files_parser = subparsers.add_parser('taxonomy_files',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate taxonomy files for GTDB website.')
+    taxonomy_files_parser.add_argument('metadata_file', help='GTDB metadata file')
+    taxonomy_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    taxonomy_files_parser.add_argument('release_number', help='release number (ex. 86)')
+    taxonomy_files_parser.add_argument('output_dir', help='output directory')
+    taxonomy_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate tree files spanning representative genomes
+    tree_files_parser = subparsers.add_parser('tree_files',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate tree files spanning representative genomes.')
+    tree_files_parser.add_argument('bac_tree', help='bacterial tree of representative genomes in Newick format')
+    tree_files_parser.add_argument('ar_tree', help='archaeal tree of representative genomes in Newick format')
+    tree_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    tree_files_parser.add_argument('release_number', help='release number (ex. 86)')
+    tree_files_parser.add_argument('output_dir', help="output directory")
+    tree_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate file indicating GTDB species clusters 
+    sp_cluster_file_parser = subparsers.add_parser('sp_cluster_file',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate file indicating GTDB species clusters.')
+    sp_cluster_file_parser.add_argument('metadata_file', help='file indicating taxonomy of each genome')
+    sp_cluster_file_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    sp_cluster_file_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    sp_cluster_file_parser.add_argument('release_number', help='release number (ex. 86)')
+    sp_cluster_file_parser.add_argument('output_dir', help="output directory")
+    sp_cluster_file_parser.add_argument('--silent', help="suppress output", action='store_true')
+
+    # generate 16S rRNA FASTA files for GTDB website
+    ssu_files_parser = subparsers.add_parser('ssu_files',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate 16S rRNA FASTA files for GTDB website.')
+    ssu_files_parser.add_argument('metadata_file', help='file indicating taxonomy of each genome')
+    ssu_files_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    ssu_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    ssu_files_parser.add_argument('genome_path_file', help='file indicating path to GTDB genomes')
+    ssu_files_parser.add_argument('release_number', help='release number (ex. 86)')
+    ssu_files_parser.add_argument('output_dir', help="output directory")
+    ssu_files_parser.add_argument('--min_16S_ar_len', help='minimum length of archaeal 16S rRNA gene to include', type=int, default=0)
+    ssu_files_parser.add_argument('--min_16S_bac_len', help='minimum length of bacterial 16S rRNA gene to include', type=int, default=0)
+    ssu_files_parser.add_argument('--min_contig_len', help="minimum contig length", type=int, default=0)
+    ssu_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+
+    # plot number of MAGs, SAGs, and isolates for each taxonomic rank
+    genome_types_per_rank_parser = subparsers.add_parser('genome_types_per_rank',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Plot number of MAGs, SAGs, and isolates for each taxonomic rank.')
+    genome_types_per_rank_parser.add_argument('metadata_file', help='GTDB metadata file')
+    genome_types_per_rank_parser.add_argument('output_dir', help='output directory')
+    genome_types_per_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
+ 
+    # get and check options
+    args = None
+    if(len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv == '--help'):
+        print_help()
+        sys.exit(0)
+    else:
+        args = parser.parse_args()
+
+    try:
+        logger_setup(args.output_dir, 
+                        'gtdb_release_tk.log', 
+                        'GTDB Release Tk', 
+                        version(), 
+                        args.silent)
+    except:
+        logger_setup(None, 
+                        'gtdb_release_tk.log', 
+                        'GTDB Release Tk', 
+                        version(), 
+                        args.silent)
+
+    # do what we came here to do
+    try:
+        parser = OptionsParser()
+        if(False):
+            # import pstats
+            # p = pstats.Stats('prof')
+            # p.sort_stats('cumulative').print_stats(10)
+            # p.sort_stats('time').print_stats(10)
+            import cProfile
+            cProfile.run('parser.parse_options(args)', 'prof')
+        elif False:
+            import pdb
+            pdb.run(parser.parse_options(args))
+        else:
+            parser.parse_options(args)
+    except SystemExit:
+        print("\n  Controlled exit resulting from an unrecoverable error or warning.")
+    except:
+        print("\nUnexpected error:", sys.exc_info()[0])
+        raise
