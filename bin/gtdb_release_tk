@@ -30,6 +30,9 @@ import ntpath
 import logging
 import argparse
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
 from gtdb_release_tk.main import OptionsParser
 
 from biolib.logger import logger_setup
@@ -61,6 +64,9 @@ def print_help():
       tree_files      -> Generate tree files spanning representative genomes
       sp_cluster_file -> Generate file indicating GTDB species clusters
       ssu_files       -> Generate 16S rRNA FASTA files
+      tax_comp_files  -> Generate comparison files between 2 taxonomy ordered by degree of polyphyly.
+      json_tree_file  -> Generate the json file used to populate http://gtdb.ecogenomic.org/tree
+      
 
     Plots:
       genome_types_per_rank -> Plot number of MAGs, SAGs, and isolates for each taxonomic rank
@@ -71,67 +77,132 @@ def print_help():
     or posted on GitHub (https://github.com/Ecogenomics/gtdb_release_tk).
     ''')
 
+
 if __name__ == '__main__':
 
     # initialize the options parser
     parser = argparse.ArgumentParser(add_help=False)
     subparsers = parser.add_subparsers(help="--", dest='subparser_name')
-    
+
     # generate taxonomy files for GTDB website
     taxonomy_files_parser = subparsers.add_parser('taxonomy_files',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate taxonomy files for GTDB website.')
-    taxonomy_files_parser.add_argument('metadata_file', help='GTDB metadata file')
-    taxonomy_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    taxonomy_files_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                  formatter_class=CustomHelpFormatter,
+                                                  description='Generate taxonomy files for GTDB website.')
+    taxonomy_files_parser.add_argument(
+        'metadata_file', help='GTDB metadata file')
+    taxonomy_files_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    taxonomy_files_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     taxonomy_files_parser.add_argument('output_dir', help='output directory')
-    taxonomy_files_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    taxonomy_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # generate tree files spanning representative genomes
     tree_files_parser = subparsers.add_parser('tree_files',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate tree files spanning representative genomes.')
-    tree_files_parser.add_argument('bac_tree', help='bacterial tree of representative genomes in Newick format')
-    tree_files_parser.add_argument('ar_tree', help='archaeal tree of representative genomes in Newick format')
-    tree_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    tree_files_parser.add_argument('release_number', help='release number (ex. 86)')
+                                              formatter_class=CustomHelpFormatter,
+                                              description='Generate tree files spanning representative genomes.')
+    tree_files_parser.add_argument(
+        'bac_tree', help='bacterial tree of representative genomes in Newick format')
+    tree_files_parser.add_argument(
+        'ar_tree', help='archaeal tree of representative genomes in Newick format')
+    tree_files_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    tree_files_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     tree_files_parser.add_argument('output_dir', help="output directory")
-    tree_files_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
-    # generate file indicating GTDB species clusters 
+    tree_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # generate file indicating GTDB species clusters
     sp_cluster_file_parser = subparsers.add_parser('sp_cluster_file',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate file indicating GTDB species clusters.')
-    sp_cluster_file_parser.add_argument('metadata_file', help='file indicating taxonomy of each genome')
-    sp_cluster_file_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    sp_cluster_file_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    sp_cluster_file_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                   formatter_class=CustomHelpFormatter,
+                                                   description='Generate file indicating GTDB species clusters.')
+    sp_cluster_file_parser.add_argument(
+        'metadata_file', help='file indicating taxonomy of each genome')
+    sp_cluster_file_parser.add_argument(
+        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    sp_cluster_file_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    sp_cluster_file_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     sp_cluster_file_parser.add_argument('output_dir', help="output directory")
-    sp_cluster_file_parser.add_argument('--silent', help="suppress output", action='store_true')
+    sp_cluster_file_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # generate 16S rRNA FASTA files for GTDB website
     ssu_files_parser = subparsers.add_parser('ssu_files',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate 16S rRNA FASTA files for GTDB website.')
-    ssu_files_parser.add_argument('metadata_file', help='file indicating taxonomy of each genome')
-    ssu_files_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    ssu_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    ssu_files_parser.add_argument('genome_path_file', help='file indicating path to GTDB genomes')
-    ssu_files_parser.add_argument('release_number', help='release number (ex. 86)')
+                                             formatter_class=CustomHelpFormatter,
+                                             description='Generate 16S rRNA FASTA files for GTDB website.')
+    ssu_files_parser.add_argument(
+        'metadata_file', help='file indicating taxonomy of each genome')
+    ssu_files_parser.add_argument(
+        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    ssu_files_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    ssu_files_parser.add_argument(
+        'genome_path_file', help='file indicating path to GTDB genomes')
+    ssu_files_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     ssu_files_parser.add_argument('output_dir', help="output directory")
-    ssu_files_parser.add_argument('--min_16S_ar_len', help='minimum length of archaeal 16S rRNA gene to include', type=int, default=0)
-    ssu_files_parser.add_argument('--min_16S_bac_len', help='minimum length of bacterial 16S rRNA gene to include', type=int, default=0)
-    ssu_files_parser.add_argument('--min_contig_len', help="minimum contig length", type=int, default=0)
-    ssu_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    ssu_files_parser.add_argument(
+        '--min_16S_ar_len', help='minimum length of archaeal 16S rRNA gene to include', type=int, default=0)
+    ssu_files_parser.add_argument(
+        '--min_16S_bac_len', help='minimum length of bacterial 16S rRNA gene to include', type=int, default=0)
+    ssu_files_parser.add_argument(
+        '--min_contig_len', help="minimum contig length", type=int, default=0)
+    ssu_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # generate correspondence between standardly named taxonomies ordered by
+    # degree of polyphyly.
+    tax_comp_parser = subparsers.add_parser('tax_comp_files',
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Generate comparison files between 2 taxonomy ordered by degree of polyphyly.')
+    tax_comp_parser.add_argument(
+        '--reference_taxonomy_file', help='Old taxonomy file used as reference.')
+    tax_comp_parser.add_argument(
+        '--new_taxonomy_file', help='New taxonomy file.')
+    tax_comp_parser.add_argument('--output_dir', help="output directory")
+    tax_comp_parser.add_argument(
+        '--user_gid_table', help="table indicate NCBI accession and UBA IDs for user genomes")
+    tax_comp_parser.add_argument(
+        '--keep_no_change', help="keep all ranks regardless of whether they are the same in both taxonomies", action='store_false', default='store_true')
+    tax_comp_parser.add_argument(
+        '--keep_placeholder_name', help='keep ranks that have a placeholder name->no name in the taxonomies', action='store_false', default='store_true')
+    tax_comp_parser.add_argument(
+        '--top_change', help='keep only top change', action='store_true', default='store_false')
+    tax_comp_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # generate Json file used to create the tree in
+    # http://gtdb.ecogenomic.org/tree
+    json_tree_parser = subparsers.add_parser('json_tree_file',
+                                             formatter_class=CustomHelpFormatter,
+                                             description='generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree.')
+    json_tree_parser.add_argument(
+        '--taxonomy_file', help='file indicating taxonomy of each genome.')
+    json_tree_parser.add_argument(
+        '--metadata_file', help='GTDB metadata file.')
+    json_tree_parser.add_argument(
+        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes.')
+    json_tree_parser.add_argument('--output_dir', help="output directory")
+    json_tree_parser.add_argument(
+        '--release_number', help='release number (ex. 86)')
+    json_tree_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # plot number of MAGs, SAGs, and isolates for each taxonomic rank
     genome_types_per_rank_parser = subparsers.add_parser('genome_types_per_rank',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Plot number of MAGs, SAGs, and isolates for each taxonomic rank.')
-    genome_types_per_rank_parser.add_argument('metadata_file', help='GTDB metadata file')
-    genome_types_per_rank_parser.add_argument('output_dir', help='output directory')
-    genome_types_per_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
- 
+                                                         formatter_class=CustomHelpFormatter,
+                                                         description='Plot number of MAGs, SAGs, and isolates for each taxonomic rank.')
+    genome_types_per_rank_parser.add_argument(
+        'metadata_file', help='GTDB metadata file')
+    genome_types_per_rank_parser.add_argument(
+        'output_dir', help='output directory')
+    genome_types_per_rank_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # get and check options
     args = None
     if(len(sys.argv) == 1 or sys.argv[1] == '-h' or sys.argv == '--help'):
@@ -141,17 +212,17 @@ if __name__ == '__main__':
         args = parser.parse_args()
 
     try:
-        logger_setup(args.output_dir, 
-                        'gtdb_release_tk.log', 
-                        'GTDB Release Tk', 
-                        version(), 
-                        args.silent)
+        logger_setup(args.output_dir,
+                     'gtdb_release_tk.log',
+                     'GTDB Release Tk',
+                     version(),
+                     args.silent)
     except:
-        logger_setup(None, 
-                        'gtdb_release_tk.log', 
-                        'GTDB Release Tk', 
-                        version(), 
-                        args.silent)
+        logger_setup(None,
+                     'gtdb_release_tk.log',
+                     'GTDB Release Tk',
+                     version(),
+                     args.silent)
 
     # do what we came here to do
     try:
