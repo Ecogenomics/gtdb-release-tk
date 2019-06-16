@@ -47,7 +47,8 @@ class WebsiteData(object):
         """Initialization."""
 
         self.release_number = release_number
-        self.output_dir = PurePath(output_dir)
+        if output_dir:
+            self.output_dir = PurePath(output_dir)
 
         self.logger = logging.getLogger('timestamp')
 
@@ -443,7 +444,181 @@ class WebsiteData(object):
             self.logger.info(f'MSA file {out_file} contains {count:,} genomes.')
                     
             fout.close()
-
+            
+    def metadata_files(self, metadata_file,
+                        metadata_fields,
+                        gtdb_sp_clusters_file,
+                        user_gid_table):
+        """Generate GTDB metadata files."""
+        
+        # parse user genome ID mapping table
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+        
+        # get GTDB species clusters
+        self.logger.info('Parsing all species clusters from GTDB metadata.')
+        sp_clusters = parse_species_clusters(gtdb_sp_clusters_file, user_gids)
+        self.logger.info(' ...identified {:,} representative genomes spanning {:,} genomes.'.format(
+            len(sp_clusters),
+            sum([len(cid) for cid in sp_clusters.values()])))
+            
+        all_gids = set()
+        for gids in sp_clusters.values():
+            all_gids.update(gids)
+        
+        # read metadata fields to retain
+        self.logger.info('Reading metadata fields to retain.')
+        fields = set()
+        with open(metadata_fields) as f:
+            f.readline()
+            for line in f:
+                fields.add(line.split('\t')[0])
+        self.logger.info(f' ...identified {len(fields):,} fields to retain.')
+        
+        # get list of all genome IDs in metadata file
+        metadata_gids = set()
+        with open(metadata_file, encoding='utf-8') as f:
+            f.readline()
+            for line in f:
+                line_split = line.strip().split('\t')
+                metadata_gids.add(line_split[0])
+        
+        # write out bacterial and archaeal metadata files
+        self.logger.info('Creating domain-specific metadata fields.')
+        fout_bac = open(self.output_dir / f'bac120_metadata_r{self.release_number}.tsv', 'w',
+                        encoding='utf-8')
+        fout_ar = open(self.output_dir / f'ar122_metadata_r{self.release_number}.tsv', 'w',
+                        encoding='utf-8')
+        
+        fields_sorted = sorted(fields)
+        fields_sorted.remove('accession')
+        fout_bac.write('{}\t{}\n'.format('accession', '\t'.join(fields_sorted)))
+        fout_ar.write('{}\t{}\n'.format('accession', '\t'.join(fields_sorted)))
+        
+        count = 0
+        with open(metadata_file, encoding='utf-8') as f:
+            header = f.readline().strip().split('\t')
+            
+            field_index = {}
+            for field in fields_sorted:
+                field_index[field] = header.index(field)
+                
+            for line in f:
+                line_split = line.strip().split('\t')
+                
+                gid = line_split[0]
+                new_gid = user_gids.get(gid, gid)
+                if gid != new_gid and new_gid in metadata_gids:
+                    # skip this record since they GTDB user genome is already
+                    # in the metadata file under the NCBI accession number
+                    continue
+                
+                if new_gid in all_gids:
+                    count += 1
+                    gtdb_taxonomy = line_split[field_index['gtdb_taxonomy']]
+                    gtdb_taxa = [t.strip() for t in gtdb_taxonomy.split(';')]
+                    gtdb_domain = gtdb_taxa[0]
+                    
+                    if gtdb_domain == 'd__Bacteria':
+                        fout = fout_bac
+                    elif gtdb_domain == 'd__Archaea':
+                        fout = fout_ar
+                    else:
+                        self.logger.error(f'Unrecognized GTDB domain: {gtdb_domain} {gid}')
+                        
+                    fout.write(new_gid)
+                    for field in fields_sorted:
+                        if field == 'gtdb_genome_representative':
+                            gid = line_split[field_index[field]]
+                            new_gid = user_gids.get(gid, gid)
+                            fout.write('\t{}'.format(new_gid))
+                        else:
+                            fout.write('\t{}'.format(line_split[field_index[field]]))
+                    fout.write('\n')
+                         
+        fout_bac.close()
+        fout_ar.close()
+        
+        self.logger.info(f'Wrote metadata for {count:,} genomes.')
+        
+    def validate(self,
+                    taxonomy_file,
+                    tree_file,
+                    metadata_file,
+                    msa_file,
+                    ssu_file,
+                    sp_clusters_file):
+        """Perform validation checks on GTDB website files."""
+        
+        # parse taxonomy file
+        self.logger.info('Parsing taxonomy file.')
+        taxonomy = {}
+        for line in open(taxonomy_file):
+            line_split = line.strip().split('\t')
+            taxonomy[line_split[0]] = line_split[1]
+            
+        # get GTDB species clusters
+        self.logger.info('Validating species clusters.')
+        sp_clusters = parse_species_clusters(sp_clusters_file, {})
+        assert(len(set(taxonomy).difference(sp_clusters)) == 0)
+            
+        # validate that tree spans representatives
+        self.logger.info('Validating tree file.')
+        tree = dendropy.Tree.get_from_path(tree_file,
+                                               schema='newick',
+                                               rooting='force-rooted',
+                                               preserve_underscores=True)
+        tree_gids = set([leaf.taxon.label for leaf in tree.leaf_node_iter()])
+        assert(len(tree_gids.symmetric_difference(taxonomy)) == 0)
+        
+        # validate that metadata file contains all representative genomes
+        self.logger.info('Validating metadata file.')
+        metadata_gids = set()
+        with open(metadata_file, encoding='utf-8') as f:
+            header = f.readline().strip().split('\t')
+            gtdb_taxonomy_index = header.index('gtdb_taxonomy')
+            gtdb_rep_index = header.index('gtdb_representative')
+            gtdb_rep_genome_index = header.index('gtdb_genome_representative')
+            
+            for line in f:
+                line_split = line.strip().split('\t')
+                gid = line_split[0]
+                metadata_gids.add(gid)
+                
+                gtdb_rep = line_split[gtdb_rep_index]
+                if ((gid in sp_clusters and gtdb_rep == 'f')
+                    or (gid not in sp_clusters and gtdb_rep == 't')):
+                    self.logger.info('GTDB species representative information is incorrect: {gid}')
+                    sys.exit(-1)
+                    
+                rep_id = line_split[gtdb_rep_genome_index]
+                assert(taxonomy[rep_id] == line_split[gtdb_taxonomy_index])
+                
+                if gid in taxonomy:
+                    if taxonomy[gid] != line_split[gtdb_taxonomy_index]:
+                        self.logger.error(f'GTDB taxonomy is incorrect in metadata file: {gid}')
+                        sys.exit(-1)
+                
+        assert(len(set(taxonomy).difference(metadata_gids)) == 0)
+        
+        # validate that MSA file spans representatives
+        self.logger.info('Validating MSA file.')
+        msa_seqs = seq_io.read(msa_file)
+        assert(len(set(msa_seqs).symmetric_difference(taxonomy)) == 0)
+        
+        # validate that SSU file spans representatives
+        self.logger.info('Validating SSU file.')
+        ssu_seqs = set()
+        for seq_id, seq, annotations in seq_io.read_seq(ssu_file, keep_annotation=True):
+            ssu_taxonomy = annotations[0:annotations.find('[')].strip()
+            if ssu_taxonomy != taxonomy[seq_id]:
+                self.logger.error(f'GTDB taxonomy is incorrect in SSU file: {gid}')
+            ssu_seqs.add(seq_id)
+        
+        assert(len(ssu_seqs.difference(taxonomy)) == 0)
+        
+        self.logger.info('Passed validation.')
+                         
     def tax_comp_files(self, old_taxonomy, new_taxonomy, gid_table, keep_no_change, keep_placeholder_name, top_change):
 
         gtogfile = open(os.path.join(
@@ -558,6 +733,9 @@ class WebsiteData(object):
                                                                 "_genus_difference.tsv"), "genus", keep_placeholder_name, keep_no_change, top_change)
 
         gtogfile.close()
+        
+    def json_tree_file(self, taxonomy_file, metadata_file, gid_table):
+        user_gids = parse_user_gid_table(gid_table)
 
     def genomebygenomecompare(self, olddict, newdict, gtogfile):
         orderrank = ["domain", "phylum", "class",

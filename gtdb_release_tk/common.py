@@ -70,7 +70,10 @@ def parse_species_clusters(gtdb_sp_clusters_file, user_gids):
     with open(gtdb_sp_clusters_file) as f:
         header = f.readline().strip().split('\t')
         
-        type_genome_index = header.index('Type genome')
+        if 'Type genome' in header:
+            type_genome_index = header.index('Type genome')
+        else:
+            type_genome_index = header.index('Representative genome')
         cluster_size_index = header.index('No. clustered genomes')
         clustered_genomes_index = header.index('Clustered genomes')
         

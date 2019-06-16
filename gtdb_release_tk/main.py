@@ -128,6 +128,43 @@ class OptionsParser():
                         options.user_gid_table)
 
         self.logger.info('Done.')
+        
+    def metadata_files(self, options):
+        """Generate GTDB metadata files."""
+
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.metadata_fields)
+        check_file_exists(options.gtdb_sp_clusters_file)
+        check_file_exists(options.user_gid_table)
+        make_sure_path_exists(options.output_dir)
+        
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.metadata_files(options.metadata_file,
+                        options.metadata_fields,
+                        options.gtdb_sp_clusters_file,
+                        options.user_gid_table)
+
+        self.logger.info('Done.')
+        
+    def validate(self, options):
+        """Perform validation checks on GTDB website files."""
+
+        check_file_exists(options.taxonomy_file)
+        check_file_exists(options.tree_file)
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.msa_file)
+        check_file_exists(options.ssu_file)
+        check_file_exists(options.sp_clusters_file)
+
+        p = WebsiteData(None, None)
+        p.validate(options.taxonomy_file,
+                        options.tree_file,
+                        options.metadata_file,
+                        options.msa_file,
+                        options.ssu_file,
+                        options.sp_clusters_file)
+
+        self.logger.info('Done.')
 
     def tax_comp_files(self, options):
         """Generate comparison files between 2 taxonomy ordered by degree of polyphyly."""
@@ -181,6 +218,10 @@ class OptionsParser():
             self.marker_files(options)
         elif options.subparser_name == 'msa_files':
             self.msa_files(options)
+        elif options.subparser_name == 'metadata_files':
+            self.metadata_files(options)
+        elif options.subparser_name == 'validate':
+            self.validate(options)
         elif options.subparser_name == 'genome_types_per_rank':
             self.genome_types_per_rank(options)
         elif options.subparser_name == 'tax_comp_files':
