@@ -17,6 +17,7 @@
 
 import os
 import sys
+import shutil
 import logging
 from pathlib import Path, PurePath
 from collections import defaultdict
@@ -364,3 +365,67 @@ class WebsiteData(object):
                                 schema='newick', 
                                 suppress_rooting=True, 
                                 unquoted_underscores=True)
+                                
+    def marker_files(self, bac120_gene_dir,
+                            ar122_gene_dir,
+                            user_gid_table):
+        """Generate marker gene file."""
+        
+        # copy and rename marker info files
+        self.logger.info('Copying and renaming marker info files.')
+        shutil.copyfile(PurePath(bac120_gene_dir) / 'bac120_markers_info.tsv',
+                        self.output_dir / f'bac120_msa_marker_info_r{self.release_number}.tsv')
+        shutil.copyfile(PurePath(ar122_gene_dir) / 'ar122_markers_info.tsv',
+                        self.output_dir / f'ar122_msa_marker_info_r{self.release_number}.tsv')
+                        
+        # compress individual marker gene alignments
+        self.logger.info('Creating compressed files containing all marker gene MSAs.')
+        for msa_dir, prefix in [(ar122_gene_dir, 'ar122'), (bac120_gene_dir, 'bac120')]:
+            self.logger.info(f'Reading {msa_dir}.')
+            msa_file = self.output_dir / f'{prefix}_msa_individual_genes_r{self.release_number}.tar.gz'
+            
+            msa_files = set()
+            for f in os.listdir(msa_dir):
+                if f.endswith('.faa') and '_concatenated' not in f:
+                    msa_files.add(f)
+            
+            cmd = 'tar -zcvf {}_msa_individual_genes_r{}.tar.gz --directory={} {}'.format(
+                    prefix,
+                    self.release_number,
+                    msa_dir, 
+                    ' '.join(msa_files))
+            os.system(cmd)
+            
+    def msa_files(self, bac120_msa_file,
+                        ar122_msa_file,
+                        metadata_file,
+                        user_gid_table):
+        """Generate concatenated MSA files."""
+        
+        # parse user genome ID mapping table
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+        
+        # get representative genome for each GTDB species cluster
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        reps = parse_rep_genomes(metadata_file, user_gids)
+        self.logger.info(' ...identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
+                            sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
+                            sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
+         
+        # create MSA files for representative genomes with modified genome IDs
+        self.logger.info('Creating MSA files.')
+        for msa_file, prefix in [(ar122_msa_file, 'ar122'), (bac120_msa_file, 'bac120')]:
+            out_file = f'{prefix}_msa_r{self.release_number}.faa'
+            fout = open(self.output_dir / out_file, 'w')
+            count = 0
+            for seq_id,seq in seq_io.read_seq(msa_file):
+                seq_id = user_gids.get(seq_id, seq_id)
+                if seq_id in reps:
+                    fout.write(f'>{seq_id}\n')
+                    fout.write(f'{seq}\n')
+                    count += 1
+                    
+            self.logger.info(f'MSA file {out_file} contains {count:,} genomes.')
+                    
+            fout.close()

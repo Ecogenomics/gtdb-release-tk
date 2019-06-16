@@ -61,6 +61,8 @@ def print_help():
       tree_files      -> Generate tree files spanning representative genomes
       sp_cluster_file -> Generate file indicating GTDB species clusters
       ssu_files       -> Generate 16S rRNA FASTA files
+      marker_files    -> Generate marker gene files
+      msa_files       -> Generate concatenated MSA files
 
     Plots:
       genome_types_per_rank -> Plot number of MAGs, SAGs, and isolates for each taxonomic rank
@@ -123,6 +125,29 @@ if __name__ == '__main__':
     ssu_files_parser.add_argument('--min_16S_bac_len', help='minimum length of bacterial 16S rRNA gene to include', type=int, default=0)
     ssu_files_parser.add_argument('--min_contig_len', help="minimum contig length", type=int, default=0)
     ssu_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate marker gene file
+    marker_files_parser = subparsers.add_parser('marker_files',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate marker gene file.')
+    marker_files_parser.add_argument('bac120_gene_dir', help='directory with individual bacterial marker gene files')
+    marker_files_parser.add_argument('ar122_gene_dir', help='directory with individual archaeal marker gene files')
+    marker_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    marker_files_parser.add_argument('release_number', help='release number (ex. 86)')
+    marker_files_parser.add_argument('output_dir', help="output directory")
+    marker_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate concatenated MSA files
+    msa_files_parser = subparsers.add_parser('msa_files',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate concatenated MSA files.')
+    msa_files_parser.add_argument('bac120_msa_file', help='MSA for bacterial representative genomes')
+    msa_files_parser.add_argument('ar122_msa_file', help='MSA for archaeal representative genomes')
+    msa_files_parser.add_argument('metadata_file', help='file indicating taxonomy of each genome')
+    msa_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    msa_files_parser.add_argument('release_number', help='release number (ex. 86)')
+    msa_files_parser.add_argument('output_dir', help="output directory")
+    msa_files_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # plot number of MAGs, SAGs, and isolates for each taxonomic rank
     genome_types_per_rank_parser = subparsers.add_parser('genome_types_per_rank',

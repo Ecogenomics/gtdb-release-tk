@@ -22,7 +22,7 @@ import re
 import logging
 from collections import defaultdict
 
-from biolib.common import check_file_exists, make_sure_path_exists
+from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.plots.genome_types_per_rank import GenomeTypesPerRank
@@ -95,6 +95,38 @@ class OptionsParser():
                         options.min_contig_len)
 
         self.logger.info('Done.')
+        
+    def marker_files(self, options):
+        """Generate marker gene file."""
+
+        check_dir_exists(options.bac120_gene_dir)
+        check_dir_exists(options.ar122_gene_dir)
+        check_file_exists(options.user_gid_table)
+        make_sure_path_exists(options.output_dir)
+        
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.marker_files(options.bac120_gene_dir,
+                        options.ar122_gene_dir,
+                        options.user_gid_table)
+
+        self.logger.info('Done.')
+        
+    def msa_files(self, options):
+        """Generate concatenated MSA files."""
+
+        check_file_exists(options.bac120_msa_file)
+        check_file_exists(options.ar122_msa_file)
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.user_gid_table)
+        make_sure_path_exists(options.output_dir)
+        
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.msa_files(options.bac120_msa_file,
+                        options.ar122_msa_file,
+                        options.metadata_file,
+                        options.user_gid_table)
+
+        self.logger.info('Done.')
 
     def genome_types_per_rank(self, options):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
@@ -118,6 +150,10 @@ class OptionsParser():
             self.sp_cluster_file(options)
         elif options.subparser_name == 'ssu_files':
             self.ssu_files(options)
+        elif options.subparser_name == 'marker_files':
+            self.marker_files(options)
+        elif options.subparser_name == 'msa_files':
+            self.msa_files(options)
         elif options.subparser_name == 'genome_types_per_rank':
             self.genome_types_per_rank(options)
         else:
