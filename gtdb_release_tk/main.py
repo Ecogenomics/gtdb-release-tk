@@ -25,8 +25,16 @@ from collections import defaultdict
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 
 from gtdb_release_tk.website_data import WebsiteData
-from gtdb_release_tk.plots.genome_types_per_rank import GenomeTypesPerRank
+from gtdb_release_tk.reps_per_rank import RepsPerRank
 
+from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
+from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
+from gtdb_release_tk.plots.genomic_stats import GenomicStats
+from gtdb_release_tk.plots.genome_quality import GenomeQuality
+from gtdb_release_tk.plots.ncbi_compare import NCBI_Compare
+from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
+
+from gtdb_release_tk.tables.top_taxa import TopTaxa
 
 class OptionsParser():
     def __init__(self):
@@ -38,12 +46,14 @@ class OptionsParser():
         """Generate taxonomy files for GTDB website."""
 
         check_file_exists(options.metadata_file)
+        check_file_exists(options.gtdb_sp_clusters_file)
         check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.taxonomy_files(options.metadata_file,
-                         options.user_gid_table)
+                            options.gtdb_sp_clusters_file,
+                            options.user_gid_table)
 
         self.logger.info('Done.')
 
@@ -192,14 +202,119 @@ class OptionsParser():
                            options.metadata_file,
                            options.user_gid_table)
 
-    def genome_types_per_rank(self, options):
+    def genome_category_rank(self, options):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
-        check_file_exists(options.metadata_file)
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
         make_sure_path_exists(options.output_dir)
 
-        p = GenomeTypesPerRank(options.output_dir)
-        p.run(options.metadata_file)
+        p = GenomeCategoryPerRank(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file)
+
+        self.logger.info('Done.')
+        
+    def nomenclatural_rank(self, options):
+        """Plot nomenclatural status of species for each taxonomic rank."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = NomenclaturalPerRank(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file)
+
+        self.logger.info('Done.')
+        
+    def ncbi_compare(self, options):
+        """Bar plot comparing GTDB and NCBI taxonomies."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = NCBI_Compare(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file,
+                options.all_genomes,
+                options.domain)
+
+        self.logger.info('Done.')
+        
+    def sp_rep_type(self, options):
+        """Pie chart indicating type information for the GTBD species representatives."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = SpeciesRepType(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file,
+                options.domain)
+
+        self.logger.info('Done.')
+        
+    def genomic_stats(self, options):
+        """Plot of common genomic statistics."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = GenomicStats(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file,
+                options.all_genomes)
+
+        self.logger.info('Done.')
+        
+    def genome_quality(self, options):
+        """Scatter plot showing quality of GTDB representative genomes."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = GenomeQuality(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file)
+
+        self.logger.info('Done.')
+
+    def reps_per_rank(self, options):
+        """Select representative genomes at each taxonomic rank."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.bac120_msa_file)
+        check_file_exists(options.ar122_msa_file)
+        check_file_exists(options.ssu_fasta_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = RepsPerRank(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file,
+                options.bac120_msa_file,
+                options.ar122_msa_file,
+                options.ssu_fasta_file,
+                options.genomes_per_taxon,
+                options.min_ssu_len,
+                options.min_msa_perc)
+
+        self.logger.info('Done.')
+        
+    def top_taxa(self, options):
+        """Create table with most abundant taxa at each taxonomic rank."""
+
+        check_file_exists(options.gtdb_sp_clusters_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = TopTaxa(options.release_number, options.output_dir)
+        p.run(options.gtdb_sp_clusters_file,
+                options.num_taxa)
 
         self.logger.info('Done.')
 
@@ -222,12 +337,26 @@ class OptionsParser():
             self.metadata_files(options)
         elif options.subparser_name == 'validate':
             self.validate(options)
-        elif options.subparser_name == 'genome_types_per_rank':
-            self.genome_types_per_rank(options)
+        elif options.subparser_name == 'genome_category_rank':
+            self.genome_category_rank(options)
+        elif options.subparser_name == 'nomenclatural_rank':
+            self.nomenclatural_rank(options)
+        elif options.subparser_name == 'ncbi_compare':
+            self.ncbi_compare(options)
+        elif options.subparser_name == 'sp_rep_type':
+            self.sp_rep_type(options)
         elif options.subparser_name == 'tax_comp_files':
             self.tax_comp_files(options)
         elif options.subparser_name == 'json_tree_parser':
             self.json_tree_parser(options)
+        elif options.subparser_name == 'genomic_stats':
+            self.genomic_stats(options)
+        elif options.subparser_name == 'genome_quality':
+            self.genome_quality(options)
+        elif options.subparser_name == 'reps_per_rank':
+            self.reps_per_rank(options)
+        elif options.subparser_name == 'top_taxa':
+            self.top_taxa(options)
         else:
             self.logger.error('Unknown command: ' +
                               options.subparser_name + '\n')

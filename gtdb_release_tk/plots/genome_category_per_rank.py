@@ -27,7 +27,7 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                     array as np_array)
 
-class GenomeTypesPerRankPlot(AbstractPlot):
+class GenomeCateogryPerRankPlot(AbstractPlot):
     """Box and whisker plot."""
 
     def __init__(self, options):
@@ -48,9 +48,9 @@ class GenomeTypesPerRankPlot(AbstractPlot):
         isolate = np_array(isolate)
         env = np_array(env)
 
-        p1 = axis.bar(ind, both, width)
-        p2 = axis.bar(ind, isolate, width, bottom=both)
-        p3 = axis.bar(ind, env, width, bottom=both+isolate)
+        p1 = axis.bar(ind, both, width, color='#80b1d3')
+        p2 = axis.bar(ind, isolate, width, bottom=both, color='#fdae6b')
+        p3 = axis.bar(ind, env, width, bottom=both+isolate, color='#b3de69')
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))
@@ -59,7 +59,12 @@ class GenomeTypesPerRankPlot(AbstractPlot):
         axis.set_xticks(ind)
         axis.set_xticklabels(xticklabels)
         
-        axis.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.7, zorder=1)
+        axis.yaxis.grid(True, 
+                        linestyle='-', 
+                        which='major', 
+                        color='lightgrey', 
+                        alpha=0.7, 
+                        zorder=1)
         axis.set_axisbelow(True)
 
         self.prettify(axis)
@@ -67,23 +72,28 @@ class GenomeTypesPerRankPlot(AbstractPlot):
         axis.legend((p3[0], p2[0], p1[0]), ('Exclusively MAGs and/or SAGs', 
                                             'Exclusively isolates', 
                                             'Isolate and environmental genomes'),
-                                            fontsize=self.options.tick_font_size)
+                                            fontsize=self.options.tick_font_size,
+                                            loc='upper left', 
+                                            bbox_to_anchor=(1, 1),
+                                            frameon=False)
 
         #self.fig.tight_layout(pad=1.0, w_pad=0.1, h_pad=0.1)
         self.draw()
 
 
-class GenomeTypesPerRank(object):
+class GenomeCategoryPerRank(object):
     """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
     
-    def __init__(self, output_dir):
+    def __init__(self, release_number, output_dir):
         """Initialization."""
         
-        self.output_dir = PurePath(output_dir)
+        self.release_number = release_number
+        if output_dir:
+            self.output_dir = PurePath(output_dir)
         
         self.logger = logging.getLogger('timestamp')
         
-    def run(self, metadata_file):
+    def run(self, bac120_metadata_file, ar120_metadata_file):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
         
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -92,29 +102,30 @@ class GenomeTypesPerRank(object):
         gtdb_taxonomy = {}
         sp_clusters = defaultdict(set)
         genome_category = {}
-        with open(metadata_file, encoding='utf-8') as f:
-            header = f.readline().strip().split('\t')
-            
-            gtdb_taxonomy_index = header.index('gtdb_taxonomy')
-            gtdb_rep_index = header.index('gtdb_genome_representative')
-            genome_category_index = header.index('ncbi_genome_category')
-            
-            for line in f:
-                line_split = line.strip().split('\t')
+        for mf in [bac120_metadata_file, ar120_metadata_file]:
+            with open(mf, encoding='utf-8') as f:
+                header = f.readline().strip().split('\t')
                 
-                gid = line_split[0]
+                gtdb_taxonomy_index = header.index('gtdb_taxonomy')
+                gtdb_rep_index = header.index('gtdb_genome_representative')
+                genome_category_index = header.index('ncbi_genome_category')
                 
-                taxonomy = line_split[gtdb_taxonomy_index]
-                gtdb_rep = line_split[gtdb_rep_index]
-                if taxonomy == 'none' or gtdb_rep == 'none':
-                    continue
+                for line in f:
+                    line_split = line.strip().split('\t')
                     
-                gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
-                gtdb_taxonomy[gid] = gtdb_taxa
-                
-                sp_clusters[gtdb_taxa[6]].add(gid)
-                
-                genome_category[gid] = line_split[genome_category_index]
+                    gid = line_split[0]
+                    
+                    taxonomy = line_split[gtdb_taxonomy_index]
+                    gtdb_rep = line_split[gtdb_rep_index]
+                    if taxonomy == 'none' or gtdb_rep == 'none':
+                        continue
+                        
+                    gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
+                    gtdb_taxonomy[gid] = gtdb_taxa
+                    
+                    sp_clusters[gtdb_taxa[6]].add(gid)
+                    
+                    genome_category[gid] = line_split[genome_category_index]
 
         self.logger.info(' ...identified {:,} species clusters spanning {:,} genomes.'.format(
                             len(sp_clusters),
@@ -142,11 +153,12 @@ class GenomeTypesPerRank(object):
                 sp_in_taxa[rank_index][taxa[rank_index]].add(taxa[6])
                     
         # tabulate number of genome types at each rank
+        out_prefix = f'gtdb_r{self.release_number}_genome_types_per_rank'
         self.logger.info('Tabulating genomes types at each rank.')
-        fout_count = open(self.output_dir / 'genome_types_per_rank.counts.tsv', 'w')
+        fout_count = open(self.output_dir / f'{out_prefix}.tsv', 'w')
         fout_count.write('Rank\tNo. taxa\tBoth\tIsolate\tEnvironmental\n')
         
-        fout_taxa = open(self.output_dir / 'genome_types_per_rank.taxa.tsv', 'w')
+        fout_taxa = open(self.output_dir / f'{out_prefix}.taxa.tsv', 'w')
         fout_taxa.write('Rank\tNo. taxa\tBoth\tIsolate\tEnvironmental\n')
         
         plot_both = []
@@ -211,13 +223,13 @@ class GenomeTypesPerRank(object):
         
         # create plot
         self.logger.info('Creating plot.')
-        options = AbstractPlot.Options(width=4.5, 
+        options = AbstractPlot.Options(width=4, 
                                         height=3, 
                                         label_font_size=7, 
                                         tick_font_size=6, 
                                         dpi=600)
-        plot = GenomeTypesPerRankPlot(options)
+        plot = GenomeCateogryPerRankPlot(options)
         plot.plot(plot_both, plot_isolate, plot_end, plot_labels)
         
-        plot.save_plot(self.output_dir / 'genome_types_per_rank.png', dpi=600)
-        plot.save_plot(self.output_dir / 'genome_types_per_rank.svg', dpi=600)
+        plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
+        plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)

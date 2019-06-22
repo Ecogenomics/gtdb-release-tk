@@ -52,17 +52,34 @@ class WebsiteData(object):
 
         self.logger = logging.getLogger('timestamp')
 
-    def taxonomy_files(self, metadata_file, user_gid_table):
+    def taxonomy_files(self, 
+                        metadata_file, 
+                        gtdb_sp_clusters_file, 
+                        user_gid_table):
         """Generate taxonomy files for GTDB website."""
 
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
+        
+        # get GTDB species clusters
+        self.logger.info('Parsing all species clusters from GTDB metadata.')
+        sp_clusters = parse_species_clusters(gtdb_sp_clusters_file, user_gids)
+        
+        genome_rep_id = {}
+        for rep_id, gids in sp_clusters.items():
+            for gid in gids:
+                genome_rep_id[gid] = rep_id
+            
+        self.logger.info(' ...identified {:,} representative genomes spanning {:,} genomes.'.format(
+                            len(sp_clusters),
+                            len(genome_rep_id)))
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
         reps = parse_rep_genomes(metadata_file, user_gids)
-        self.logger.info(' ...identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
+        self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
+            sum([1 for t in reps.values()]),
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
 
@@ -72,8 +89,11 @@ class WebsiteData(object):
         fout_bac = open(
             self.output_dir / 'bac120_taxonomy_r{}.tsv'.format(self.release_number), 'w')
 
-        for gid, taxa in reps.items():
+        for gid in genome_rep_id:
             assert(not gid.startswith('U_'))
+            
+            rep_id = genome_rep_id[gid]
+            taxa = reps[rep_id]
 
             if taxa[0] == 'd__Archaea':
                 fout_ar.write('{}\t{}\n'.format(gid, ';'.join(taxa)))
@@ -560,7 +580,10 @@ class WebsiteData(object):
         # get GTDB species clusters
         self.logger.info('Validating species clusters.')
         sp_clusters = parse_species_clusters(sp_clusters_file, {})
-        assert(len(set(taxonomy).difference(sp_clusters)) == 0)
+        all_gids = set()
+        for gids in sp_clusters.values():
+            all_gids.update(gids)
+        assert(len(set(taxonomy).difference(all_gids)) == 0)
             
         # validate that tree spans representatives
         self.logger.info('Validating tree file.')
@@ -569,7 +592,7 @@ class WebsiteData(object):
                                                rooting='force-rooted',
                                                preserve_underscores=True)
         tree_gids = set([leaf.taxon.label for leaf in tree.leaf_node_iter()])
-        assert(len(tree_gids.symmetric_difference(taxonomy)) == 0)
+        assert(len(tree_gids.difference(sp_clusters)) == 0)
         
         # validate that metadata file contains all representative genomes
         self.logger.info('Validating metadata file.')
@@ -593,18 +616,20 @@ class WebsiteData(object):
                     
                 rep_id = line_split[gtdb_rep_genome_index]
                 assert(taxonomy[rep_id] == line_split[gtdb_taxonomy_index])
+                assert(rep_id in sp_clusters)
+                assert(rep_id in tree_gids)
                 
                 if gid in taxonomy:
                     if taxonomy[gid] != line_split[gtdb_taxonomy_index]:
                         self.logger.error(f'GTDB taxonomy is incorrect in metadata file: {gid}')
                         sys.exit(-1)
                 
-        assert(len(set(taxonomy).difference(metadata_gids)) == 0)
+        assert(len(set(taxonomy).symmetric_difference(metadata_gids)) == 0)
         
         # validate that MSA file spans representatives
         self.logger.info('Validating MSA file.')
         msa_seqs = seq_io.read(msa_file)
-        assert(len(set(msa_seqs).symmetric_difference(taxonomy)) == 0)
+        assert(len(set(msa_seqs).symmetric_difference(tree_gids)) == 0)
         
         # validate that SSU file spans representatives
         self.logger.info('Validating SSU file.')
@@ -615,7 +640,7 @@ class WebsiteData(object):
                 self.logger.error(f'GTDB taxonomy is incorrect in SSU file: {gid}')
             ssu_seqs.add(seq_id)
         
-        assert(len(ssu_seqs.difference(taxonomy)) == 0)
+        assert(len(ssu_seqs.difference(tree_gids)) == 0)
         
         self.logger.info('Passed validation.')
                          
