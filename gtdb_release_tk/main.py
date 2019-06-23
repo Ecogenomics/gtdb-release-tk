@@ -34,7 +34,9 @@ from gtdb_release_tk.plots.genome_quality import GenomeQuality
 from gtdb_release_tk.plots.ncbi_compare import NCBI_Compare
 from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
 
+from gtdb_release_tk.tables.taxa_count import TaxaCount
 from gtdb_release_tk.tables.top_taxa import TopTaxa
+
 
 class OptionsParser():
     def __init__(self):
@@ -292,6 +294,7 @@ class OptionsParser():
         check_file_exists(options.bac120_msa_file)
         check_file_exists(options.ar122_msa_file)
         check_file_exists(options.ssu_fasta_file)
+        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = RepsPerRank(options.release_number, options.output_dir)
@@ -300,9 +303,23 @@ class OptionsParser():
                 options.bac120_msa_file,
                 options.ar122_msa_file,
                 options.ssu_fasta_file,
+                options.user_gid_table,
                 options.genomes_per_taxon,
                 options.min_ssu_len,
                 options.min_msa_perc)
+
+        self.logger.info('Done.')
+        
+    def taxa_count(self, options):
+        """Create table with number of taxa at each taxonomic rank."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar120_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = TaxaCount(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+                options.ar120_metadata_file)
 
         self.logger.info('Done.')
         
@@ -355,6 +372,8 @@ class OptionsParser():
             self.genome_quality(options)
         elif options.subparser_name == 'reps_per_rank':
             self.reps_per_rank(options)
+        elif options.subparser_name == 'taxa_count':
+            self.taxa_count(options)
         elif options.subparser_name == 'top_taxa':
             self.top_taxa(options)
         else:

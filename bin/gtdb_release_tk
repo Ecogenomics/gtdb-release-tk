@@ -85,7 +85,8 @@ def print_help():
       sp_rep_type           -> Pie chart indicating type information for the GTBD species representatives
       
     Tables:
-      top_taxa -> Create table with most abundant taxa at each taxonomic rank
+      taxa_count -> Create table with number of taxa at each taxonomic rank
+      top_taxa   -> Create table with most abundant taxa at each taxonomic rank
       
   Use: gtdb_release_tk <command> -h for command specific help.
 
@@ -339,12 +340,23 @@ if __name__ == '__main__':
     reps_per_rank_parser.add_argument('bac120_msa_file', help='filtered MSA for bacterial representative genomes')
     reps_per_rank_parser.add_argument('ar122_msa_file', help='filtered MSA for archaeal representative genomes')
     reps_per_rank_parser.add_argument('ssu_fasta_file', help='FASTA file with SSU sequences for all GTDB genomes')
+    reps_per_rank_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     reps_per_rank_parser.add_argument('release_number', help='release number (ex. 86)')
     reps_per_rank_parser.add_argument('output_dir', help='output directory')
     reps_per_rank_parser.add_argument('--genomes_per_taxon', help='genomes to sample from each taxon', type=int, default=1)
     reps_per_rank_parser.add_argument('--min_ssu_len', help='minimum length of 16S rRNA gene', type=int, default=900)
     reps_per_rank_parser.add_argument('--min_msa_perc', help='minimum percentage of amino acids in MSA', type=int, default=30)
     reps_per_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # create table with number of taxa at each taxonomic rank
+    taxa_count_parser = subparsers.add_parser('taxa_count',
+                                                formatter_class=CustomHelpFormatter,
+                                                description='Create table with number of taxa at each taxonomic rank.')
+    taxa_count_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    taxa_count_parser.add_argument('ar120_metadata_file', help='metadata for archaeal GTDB genomes')
+    taxa_count_parser.add_argument('release_number', help='release number (ex. 86)')
+    taxa_count_parser.add_argument('output_dir', help='output directory')
+    taxa_count_parser.add_argument('--silent', help="suppress output", action='store_true')
     
     # create table with most abundant taxa at each taxonomic rank
     top_taxa_parser = subparsers.add_parser('top_taxa',

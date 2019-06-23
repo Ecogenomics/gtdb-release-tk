@@ -26,6 +26,9 @@ from biolib.plots.abstract_plot import AbstractPlot
 
 from numpy import (arange as np_arange,
                     array as np_array)
+                    
+from gtdb_release_tk.common import (ENV_CATEGORIES,
+                                    sp_cluster_type_category)
 
 class GenomeCateogryPerRankPlot(AbstractPlot):
     """Box and whisker plot."""
@@ -132,19 +135,9 @@ class GenomeCategoryPerRank(object):
                             sum([len(gids) for gids in sp_clusters.values()])))
                             
         # determine genome types in each species cluster
-        env_categories = set(['derived from single cell',
-                                'derived from metagenome', 
-                                'derived from environmental_sample'])
-        sp_genome_types = defaultdict(set)
+        sp_genome_types = {}
         for sp, gids in sp_clusters.items():
-            for gid in gids:
-                if genome_category[gid] in env_categories:
-                    sp_genome_types[sp].add('ENV')
-                elif genome_category[gid] == 'none':
-                    sp_genome_types[sp].add('ISOLATE')
-                else:
-                    self.logger.error('Unrecognized genome category: {genome_category[gid]}')
-                    sys.exit(-1)
+            sp_genome_types[sp] = sp_cluster_type_category(gids, genome_category)
                     
         # get species in each taxa
         sp_in_taxa = defaultdict(lambda: defaultdict(set))
@@ -153,7 +146,7 @@ class GenomeCategoryPerRank(object):
                 sp_in_taxa[rank_index][taxa[rank_index]].add(taxa[6])
                     
         # tabulate number of genome types at each rank
-        out_prefix = f'gtdb_r{self.release_number}_genome_types_per_rank'
+        out_prefix = f'gtdb_r{self.release_number}_genome_cateogry_per_rank'
         self.logger.info('Tabulating genomes types at each rank.')
         fout_count = open(self.output_dir / f'{out_prefix}.tsv', 'w')
         fout_count.write('Rank\tNo. taxa\tBoth\tIsolate\tEnvironmental\n')
@@ -177,7 +170,8 @@ class GenomeCategoryPerRank(object):
                 for sp in sp_in_taxa[rank_index][taxon]:
                     taxon_categories.update(sp_genome_types[sp])
                     
-                if 'ENV' in taxon_categories and 'ISOLATE' in taxon_categories:
+                if (('ENV' in taxon_categories and 'ISOLATE' in taxon_categories)
+                    or 'BOTH' in taxon_categories):
                     both.add(taxon)
                 elif 'ISOLATE' in taxon_categories:
                     isolate.add(taxon)
@@ -203,8 +197,8 @@ class GenomeCategoryPerRank(object):
                                 Taxonomy.rank_labels[rank_index].capitalize(), 
                                 total_taxa))
         
-        isolate_genomes = sum([1 for c in genome_category.values() if c not in env_categories])
-        env_genomes = sum([1 for c in genome_category.values() if c in env_categories])
+        isolate_genomes = sum([1 for c in genome_category.values() if c not in ENV_CATEGORIES])
+        env_genomes = sum([1 for c in genome_category.values() if c in ENV_CATEGORIES])
         fout_count.write('Genomes\t{}\t{}\t{}\t{}\n'.format(
                             len(genome_category),
                             0,

@@ -1,7 +1,37 @@
-
 import os
 import sys
 
+
+ENV_CATEGORIES = set(['derived from single cell',
+                        'derived from metagenome', 
+                        'derived from environmental_sample'])
+                        
+
+def sp_cluster_type_category(gids, genome_category):
+    """Determine genome types in each species cluster."""
+    
+    sp_genome_types = set()
+    for gid in gids:
+        if genome_category[gid] in ENV_CATEGORIES:
+            sp_genome_types.add('ENV')
+        elif genome_category[gid] == 'none':
+            sp_genome_types.add('ISOLATE')
+        else:
+            print('Unrecognized genome category: {genome_category[gid]}')
+            sys.exit(-1)
+            
+    
+    if len(sp_genome_types) == 2:
+        category = 'BOTH'
+    elif list(sp_genome_types)[0] == 'ENV':
+        category = 'ENV'
+    elif list(sp_genome_types)[0] == 'ISOLATE':
+        category = 'ISOLATE'
+    else:
+        print(f'Error in sp_cluster_type_category: {sp_genome_types}')
+        sys.exit(-1)
+    
+    return category
 
 def parse_user_gid_table(user_gid_table):
     """Parse user genome ID table."""

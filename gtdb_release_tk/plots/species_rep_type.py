@@ -26,6 +26,10 @@ from biolib.plots.abstract_plot import AbstractPlot
 
 from numpy import (arange as np_arange,
                     array as np_array)
+                    
+from gtdb_release_tk.common import (ENV_CATEGORIES,
+                                    sp_cluster_type_category)
+
 
 class SpeciesRepTypePlot(AbstractPlot):
     """Pie plot."""
@@ -34,29 +38,78 @@ class SpeciesRepTypePlot(AbstractPlot):
         """Initialize."""
         AbstractPlot.__init__(self, options)
 
-    def plot(self, type_strain, latinized, placeholder):
+    def plot(self, type_strain_categories,
+                    latinized_categories,
+                    placeholder_categories):
         """Create pie chart."""
         
         self.fig.clear()
         self.fig.set_size_inches(self.options.width, self.options.height)
         axis = self.fig.add_subplot(111)
         
-        labels = ['Type strain', 'Latin name\n(no type strain)', 'Placeholder']
-        sizes = [type_strain, latinized, placeholder]
-        colors = ['#80b1d3', '#fdae6b', '#b3de69']
+        # plot inner donut with number of species comprised of
+        # just isolates, just MAGs/SAGs, or a mix of isolates 
+        # and MAGs/SAGs
+        sizes = []
+        colors = []
+        for c in [type_strain_categories, latinized_categories, placeholder_categories]:
+            sizes.append(c.get('ENV', 0))
+            colors.append('#b3de69')
+            
+            sizes.append(c.get('ISOLATE', 0))
+            colors.append('#fdae6b')
 
-        wedgeprops = {'linewidth': 1, 'edgecolor': 'white'}
+            sizes.append(c.get('BOTH', 0))
+            colors.append('#80b1d3')
+            
+        wedgeprops = {'linewidth': 1, 
+                        'edgecolor': 'white',
+                        'width': 0.6}
+        patches, texts = axis.pie(sizes, 
+                                    shadow=False, 
+                                    startangle=90,
+                                    colors=colors,
+                                    wedgeprops=wedgeprops)
+        axis.axis('equal')
+        
+        axis.legend(patches, 
+                        ('Exclusively MAGs and/or SAGs', 
+                        'Exclusively isolates', 
+                        'Isolate and environmental genomes'),
+                        fontsize=self.options.label_font_size,
+                        loc='upper left', 
+                        bbox_to_anchor=(1, 1),
+                        frameon=False)
+        
+        # plot donut with number of type strain, latinized, and
+        # placeholder species clusters
+        num_type_stain = sum(type_strain_categories.values())
+        num_lainized = sum(latinized_categories.values())
+        num_placeholder = sum(placeholder_categories.values())
+        
+        labels = [f'Type strain\n({num_type_stain:,})', 
+                    f'Latin, no type strain\n({num_lainized:,})', 
+                    f'Placeholder\n ({num_placeholder:,})']
+        sizes = [num_type_stain, 
+                num_lainized, 
+                num_placeholder]
+        colors = ['#fb8072', '#bebada', '#8dd3c7']
+
+        wedgeprops = {'linewidth': 1, 
+                        'edgecolor': 'white',
+                        'width': 0.4}
         textprops  = {'fontsize': self.options.label_font_size}
         axis.pie(sizes, 
                 labels=labels, 
-                autopct='%1.1f%%', 
+                autopct='%1.1f%%',
+                pctdistance=0.8,
                 shadow=False, 
                 startangle=90,
                 colors=colors,
-                wedgeprops=wedgeprops)
-        axis.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+                wedgeprops=wedgeprops,
+                textprops=textprops)
+        axis.axis('equal')
 
-        #self.fig.tight_layout(pad=1.0, w_pad=0.1, h_pad=0.1)
         self.draw()
 
 
@@ -102,6 +155,8 @@ class SpeciesRepType(object):
         self.logger.info('Reading GTDB metadata.')
         gtdb_taxonomy = {}
         type_strain = set()
+        genome_category = {}
+        sp_clusters = defaultdict(set)
         for mf in [bac120_metadata_file, ar120_metadata_file]:
             with open(mf, encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
@@ -109,11 +164,17 @@ class SpeciesRepType(object):
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
                 gtdb_type_index = header.index('gtdb_type_designation')
                 gtdb_rep_index = header.index('gtdb_representative')
+                gtdb_genome_rep_index = header.index('gtdb_genome_representative')
+                genome_category_index = header.index('ncbi_genome_category')
 
                 for line in f:
                     line_split = line.strip().split('\t')
                     
                     gid = line_split[0]
+                    
+                    gtdb_genome_rep = line_split[gtdb_genome_rep_index]
+                    sp_clusters[gtdb_genome_rep].add(gid)
+                    genome_category[gid] = line_split[genome_category_index]
 
                     gtdb_rep = line_split[gtdb_rep_index]
                     if gtdb_rep != 't':
@@ -130,8 +191,14 @@ class SpeciesRepType(object):
                         type_strain.add(gid)
 
         self.logger.info(' ...identified {:,} GTDB species representatives.'.format(len(gtdb_taxonomy)))
+        
+        # determine genome types in each species cluster
+        sp_type_category = {}
+        for rid, gids in sp_clusters.items():
+            sp_type_category[rid] = sp_cluster_type_category(gids, genome_category)
                             
-        # determing type information for GTDB representatives
+        # determine type information for GTDB representatives,
+        # and genome type category (isolate, MAG/SAG)
         out_prefix = f'gtdb_r{self.release_number}_sp_rep_type'
         if domain == 'Bacteria':
             out_prefix += '.bacteria'
@@ -142,22 +209,22 @@ class SpeciesRepType(object):
         fout = open(self.output_dir / f'{out_prefix}.tsv', 'w')
         fout.write('Genome ID\tGTDB taxonomy\tGTDB species\tClassification\n')
 
-        num_type_strain = 0
-        num_latinized = 0
-        num_placeholder = 0
+        type_strain_categories = defaultdict(int)
+        latinized_categories = defaultdict(int)
+        placeholder_categories = defaultdict(int)
         for gid, taxa in gtdb_taxonomy.items():
             gtdb_sp = taxa[6]
             fout.write('{}\t{}\t{}'.format(gid, ';'.join(taxa), gtdb_sp))
             
             if gid in type_strain:
-                num_type_strain += 1
                 fout.write('\ttype strain of species')
+                type_strain_categories[sp_type_category[gid]] += 1
             elif self.latinized_species(gtdb_sp):
-                num_latinized += 1
                 fout.write('\tLatinized, not type strain')
+                latinized_categories[sp_type_category[gid]] += 1
             else:
-                num_placeholder += 1
                 fout.write('\tplaceholder')
+                placeholder_categories[sp_type_category[gid]] += 1
                 
             fout.write('\n')
 
@@ -165,13 +232,15 @@ class SpeciesRepType(object):
         
         # create plot
         self.logger.info('Creating plot.')
-        options = AbstractPlot.Options(width=2.5, 
-                                        height=2.5, 
+        options = AbstractPlot.Options(width=3, 
+                                        height=3, 
                                         label_font_size=7, 
                                         tick_font_size=6, 
                                         dpi=600)
         plot = SpeciesRepTypePlot(options)
-        plot.plot(num_type_strain, num_latinized, num_placeholder)
+        plot.plot(type_strain_categories,
+                    latinized_categories,
+                    placeholder_categories)
         
         plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
         plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
