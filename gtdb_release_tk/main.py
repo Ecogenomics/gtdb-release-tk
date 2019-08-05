@@ -226,7 +226,8 @@ class OptionsParser():
 
         p = NomenclaturalPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file)
+                options.ar120_metadata_file,
+                options.domain)
 
         self.logger.info('Done.')
         
@@ -269,7 +270,9 @@ class OptionsParser():
         p = GenomicStats(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
                 options.ar120_metadata_file,
-                options.all_genomes)
+                options.all_genomes,
+                options.width,
+                options.height)
 
         self.logger.info('Done.')
         

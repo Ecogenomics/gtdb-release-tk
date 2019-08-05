@@ -106,6 +106,11 @@ class TopTaxa(object):
         fout.write(htmlcode)
         fout.close()
         
+        fout = open(self.output_dir / f'{out_prefix}.tsv','w')
+        for row in table_data:
+            fout.write('\t'.join(row) +'\n')
+        fout.close()
+        
         # count number of genome for each taxon
         ranked_genome_count = defaultdict(list)
         for rank in range(7):
@@ -144,5 +149,10 @@ class TopTaxa(object):
                                 col_styles=['font-size: small']*len(table_data[0]),
                                 cellpadding=4)
         fout.write(htmlcode)
+        fout.close()
+        
+        fout = open(self.output_dir / f'{out_prefix}.tsv','w')
+        for row in table_data:
+            fout.write('\t'.join(row) +'\n')
         fout.close()
       

@@ -226,7 +226,9 @@ class GenomicStats(object):
     def run(self, 
                 bac120_metadata_file,
                 ar120_metadata_file,
-                all_genomes):
+                all_genomes,
+                width,
+                height):
         """Plot of common genomic statistics."""
 
         # get genome metadata
@@ -234,8 +236,8 @@ class GenomicStats(object):
         metadata = self.read_metadata(bac120_metadata_file, ar120_metadata_file)
         
         # create plot for each genomic statistic
-        options = AbstractPlot.Options(width=6.5, 
-                                        height=4, 
+        options = AbstractPlot.Options(width=width, 
+                                        height=height, 
                                         label_font_size=7, 
                                         tick_font_size=6, 
                                         dpi=600)
@@ -248,7 +250,6 @@ class GenomicStats(object):
             ylabel = 'Species'
             out_prefix = f'gtdb_r{self.release_number}_genomic_stats.species'
             
-        
         table_data = []
         table_data.append(('', 
                             'Median', 
@@ -343,7 +344,7 @@ class GenomicStats(object):
         # write out table
         fout = open(self.output_dir / f'{out_prefix}.tsv','w')
         for row in table_data:
-            fout.write('{}\n'.format('\t'.join(table_data[0])))
+            fout.write('{}\n'.format('\t'.join(row)))
         fout.close()
         
         fout = open(self.output_dir / f'{out_prefix}.html','w')

@@ -157,6 +157,9 @@ class NCBI_Compare(object):
         plot_passive = []
         plot_active = []
         plot_labels = []
+        active_change = set()
+        active_change_no_species = set()
+        active_or_passive_change = set()
         for rank_index in range(1, 7):
             fout.write(Taxonomy.rank_labels[rank_index])
             
@@ -173,14 +176,20 @@ class NCBI_Compare(object):
                 elif ncbi_taxon == Taxonomy.rank_prefixes[rank_index]:
                     passive += 1
                     classification = 'passive change'
+                    active_or_passive_change.add(gid)
                 else:
                     active += 1
                     classification = 'active change'
+                    active_change.add(gid)
+                    active_or_passive_change.add(gid)
+                    
+                    if rank_index != 6:
+                        active_change_no_species.add(gid)
                     
                 fout_taxon.write(f'{gid}\t{ncbi_taxon}\t{gtdb_taxon}\t{classification}\n')
 
             total_taxa = unchanged + passive + active
-            fout.write(f'\t{total_taxa}\t{unchanged}\t{gtdb_taxon}\t{active}\n')
+            fout.write(f'\t{total_taxa}\t{unchanged}\t{active}\n')
             
             plot_unchanged.append(unchanged*100.0/total_taxa)
             plot_passive.append(passive*100.0/total_taxa)
@@ -195,6 +204,10 @@ class NCBI_Compare(object):
             
         fout.close()
         fout_taxon.close()
+        
+        self.logger.info(f'Identified {len(active_change_no_species):,} genomes with one or more active changes above the rank of species.')
+        self.logger.info(f'Identified {len(active_change):,} genomes with one or more active changes.')
+        self.logger.info(f'Identified {len(active_or_passive_change):,} genomes with one or more active or passive changes.')
         
         # create plot
         self.logger.info('Creating plot.')

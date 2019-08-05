@@ -109,7 +109,7 @@ class NomenclaturalPerRank(object):
             
         return all(c.islower() for c in specific)
         
-    def run(self, bac120_metadata_file, ar120_metadata_file):
+    def run(self, bac120_metadata_file, ar120_metadata_file, domain):
         """Plot nomenclatural status of species for each taxonomic rank."""
         
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -128,28 +128,22 @@ class NomenclaturalPerRank(object):
                     line_split = line.strip().split('\t')
                     
                     gid = line_split[0]
-                    
-                    taxonomy = line_split[ncbi_taxonomy_index]
-                    if taxonomy and taxonomy != 'none':
-                        ncbi_taxa = [t.strip() for t in taxonomy.split(';')]
-                        ncbi_taxonomy[gid] = ncbi_taxa
-  
+
                     gtdb_rep = line_split[gtdb_rep_index]
                     if gtdb_rep != 't':
                         continue
                         
                     taxonomy = line_split[gtdb_taxonomy_index]
                     gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
-                    gtdb_taxonomy[gid] = gtdb_taxa
+
+                    gtdb_domain = gtdb_taxa[0]
+                    if domain == 'Both' or domain in gtdb_domain:
+   
+                        gtdb_taxonomy[gid] = gtdb_taxa
 
         self.logger.info(' ...identified {:,} representative genomes.'.format(len(gtdb_taxonomy)))
-                            
-        # get NCBI and GTDB taxa at each rank
-        ncbi_taxa_at_rank = defaultdict(set)
-        for taxa in ncbi_taxonomy.values():
-            for rank, taxon in enumerate(taxa):
-                ncbi_taxa_at_rank[rank].add(taxon)
-                
+
+        # get GTDB taxa at each rank
         gtdb_taxa_at_rank = defaultdict(set)
         for taxa in gtdb_taxonomy.values():
             for rank, taxon in enumerate(taxa):

@@ -821,6 +821,7 @@ class WebsiteData(object):
                 to_pop.append(k)
             elif keep_placeholder_name == True and self.hasNumber(results_dict[k]['genomes'][0][0]) == True and k == rank + "__":
                 to_pop.append(k)
+
         for k in to_pop:
             results_dict.pop(k)
 
@@ -836,8 +837,9 @@ class WebsiteData(object):
 
             results = []
 
-            if len(v.get("genomes")) == 1 and v.get("genomes")[0][0] == k:
-                continue
+            # Pierre: unclear why we wouldn't report this case
+            #***if len(v.get("genomes")) == 1 and v.get("genomes")[0][0] == k:
+            #***    continue
 
             for newg in v.get("genomes"):
                 newg_name = newg[0]

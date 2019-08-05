@@ -28,6 +28,7 @@ from numpy import (arange as np_arange,
                     array as np_array)
                     
 from gtdb_release_tk.common import (ENV_CATEGORIES,
+                                    canonical_taxon_name,
                                     sp_cluster_type_category)
 
 class GenomeCateogryPerRankPlot(AbstractPlot):
@@ -143,10 +144,14 @@ class GenomeCategoryPerRank(object):
         sp_in_taxa = defaultdict(lambda: defaultdict(set))
         for taxa in gtdb_taxonomy.values():
             for rank_index in range(1, 7):
-                sp_in_taxa[rank_index][taxa[rank_index]].add(taxa[6])
+                cur_taxon = taxa[rank_index]
+                if rank_index < 5:
+                    # canonicalize names above genus
+                    cur_taxon = canonical_taxon_name(cur_taxon)
+                sp_in_taxa[rank_index][cur_taxon].add(taxa[6])
                     
         # tabulate number of genome types at each rank
-        out_prefix = f'gtdb_r{self.release_number}_genome_cateogry_per_rank'
+        out_prefix = f'gtdb_r{self.release_number}_genome_category_per_rank'
         self.logger.info('Tabulating genomes types at each rank.')
         fout_count = open(self.output_dir / f'{out_prefix}.tsv', 'w')
         fout_count.write('Rank\tNo. taxa\tBoth\tIsolate\tEnvironmental\n')
@@ -168,7 +173,7 @@ class GenomeCategoryPerRank(object):
             for taxon in sp_in_taxa[rank_index]:
                 taxon_categories = set()
                 for sp in sp_in_taxa[rank_index][taxon]:
-                    taxon_categories.update(sp_genome_types[sp])
+                    taxon_categories.add(sp_genome_types[sp])
                     
                 if (('ENV' in taxon_categories and 'ISOLATE' in taxon_categories)
                     or 'BOTH' in taxon_categories):
@@ -178,7 +183,7 @@ class GenomeCategoryPerRank(object):
                 elif 'ENV' in taxon_categories:
                     env.add(taxon)
                 else:
-                    self.logger.error('Genomes in species have an unassigned category.')
+                    self.logger.error(f'Genomes in species have an unassigned category: {taxon_categories}')
                     sys.exit(-1)
                 
             total_taxa = len(both) + len(isolate) + len(env)

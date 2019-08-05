@@ -268,6 +268,8 @@ if __name__ == '__main__':
     genomic_stats_parser.add_argument('--all_genomes', 
                                         help='create plot over all genomes instead of all GTDB species representatives',
                                         action='store_true')
+    genomic_stats_parser.add_argument('--width', help='width of plot (inches)', type=float, default=6.5)
+    genomic_stats_parser.add_argument('--height', help='height of plot (inches)', type=float, default=4)
     genomic_stats_parser.add_argument('--silent', help="suppress output", action='store_true')
     
     # scatter plot showing quality of GTDB representative genomes
@@ -298,6 +300,10 @@ if __name__ == '__main__':
     nomenclatural_rank_parser.add_argument('ar120_metadata_file', help='metadata for archaeal GTDB genomes')
     nomenclatural_rank_parser.add_argument('release_number', help='release number (ex. 86)')
     nomenclatural_rank_parser.add_argument('output_dir', help='output directory')
+    nomenclatural_rank_parser.add_argument('--domain', 
+                                        help='restrict plot to genomes from specified domain',
+                                        choices=['Both', 'Archaea', 'Bacteria'],
+                                        default='Both')
     nomenclatural_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # bar plot comparing GTDB and NCBI taxonomies

@@ -27,8 +27,7 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                     array as np_array)
                     
-from gtdb_release_tk.common import (ENV_CATEGORIES,
-                                    sp_cluster_type_category)
+from gtdb_release_tk.common import ENV_CATEGORIES
 
 
 class SpeciesRepTypePlot(AbstractPlot):
@@ -53,15 +52,16 @@ class SpeciesRepTypePlot(AbstractPlot):
         sizes = []
         colors = []
         for c in [type_strain_categories, latinized_categories, placeholder_categories]:
-            sizes.append(c.get('ENV', 0))
-            colors.append('#b3de69')
-            
             sizes.append(c.get('ISOLATE', 0))
             colors.append('#fdae6b')
-
-            sizes.append(c.get('BOTH', 0))
+            
+            sizes.append(c.get('MAG', 0))
+            colors.append('#b3de69')
+            
+            sizes.append(c.get('SAG', 0))
             colors.append('#80b1d3')
             
+
         wedgeprops = {'linewidth': 1, 
                         'edgecolor': 'white',
                         'width': 0.6}
@@ -73,13 +73,13 @@ class SpeciesRepTypePlot(AbstractPlot):
         axis.axis('equal')
         
         axis.legend(patches, 
-                        ('Exclusively MAGs and/or SAGs', 
-                        'Exclusively isolates', 
-                        'Isolate and environmental genomes'),
-                        fontsize=self.options.label_font_size,
-                        loc='upper left', 
-                        bbox_to_anchor=(1, 1),
-                        frameon=False)
+                        ('Isolate', 
+                            'MAG', 
+                            'SAG'),
+                            fontsize=self.options.label_font_size,
+                            loc='upper left', 
+                            bbox_to_anchor=(1, 1),
+                            frameon=False)
         
         # plot donut with number of type strain, latinized, and
         # placeholder species clusters
@@ -193,9 +193,19 @@ class SpeciesRepType(object):
         self.logger.info(' ...identified {:,} GTDB species representatives.'.format(len(gtdb_taxonomy)))
         
         # determine genome types in each species cluster
-        sp_type_category = {}
-        for rid, gids in sp_clusters.items():
-            sp_type_category[rid] = sp_cluster_type_category(gids, genome_category)
+        sp_genome_types = {}
+        for rid in sp_clusters:
+            if rid.startswith('UBA') or genome_category[rid] == 'derived from metagenome':
+                sp_genome_types[rid] = 'MAG'
+            elif genome_category[rid] == 'derived from environmental_sample':
+                sp_genome_types[rid] = 'MAG'
+            elif genome_category[rid] == 'derived from single cell':
+                sp_genome_types[rid] = 'SAG'
+            elif genome_category[rid] == 'none':
+                sp_genome_types[rid] = 'ISOLATE'
+            else:
+                print(f'Unrecognized genome category: {genome_category[rid]}')
+                sys.exit(-1)
                             
         # determine type information for GTDB representatives,
         # and genome type category (isolate, MAG/SAG)
@@ -218,13 +228,13 @@ class SpeciesRepType(object):
             
             if gid in type_strain:
                 fout.write('\ttype strain of species')
-                type_strain_categories[sp_type_category[gid]] += 1
+                type_strain_categories[sp_genome_types[gid]] += 1
             elif self.latinized_species(gtdb_sp):
                 fout.write('\tLatinized, not type strain')
-                latinized_categories[sp_type_category[gid]] += 1
+                latinized_categories[sp_genome_types[gid]] += 1
             else:
                 fout.write('\tplaceholder')
-                placeholder_categories[sp_type_category[gid]] += 1
+                placeholder_categories[sp_genome_types[gid]] += 1
                 
             fout.write('\n')
 

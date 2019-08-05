@@ -6,13 +6,22 @@ ENV_CATEGORIES = set(['derived from single cell',
                         'derived from metagenome', 
                         'derived from environmental_sample'])
                         
+                        
+def canonical_taxon_name(taxon):
+    """Get canonical version of taxon."""
+    
+    if '_' in taxon[3:]:
+        taxon = taxon[0:taxon.rfind('_')]
+        
+    return taxon
+    
 
 def sp_cluster_type_category(gids, genome_category):
     """Determine genome types in each species cluster."""
     
     sp_genome_types = set()
     for gid in gids:
-        if genome_category[gid] in ENV_CATEGORIES:
+        if gid.startswith('UBA') or genome_category[gid] in ENV_CATEGORIES:
             sp_genome_types.add('ENV')
         elif genome_category[gid] == 'none':
             sp_genome_types.add('ISOLATE')
@@ -32,6 +41,7 @@ def sp_cluster_type_category(gids, genome_category):
         sys.exit(-1)
     
     return category
+
 
 def parse_user_gid_table(user_gid_table):
     """Parse user genome ID table."""
