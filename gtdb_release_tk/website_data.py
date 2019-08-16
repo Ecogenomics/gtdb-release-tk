@@ -19,6 +19,7 @@ import os
 import sys
 import shutil
 import logging
+import ntpath
 from pathlib import Path, PurePath
 from collections import defaultdict
 from collections import Counter
@@ -644,11 +645,12 @@ class WebsiteData(object):
         
         self.logger.info('Passed validation.')
                          
-    def tax_comp_files(self, old_taxonomy, new_taxonomy, gid_table, keep_no_change, keep_placeholder_name, top_change):
+    def tax_comp_files(self, old_taxonomy, new_taxonomy, gid_table, changes_only, filter_placeholder_name, top_change):
 
-        gtogfile = open(os.path.join(
-            self.output_dir, 'genomes_summary.tsv'), "w")
-        gtogfile.write("genome_id\tfirst_taxonomy\tsecond_taxonomy\tstatus\n")
+        gtogfile = open(os.path.join(self.output_dir, 'genomes_summary.tsv'), "w")
+        old_taxonomy_name = os.path.splitext(ntpath.basename(old_taxonomy))[0]
+        new_taxonomy_name = os.path.splitext(ntpath.basename(new_taxonomy))[0]
+        gtogfile.write("genome_id\t{}\t{}\tstatus\n".format(old_taxonomy_name, new_taxonomy_name))
         for dom in ["d__Archaea", "d__Bacteria"]:
             tempdict = {}  # temporary dictionary for the information in old taxonomy
             olddict = {}
@@ -660,17 +662,25 @@ class WebsiteData(object):
 
             with open(gid_table, "r") as tax_map:
                 for line in tax_map:
-                    genes_id = line.strip('\n').split("\t")
-                    # IDs that start with U_
+                    genes_id = line.strip().split("\t")
+                    
                     u_id = genes_id[0]
-                    # IDs that start with GCA or GCF
-                    gc_id = genes_id[2]
-                    # delete GB or RS prefix to ensure id-consistency
-                    if gc_id.startswith("GB") or gc_id.startswith("RS"):
-                        gc_id = gc_id[3:]
-                    # map k, v of all id_mappings
-                    mapdict[gc_id] = u_id
-                    mapdict[u_id] = gc_id
+                    if len(genes_id) == 3:
+                        gc_id = genes_id[2]
+                        mapdict[gc_id] = u_id
+                        mapdict[u_id] = gc_id
+                        
+                        # delete GB or RS prefix to ensure id-consistency
+                        # depending on the format of the input file
+                        if gc_id.startswith("GB") or gc_id.startswith("RS"):
+                            gc_id = gc_id[3:]
+                            
+                        mapdict[gc_id] = u_id
+                        mapdict[u_id] = gc_id
+                    else:
+                        uba_id = genes_id[1]
+                        mapdict[uba_id] = u_id
+                        mapdict[u_id] = uba_id
 
             with open(new_taxonomy) as taxnew:
                 for line in taxnew:
@@ -742,20 +752,42 @@ class WebsiteData(object):
             self.genomebygenomecompare(olddict, newdict, gtogfile)
 
             print("- Analysis of phyla")
-            self.rundistrib(olddict, newdict, "p", os.path.join(self.output_dir, pref +
-                                                                "_phylum_difference.tsv"), "phylum", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "p", os.path.join(self.output_dir, 
+                                                                pref + "_phylum_difference.tsv"), 
+                                                                "Phylum", "Phyla",
+                                                                old_taxonomy_name, new_taxonomy_name,
+                                                                filter_placeholder_name, changes_only, top_change)
             print("- Analysis of classes")
-            self.rundistrib(olddict, newdict, "c", os.path.join(self.output_dir, pref +
-                                                                "_class_difference.tsv"), "class", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "c", os.path.join(self.output_dir, 
+                                                                pref + "_class_difference.tsv"), 
+                                                                "Class", "Classes",
+                                                                old_taxonomy_name, new_taxonomy_name,
+                                                                filter_placeholder_name, changes_only, top_change)
             print("- Analysis of orders")
-            self.rundistrib(olddict, newdict, "o", os.path.join(self.output_dir, pref +
-                                                                "_order_difference.tsv"), "order", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "o", os.path.join(self.output_dir, 
+                                                                pref +"_order_difference.tsv"), 
+                                                                "Order", "Orders",
+                                                                old_taxonomy_name, new_taxonomy_name,
+                                                                filter_placeholder_name, changes_only, top_change)
             print("- Analysis of families")
-            self.rundistrib(olddict, newdict, "f", os.path.join(self.output_dir, pref +
-                                                                "_family_difference.tsv"), "family", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "f", os.path.join(self.output_dir, 
+                                                                pref + "_family_difference.tsv"), 
+                                                                "Family", "Families",
+                                                                old_taxonomy_name, new_taxonomy_name,
+                                                                filter_placeholder_name, changes_only, top_change)
             print("- Analysis of genera")
-            self.rundistrib(olddict, newdict, "g", os.path.join(self.output_dir, pref +
-                                                                "_genus_difference.tsv"), "genus", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "g", os.path.join(self.output_dir, 
+                                                                pref + "_genus_difference.tsv"), 
+                                                                "Genus", "Genera",
+                                                                old_taxonomy_name, new_taxonomy_name,
+                                                                filter_placeholder_name, changes_only, top_change)
+                     
+            print("- Analysis of species")
+            self.rundistrib(olddict, newdict, "s", os.path.join(self.output_dir,
+                                                                pref + "_species_difference.tsv"), 
+                                                                "Species", "Species",
+                                                                old_taxonomy_name, new_taxonomy_name,
+                                                                filter_placeholder_name, changes_only, top_change)
 
         gtogfile.close()
         
@@ -783,16 +815,28 @@ class WebsiteData(object):
                 gtogfile.write("{0}\t{1}\tnot_available\t\n".format(
                     k, olddict.get(k).get('full')))
 
-    def rundistrib(self, olddict, newdict, rank, outfile, ref, keep_placeholder_name, keep_no_change, top_change):
+    def rundistrib(self, 
+                    olddict, newdict, 
+                    rank, 
+                    outfile, 
+                    rank_label, plural_rank_label, 
+                    old_taxonomy_name, new_taxonomy_name,
+                    filter_placeholder_name, 
+                    changes_only, 
+                    top_change):
+        """Compare taxa in a pair of taxonomies."""
+        
         orderrank = ["d", "p", "c", 'o', 'f', 'g', 's']
-        different_ranks = []
+       
         # take the different ranks in the dictionaries and then count the appearances of each pair
         # of ranks ie. (p__Fusobacteria, p_Fusobacteriota),200
+        different_ranks = []
         for k, v in newdict.items():
             if k in olddict:
                 different_ranks.append((olddict.get(k).get(rank), v.get(rank)))
         order_counter = Counter(different_ranks).most_common()
         results_dict = {}
+        
         """create a dictionary with the name of the rank in olddict as key and the number of 
         genomes belonging to that rank encountered, along with different rank names on newdict
         for those genomes and how many times the different names appear."""
@@ -815,19 +859,25 @@ class WebsiteData(object):
                 else:
                     results_dict[k]['genomes'] = [
                         results_dict[k]['genomes'][0]]
-            if keep_no_change == True and k == results_dict[k]['genomes'][0][0] and results_dict[k]['nber_g'] == results_dict[k]['genomes'][0][1]:
+                        
+            if changes_only and k == results_dict[k]['genomes'][0][0] and results_dict[k]['nber_g'] == results_dict[k]['genomes'][0][1]:
                 to_pop.append(k)
-            if keep_placeholder_name == True and self.hasNumber(k) == True and results_dict[k]['genomes'][0][0] == rank + "__":
+            if filter_placeholder_name and self.hasNumber(k) == True and results_dict[k]['genomes'][0][0] == rank + "__":
                 to_pop.append(k)
-            elif keep_placeholder_name == True and self.hasNumber(results_dict[k]['genomes'][0][0]) == True and k == rank + "__":
+            elif filter_placeholder_name and self.hasNumber(results_dict[k]['genomes'][0][0]) == True and k == rank + "__":
                 to_pop.append(k)
+                
+        self.logger.info('Removed {} taxa from tables based on filtering parameters.'.format(len(to_pop)))
 
         for k in to_pop:
             results_dict.pop(k)
 
         outf = open(outfile, "w")
-        outf.write(
-            "Previous {0}\tNumber of genomes\tNumber of new {0}\tList of new {0}\n".format(ref))
+        outf.write("{0} {1}\tNo. genomes\tNo. {2} {3}\t{2} {3}\n".format(
+                        old_taxonomy_name, 
+                        rank_label,
+                        new_taxonomy_name,
+                        plural_rank_label))
         for k, v in results_dict.items():
             for sk, sv in olddict.items():
                 if sv.get(rank) == k:
@@ -836,11 +886,6 @@ class WebsiteData(object):
             number_sub = len(v.get("genomes"))
 
             results = []
-
-            # Pierre: unclear why we wouldn't report this case
-            #***if len(v.get("genomes")) == 1 and v.get("genomes")[0][0] == k:
-            #***    continue
-
             for newg in v.get("genomes"):
                 newg_name = newg[0]
                 newg_numb = float(newg[1])
@@ -848,9 +893,13 @@ class WebsiteData(object):
                     if sv.get(rank) == newg_name:
                         pranknew = sv.get(orderrank[orderrank.index(rank) - 1])
                         break
+                        
                 res = newg_name
-                if prankold != pranknew:
-                    res = res + "(" + pranknew + ")"
+                if not newg_name.startswith('s__') or newg_name == 's__':
+                    # report parent taxa, except at the rank of species unless the species
+                    # name (and hence genus) is unspecified
+                    if prankold.replace('Candidatus ', '') != pranknew.replace('Candidatus ', ''):
+                        res = res + "(" + pranknew + ")"
                 res = "{0} {1}%".format(res, round(
                     (newg_numb / v.get("nber_g")) * 100, 2))
                 results.append(res)
