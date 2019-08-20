@@ -233,11 +233,11 @@ if __name__ == '__main__':
     tax_comp_parser.add_argument(
         '--user_gid_table', help="table indicate NCBI accession and UBA IDs for user genomes")
     tax_comp_parser.add_argument(
-        '--keep_no_change', help="keep all ranks regardless of whether they are the same in both taxonomies", action='store_false', default='store_true')
+        '--changes_only', help="only report that differ between the two taxonomies", action='store_true')
     tax_comp_parser.add_argument(
-        '--keep_placeholder_name', help='keep ranks that have a placeholder name->no name in the taxonomies', action='store_false', default='store_true')
+        '--filter_placeholder_name', help='remove taxa that have a placeholder name -> no name mapping between the two taxonomies', action='store_true')
     tax_comp_parser.add_argument(
-        '--top_change', help='keep only top change', action='store_true', default='store_false')
+        '--top_change', help='keep only top change', action='store_true')
     tax_comp_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 

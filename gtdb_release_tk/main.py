@@ -188,8 +188,8 @@ class OptionsParser():
         p.tax_comp_files(options.reference_taxonomy_file,
                          options.new_taxonomy_file,
                          options.user_gid_table,
-                         options.keep_no_change,
-                         options.keep_placeholder_name,
+                         options.changes_only,
+                         options.filter_placeholder_name,
                          options.top_change)
 
         self.logger.info('Done.')
