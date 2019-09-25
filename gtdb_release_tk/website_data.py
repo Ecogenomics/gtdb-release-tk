@@ -318,7 +318,7 @@ class WebsiteData(object):
             mean_ani_index = header.index('Mean ANI')
             min_ani_index = header.index('Min ANI')
             mean_af_index = header.index('Mean AF')
-            min_ani_index = header.index('Min AF')
+            min_af_index = header.index('Min AF')
             clustered_genomes_index = header.index('Clustered genomes')
 
             for line in f:
@@ -332,7 +332,7 @@ class WebsiteData(object):
                 mean_ani = line_split[mean_ani_index]
                 min_ani = line_split[min_ani_index]
                 mean_af = line_split[mean_af_index]
-                min_af = line_split[min_ani_index]
+                min_af = line_split[min_af_index]
 
                 clustered_genomes = set([type_genome])
                 if cluster_size > 0:
@@ -355,9 +355,10 @@ class WebsiteData(object):
         fout.close()
 
     def tree_files(self,
-                   bac_tree,
-                   ar_tree,
-                   user_gid_table):
+                    metadata_file,
+                    bac_tree,
+                    ar_tree,
+                    user_gid_table):
         """Generate tree files spanning representative genomes."""
 
         # parse user genome ID mapping table
@@ -372,6 +373,7 @@ class WebsiteData(object):
                                                preserve_underscores=True)
         self.logger.info(' ...tree contains {:,} genomes.'.format(
             sum([1 for leaf in bac_tree.leaf_node_iter()])))
+            
 
         for leaf in bac_tree.leaf_node_iter():
             gid = leaf.taxon.label
@@ -401,6 +403,27 @@ class WebsiteData(object):
                               schema='newick',
                               suppress_rooting=True,
                               unquoted_underscores=True)
+                              
+        # create trees with species assignments as terminal labels
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        gtdb_reps = parse_rep_genomes(metadata_file, user_gids)
+        self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
+            sum([1 for t in gtdb_reps.values()]),
+            sum([1 for t in gtdb_reps.values() if t[0] == 'd__Bacteria']),
+            sum([1 for t in gtdb_reps.values() if t[0] == 'd__Archaea'])))
+            
+        self.logger.info('Creating trees with species labels.')
+        for domain_tree, output_tree in [(bac_tree, f'bac120_r{self.release_number}.sp_labels.tree'),
+                                        (ar_tree, f'ar122_r{self.release_number}.sp_labels.tree')]:
+            for leaf in domain_tree.leaf_node_iter():
+                gid = leaf.taxon.label
+                gtdb_sp = gtdb_reps[gid][6]
+                leaf.taxon.label = gtdb_sp
+                
+            domain_tree.write_to_path(self.output_dir / output_tree,
+                                   schema='newick',
+                                   suppress_rooting=True,
+                                   unquoted_underscores=True)
                               
     def marker_files(self, bac120_gene_dir,
                             ar122_gene_dir,
