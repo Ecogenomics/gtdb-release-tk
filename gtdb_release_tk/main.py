@@ -26,6 +26,7 @@ from biolib.common import check_file_exists, make_sure_path_exists, check_dir_ex
 
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
+from gtdb_release_tk.itol import iTOL
 
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
 from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
@@ -62,15 +63,17 @@ class OptionsParser():
     def tree_files(self, options):
         """Generate tree files spanning representative genomes."""
 
+        check_file_exists(options.metadata_file)
         check_file_exists(options.bac_tree)
         check_file_exists(options.ar_tree)
         check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
-        p.tree_files(options.bac_tree,
-                     options.ar_tree,
-                     options.user_gid_table)
+        p.tree_files(options.metadata_file,
+                        options.bac_tree,
+                        options.ar_tree,
+                        options.user_gid_table)
 
         self.logger.info('Done.')
 
@@ -208,12 +211,12 @@ class OptionsParser():
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = GenomeCategoryPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file)
+                options.ar122_metadata_file)
 
         self.logger.info('Done.')
         
@@ -221,12 +224,12 @@ class OptionsParser():
         """Plot nomenclatural status of species for each taxonomic rank."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = NomenclaturalPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file,
+                options.ar122_metadata_file,
                 options.domain)
 
         self.logger.info('Done.')
@@ -235,12 +238,12 @@ class OptionsParser():
         """Bar plot comparing GTDB and NCBI taxonomies."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = NCBI_Compare(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file,
+                options.ar122_metadata_file,
                 options.all_genomes,
                 options.domain)
 
@@ -250,13 +253,26 @@ class OptionsParser():
         """Pie chart indicating type information for the GTBD species representatives."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = SpeciesRepType(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file,
+                options.ar122_metadata_file,
                 options.domain)
+
+        self.logger.info('Done.')
+        
+    def itol(self, options):
+        """Generate tree and iTOL files for producing iTOL tree image."""
+
+        check_file_exists(options.bac120_tree)
+        check_file_exists(options.ar122_tree)
+        make_sure_path_exists(options.output_dir)
+
+        p = iTOL(options.release_number, options.output_dir)
+        p.run(options.bac120_tree,
+                options.ar122_tree)
 
         self.logger.info('Done.')
         
@@ -264,12 +280,12 @@ class OptionsParser():
         """Plot of common genomic statistics."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = GenomicStats(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file,
+                options.ar122_metadata_file,
                 options.all_genomes,
                 options.width,
                 options.height)
@@ -280,12 +296,12 @@ class OptionsParser():
         """Scatter plot showing quality of GTDB representative genomes."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = GenomeQuality(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file)
+                options.ar122_metadata_file)
 
         self.logger.info('Done.')
 
@@ -293,7 +309,7 @@ class OptionsParser():
         """Select representative genomes at each taxonomic rank."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         check_file_exists(options.bac120_msa_file)
         check_file_exists(options.ar122_msa_file)
         check_file_exists(options.ssu_fasta_file)
@@ -302,7 +318,7 @@ class OptionsParser():
 
         p = RepsPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file,
+                options.ar122_metadata_file,
                 options.bac120_msa_file,
                 options.ar122_msa_file,
                 options.ssu_fasta_file,
@@ -317,12 +333,12 @@ class OptionsParser():
         """Create table with number of taxa at each taxonomic rank."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
         p = TaxaCount(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-                options.ar120_metadata_file)
+                options.ar122_metadata_file)
 
         self.logger.info('Done.')
         
@@ -365,6 +381,8 @@ class OptionsParser():
             self.ncbi_compare(options)
         elif options.subparser_name == 'sp_rep_type':
             self.sp_rep_type(options)
+        elif options.subparser_name == 'itol':
+            self.itol(options)
         elif options.subparser_name == 'tax_comp_files':
             self.tax_comp_files(options)
         elif options.subparser_name == 'json_tree_parser':
