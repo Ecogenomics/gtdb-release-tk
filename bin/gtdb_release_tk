@@ -89,6 +89,12 @@ def print_help():
       taxa_count -> Create table with number of taxa at each taxonomic rank
       top_taxa   -> Create table with most abundant taxa at each taxonomic rank
       
+    Meta-database:
+      lpsn       -> Process steps for LPSN.
+      bacdive    -> Process steps for BacDive.
+      datatools  -> Set of tools to combined information from LPSN,DSMZ and Straininfo.
+      
+      
   Use: gtdb_release_tk <command> -h for command specific help.
 
   Feature requests or bug reports can be sent to Donovan Parks (donovan.parks@gmail.com)
@@ -175,53 +181,77 @@ if __name__ == '__main__':
         '--min_contig_len', help="minimum contig length", type=int, default=0)
     ssu_files_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
-        
+
     # generate marker gene file
     marker_files_parser = subparsers.add_parser('marker_files',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate marker gene file.')
-    marker_files_parser.add_argument('bac120_gene_dir', help='directory with individual bacterial marker gene files')
-    marker_files_parser.add_argument('ar122_gene_dir', help='directory with individual archaeal marker gene files')
-    marker_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    marker_files_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                formatter_class=CustomHelpFormatter,
+                                                description='Generate marker gene file.')
+    marker_files_parser.add_argument(
+        'bac120_gene_dir', help='directory with individual bacterial marker gene files')
+    marker_files_parser.add_argument(
+        'ar122_gene_dir', help='directory with individual archaeal marker gene files')
+    marker_files_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    marker_files_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     marker_files_parser.add_argument('output_dir', help="output directory")
-    marker_files_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    marker_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # generate concatenated MSA files
     msa_files_parser = subparsers.add_parser('msa_files',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate concatenated MSA files.')
-    msa_files_parser.add_argument('bac120_msa_file', help='MSA for bacterial representative genomes')
-    msa_files_parser.add_argument('ar122_msa_file', help='MSA for archaeal representative genomes')
-    msa_files_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
-    msa_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    msa_files_parser.add_argument('release_number', help='release number (ex. 86)')
+                                             formatter_class=CustomHelpFormatter,
+                                             description='Generate concatenated MSA files.')
+    msa_files_parser.add_argument(
+        'bac120_msa_file', help='MSA for bacterial representative genomes')
+    msa_files_parser.add_argument(
+        'ar122_msa_file', help='MSA for archaeal representative genomes')
+    msa_files_parser.add_argument(
+        'metadata_file', help='file indicating metadata of each genome')
+    msa_files_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    msa_files_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     msa_files_parser.add_argument('output_dir', help="output directory")
-    msa_files_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    msa_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # generate GTDB metadata files
     metadata_files_parser = subparsers.add_parser('metadata_files',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate GTDB metadata files.')
-    metadata_files_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
-    metadata_files_parser.add_argument('metadata_fields', help='file indicating GTDB metadata fileds to retain')
-    metadata_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    metadata_files_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    metadata_files_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                  formatter_class=CustomHelpFormatter,
+                                                  description='Generate GTDB metadata files.')
+    metadata_files_parser.add_argument(
+        'metadata_file', help='file indicating metadata of each genome')
+    metadata_files_parser.add_argument(
+        'metadata_fields', help='file indicating GTDB metadata fileds to retain')
+    metadata_files_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    metadata_files_parser.add_argument(
+        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    metadata_files_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     metadata_files_parser.add_argument('output_dir', help="output directory")
-    metadata_files_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    metadata_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # perform validation checks on GTDB website files
     validate_parser = subparsers.add_parser('validate',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Perform validation checks on GTDB website files.')
-    validate_parser.add_argument('taxonomy_file', help='file indicating taxonomy of each genome')
-    validate_parser.add_argument('tree_file', help='tree spanning representative genomes')
-    validate_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
-    validate_parser.add_argument('msa_file', help='file with MSA of representative genomes')
-    validate_parser.add_argument('ssu_file', help='file with SSU genes for representative genomes')
-    validate_parser.add_argument('sp_clusters_file', help='file indicating GTDB species clusters')
-    validate_parser.add_argument('--silent', help="suppress output", action='store_true')
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Perform validation checks on GTDB website files.')
+    validate_parser.add_argument(
+        'taxonomy_file', help='file indicating taxonomy of each genome')
+    validate_parser.add_argument(
+        'tree_file', help='tree spanning representative genomes')
+    validate_parser.add_argument(
+        'metadata_file', help='file indicating metadata of each genome')
+    validate_parser.add_argument(
+        'msa_file', help='file with MSA of representative genomes')
+    validate_parser.add_argument(
+        'ssu_file', help='file with SSU genes for representative genomes')
+    validate_parser.add_argument(
+        'sp_clusters_file', help='file indicating GTDB species clusters')
+    validate_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # generate correspondence between standardly named taxonomies ordered by
     # degree of polyphyly
@@ -244,7 +274,8 @@ if __name__ == '__main__':
     tax_comp_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
-    # generate JSON file used to create the tree in http://gtdb.ecogenomic.org/tree
+    # generate JSON file used to create the tree in
+    # http://gtdb.ecogenomic.org/tree
     json_tree_parser = subparsers.add_parser('json_tree_file',
                                              formatter_class=CustomHelpFormatter,
                                              description='Generate JSON file used to create the tree in http://gtdb.ecogenomic.org/tree.')
@@ -260,132 +291,296 @@ if __name__ == '__main__':
     json_tree_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
-    # plot of common genomic statistics 
+    # plot of common genomic statistics
     genomic_stats_parser = subparsers.add_parser('genomic_stats',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Plot of common genomic statistics.')
-    genomic_stats_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    genomic_stats_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    genomic_stats_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                 formatter_class=CustomHelpFormatter,
+                                                 description='Plot of common genomic statistics.')
+    genomic_stats_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    genomic_stats_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    genomic_stats_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     genomic_stats_parser.add_argument('output_dir', help='output directory')
-    genomic_stats_parser.add_argument('--all_genomes', 
-                                        help='create plot over all genomes instead of all GTDB species representatives',
-                                        action='store_true')
-    genomic_stats_parser.add_argument('--width', help='width of plot (inches)', type=float, default=6.5)
-    genomic_stats_parser.add_argument('--height', help='height of plot (inches)', type=float, default=4)
-    genomic_stats_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    genomic_stats_parser.add_argument('--all_genomes',
+                                      help='create plot over all genomes instead of all GTDB species representatives',
+                                      action='store_true')
+    genomic_stats_parser.add_argument(
+        '--width', help='width of plot (inches)', type=float, default=6.5)
+    genomic_stats_parser.add_argument(
+        '--height', help='height of plot (inches)', type=float, default=4)
+    genomic_stats_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # scatter plot showing quality of GTDB representative genomes
     genome_quality_parser = subparsers.add_parser('genome_quality',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Scatter plot showing quality of GTDB representative genomes.')
-    genome_quality_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    genome_quality_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    genome_quality_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                  formatter_class=CustomHelpFormatter,
+                                                  description='Scatter plot showing quality of GTDB representative genomes.')
+    genome_quality_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    genome_quality_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    genome_quality_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     genome_quality_parser.add_argument('output_dir', help='output directory')
-    genome_quality_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    genome_quality_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # plot number of MAGs, SAGs, and isolates for each taxonomic rank
     genome_category_rank_parser = subparsers.add_parser('genome_category_rank',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Plot number of MAGs, SAGs, and isolates for each taxonomic rank.')
-    genome_category_rank_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    genome_category_rank_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    genome_category_rank_parser.add_argument('release_number', help='release number (ex. 86)')
-    genome_category_rank_parser.add_argument('output_dir', help='output directory')
-    genome_category_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
-        
+                                                        formatter_class=CustomHelpFormatter,
+                                                        description='Plot number of MAGs, SAGs, and isolates for each taxonomic rank.')
+    genome_category_rank_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    genome_category_rank_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    genome_category_rank_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    genome_category_rank_parser.add_argument(
+        'output_dir', help='output directory')
+    genome_category_rank_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # plot nomenclatural status of species for each taxonomic rank
     nomenclatural_rank_parser = subparsers.add_parser('nomenclatural_rank',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Plot nomenclatural status of species for each taxonomic rank.')
-    nomenclatural_rank_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    nomenclatural_rank_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    nomenclatural_rank_parser.add_argument('release_number', help='release number (ex. 86)')
-    nomenclatural_rank_parser.add_argument('output_dir', help='output directory')
-    nomenclatural_rank_parser.add_argument('--domain', 
-                                        help='restrict plot to genomes from specified domain',
-                                        choices=['Both', 'Archaea', 'Bacteria'],
-                                        default='Both')
-    nomenclatural_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
+                                                      formatter_class=CustomHelpFormatter,
+                                                      description='Plot nomenclatural status of species for each taxonomic rank.')
+    nomenclatural_rank_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    nomenclatural_rank_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    nomenclatural_rank_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    nomenclatural_rank_parser.add_argument(
+        'output_dir', help='output directory')
+    nomenclatural_rank_parser.add_argument('--domain',
+                                           help='restrict plot to genomes from specified domain',
+                                           choices=[
+                                               'Both', 'Archaea', 'Bacteria'],
+                                           default='Both')
+    nomenclatural_rank_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # bar plot comparing GTDB and NCBI taxonomies
     ncbi_compare_parser = subparsers.add_parser('ncbi_compare',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Bar plot comparing GTDB and NCBI taxonomies.')
-    ncbi_compare_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    ncbi_compare_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    ncbi_compare_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                formatter_class=CustomHelpFormatter,
+                                                description='Bar plot comparing GTDB and NCBI taxonomies.')
+    ncbi_compare_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    ncbi_compare_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    ncbi_compare_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     ncbi_compare_parser.add_argument('output_dir', help='output directory')
-    ncbi_compare_parser.add_argument('--all_genomes', 
-                                        help='create plot over all genomes instead of GTDB species representatives',
-                                        action='store_true')
-    ncbi_compare_parser.add_argument('--domain', 
-                                        help='restrict plot to genomes from specified domain',
-                                        choices=['Both', 'Archaea', 'Bacteria'],
-                                        default='Both')
-    ncbi_compare_parser.add_argument('--silent', help="suppress output", action='store_true')
+    ncbi_compare_parser.add_argument('--all_genomes',
+                                     help='create plot over all genomes instead of GTDB species representatives',
+                                     action='store_true')
+    ncbi_compare_parser.add_argument('--domain',
+                                     help='restrict plot to genomes from specified domain',
+                                     choices=['Both', 'Archaea', 'Bacteria'],
+                                     default='Both')
+    ncbi_compare_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
-    # pie chart indicating type information for the GTBD species representatives
+    # pie chart indicating type information for the GTBD species
+    # representatives
     sp_rep_type_parser = subparsers.add_parser('sp_rep_type',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Pie chart indicating type information for the GTBD species representatives.')
-    sp_rep_type_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    sp_rep_type_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    sp_rep_type_parser.add_argument('release_number', help='release number (ex. 86)')
+                                               formatter_class=CustomHelpFormatter,
+                                               description='Pie chart indicating type information for the GTBD species representatives.')
+    sp_rep_type_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    sp_rep_type_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    sp_rep_type_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     sp_rep_type_parser.add_argument('output_dir', help='output directory')
-    sp_rep_type_parser.add_argument('--domain', 
-                                        help='restrict plot to genomes from specified domain',
-                                        choices=['Both', 'Archaea', 'Bacteria'],
-                                        default='Both')
-    sp_rep_type_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
-    # pie chart indicating type information for the GTBD species representatives
+    sp_rep_type_parser.add_argument('--domain',
+                                    help='restrict plot to genomes from specified domain',
+                                    choices=['Both', 'Archaea', 'Bacteria'],
+                                    default='Both')
+    sp_rep_type_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # pie chart indicating type information for the GTBD species
+    # representatives
     itol_parser = subparsers.add_parser('itol',
-                                            formatter_class=CustomHelpFormatter,
-                                            description='Generate tree and iTOL files for producing iTOL tree image.')
-    itol_parser.add_argument('bac120_tree', help='bacterial GTDB reference tree')
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate tree and iTOL files for producing iTOL tree image.')
+    itol_parser.add_argument(
+        'bac120_tree', help='bacterial GTDB reference tree')
     itol_parser.add_argument('ar122_tree', help='archaeal GTDB reference tree')
     itol_parser.add_argument('release_number', help='release number (ex. 86)')
     itol_parser.add_argument('output_dir', help='output directory')
-    itol_parser.add_argument('--silent', help="suppress output", action='store_true')
+    itol_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # select representative genomes at each taxonomic rank
     reps_per_rank_parser = subparsers.add_parser('reps_per_rank',
-                                                         formatter_class=CustomHelpFormatter,
-                                                         description='Select representative genomes at each taxonomic rank.')
-    reps_per_rank_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    reps_per_rank_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    reps_per_rank_parser.add_argument('bac120_msa_file', help='filtered MSA for bacterial representative genomes')
-    reps_per_rank_parser.add_argument('ar122_msa_file', help='filtered MSA for archaeal representative genomes')
-    reps_per_rank_parser.add_argument('ssu_fasta_file', help='FASTA file with SSU sequences for all GTDB genomes')
-    reps_per_rank_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    reps_per_rank_parser.add_argument('release_number', help='release number (ex. 86)')
+                                                 formatter_class=CustomHelpFormatter,
+                                                 description='Select representative genomes at each taxonomic rank.')
+    reps_per_rank_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    reps_per_rank_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    reps_per_rank_parser.add_argument(
+        'bac120_msa_file', help='filtered MSA for bacterial representative genomes')
+    reps_per_rank_parser.add_argument(
+        'ar122_msa_file', help='filtered MSA for archaeal representative genomes')
+    reps_per_rank_parser.add_argument(
+        'ssu_fasta_file', help='FASTA file with SSU sequences for all GTDB genomes')
+    reps_per_rank_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    reps_per_rank_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     reps_per_rank_parser.add_argument('output_dir', help='output directory')
-    reps_per_rank_parser.add_argument('--genomes_per_taxon', help='genomes to sample from each taxon', type=int, default=1)
-    reps_per_rank_parser.add_argument('--min_ssu_len', help='minimum length of 16S rRNA gene', type=int, default=900)
-    reps_per_rank_parser.add_argument('--min_msa_perc', help='minimum percentage of amino acids in MSA', type=int, default=30)
-    reps_per_rank_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    reps_per_rank_parser.add_argument(
+        '--genomes_per_taxon', help='genomes to sample from each taxon', type=int, default=1)
+    reps_per_rank_parser.add_argument(
+        '--min_ssu_len', help='minimum length of 16S rRNA gene', type=int, default=900)
+    reps_per_rank_parser.add_argument(
+        '--min_msa_perc', help='minimum percentage of amino acids in MSA', type=int, default=30)
+    reps_per_rank_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # create table with number of taxa at each taxonomic rank
     taxa_count_parser = subparsers.add_parser('taxa_count',
-                                                formatter_class=CustomHelpFormatter,
-                                                description='Create table with number of taxa at each taxonomic rank.')
-    taxa_count_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
-    taxa_count_parser.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
-    taxa_count_parser.add_argument('release_number', help='release number (ex. 86)')
+                                              formatter_class=CustomHelpFormatter,
+                                              description='Create table with number of taxa at each taxonomic rank.')
+    taxa_count_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    taxa_count_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    taxa_count_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     taxa_count_parser.add_argument('output_dir', help='output directory')
-    taxa_count_parser.add_argument('--silent', help="suppress output", action='store_true')
-    
+    taxa_count_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # create table with most abundant taxa at each taxonomic rank
     top_taxa_parser = subparsers.add_parser('top_taxa',
-                                                formatter_class=CustomHelpFormatter,
-                                                description='Create table with most abundant taxa at each taxonomic rank.')
-    top_taxa_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    top_taxa_parser.add_argument('release_number', help='release number (ex. 86)')
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Create table with most abundant taxa at each taxonomic rank.')
+    top_taxa_parser.add_argument(
+        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    top_taxa_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
     top_taxa_parser.add_argument('output_dir', help='output directory')
-    top_taxa_parser.add_argument('--num_taxa', help='number of taxa to report', type=int, default=10)
-    top_taxa_parser.add_argument('--silent', help="suppress output", action='store_true')
+    top_taxa_parser.add_argument(
+        '--num_taxa', help='number of taxa to report', type=int, default=10)
+    top_taxa_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # Steps to update LPSN Metadata
+    lpsn_parser = subparsers.add_parser('lpsn',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Steps to update LPSN Metadata.')
+
+    lpsn_subparser = lpsn_parser.add_subparsers(required=True,
+                                                help='Command to process LPSN metadata',
+                                                dest='lpsn_subparser_name')
+
+    lpsn_parser_lpsn_wf = lpsn_subparser.add_parser('lpsn_wf',
+                                                    add_help=False,
+                                                    formatter_class=CustomHelpFormatter,
+                                                    help='Full Pipeline Pull HTML -> Parse HTML')
+    lpsn_parser_lpsn_wf.add_argument(
+        'output_dir', help='Output directory.')
+    lpsn_parser_lpsn_wf.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    lpsn_parser_pull = lpsn_subparser.add_parser('pull_html',
+                                                 add_help=False,
+                                                 formatter_class=CustomHelpFormatter,
+                                                 help='Get 4 files from LPSN listing all genera.')
+    lpsn_parser_pull.add_argument(
+        'output_dir', help='Output directory.')
+    lpsn_parser_pull.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    lpsn_parser_parse_html = lpsn_subparser.add_parser('parse_html',
+                                                       add_help=False,
+                                                       formatter_class=CustomHelpFormatter,
+                                                       help='Parse HTML files.')
+
+    lpsn_parser_parse_html.add_argument(
+        'input directory', help='Directory containing all genus HTML files.')
+    lpsn_parser_parse_html.add_argument(
+        'output_dir', help='Output directory.')
+    lpsn_parser_parse_html.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # Steps to update BadDive Metadata
+    bacdive_parser = subparsers.add_parser('bacdive',
+                                           formatter_class=CustomHelpFormatter,
+                                           description='Steps to update Bacdive Metadata.')
+
+    bacdive_subparser = bacdive_parser.add_subparsers(required=True,
+                                                      help='Command to process Bacdive metadata',
+                                                      dest='bacdive_subparser_name')
+
+    bacdive_parser_dl_strains = bacdive_subparser.add_parser('download_strains',
+                                                             add_help=False,
+                                                             formatter_class=CustomHelpFormatter,
+                                                             help='Produce metadata files describing type genera, species, and strains according to DSMZ.')
+    bacdive_parser_dl_strains.add_argument(
+        '--username', help='Username to log to Bacdive API.', required=True)
+    bacdive_parser_dl_strains.add_argument(
+        '-p', '--pwd', dest='pwd', help='Username to log to Bacdive API.', required=True)
+    bacdive_parser_dl_strains.add_argument(
+        'output_dir', help='Output directory.')
+    bacdive_parser_dl_strains.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # Tools to combine Medata from different databases.
+    strains_parser = subparsers.add_parser('strains',
+                                           formatter_class=CustomHelpFormatter,
+                                           description='Tools to combine Medata from different databases.')
+    strains_subparser = strains_parser.add_subparsers(required=True,
+                                                      help='Tools to combine Medata from different databases.',
+                                                      dest='strains_subparser_name')
+
+    strains_parser_date = strains_subparser.add_parser('date_table',
+                                                       add_help=False,
+                                                       formatter_class=CustomHelpFormatter,
+                                                       help='Generate a tab delimited file listing all reference dates from LPSN,DSMZ,Straininfo for each species name.')
+    strains_parser_date.add_argument(
+        '--lpsn_species_info', help='LPSN species file created by LPSN website parsing.', required=True)
+    strains_parser_date.add_argument(
+        '--dsmz_species_info', help='DSMZ species file created by DSMZ website parsing.', required=True)
+    strains_parser_date.add_argument(
+        '--straininfo_species_info', help='Straininfo strain file created by Straininfo website parsing.', required=True)
+    strains_parser_date.add_argument('--output_file',
+                                     help='Output file.')
+    strains_parser_date.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    strains_parser_type = strains_subparser.add_parser('type_table',
+                                                       add_help=False,
+                                                       formatter_class=CustomHelpFormatter,
+                                                       help='Generate a tab delimited file listing all reference dates from LPSN,DSMZ,Straininfo for each species name.')
+
+    strains_parser_type.add_argument('--lpsn_dir',
+                                     help='Directory including the 3 LPSN result files (lpsn_genera.tsv, lpsn_species.tsv and lpsn_strains.tsv ).')
+    strains_parser_type.add_argument('--dsmz_dir',
+                                     help='Directory including the 3 DSMZ result files (dsmz_strains.tsv, dsmz_species.tsv and dsmz_genera.tsv ).')
+    strains_parser_type.add_argument('--straininfo_dir',
+                                     help='Directory including the straininfo result file (straininfo_strains.tsv).')
+    strains_parser_type.add_argument('--year_table',
+                                     help='Date table generated by generate_date_table.py.')
+    strains_parser_type.add_argument('--metadata_file',
+                                     help='Metadata file generated by GTDB')
+    strains_parser_type.add_argument(
+        '--ncbi_names', help='NCBI names.dmp file')
+    strains_parser_type.add_argument(
+        '--ncbi_nodes', help='NCBI nodes.dmp file')
+    strains_parser_type.add_argument('--cpus', help='Number of threads.',
+                                     type=int, default=1)
+    strains_parser_type.add_argument(
+        '--output_dir', help='Output directory.', default='.')
+    strains_parser_type.add_argument('--source_strain', choices=['all', 'lpsn', 'dsmz', 'straininfo'], default='all',
+                                     help='select LPSN,Straininfo,DSMZ to parse')
+    strains_parser_type.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # get and check options
     args = None
