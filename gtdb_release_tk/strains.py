@@ -312,8 +312,8 @@ class Strains(object):
             for line in dsstr:
                 infos = line.rstrip('\n').split('\t')
                 if len(infos) < 2:
-                    print "len(infos) < 2 "
-                    print infos
+                    print("len(infos) < 2 ")
+                    print(infos)
                 else:
                     list_strains = [pattern.sub('', a.strip()).upper(
                     ) for a in infos[1].split('=') if (a != '' and a != 'none')]
@@ -331,8 +331,8 @@ class Strains(object):
                 infos = line.rstrip('\n').split('\t')
 
                 if len(infos) < 3:
-                    print "len(infos) < 3 "
-                    print infos
+                    print("len(infos) < 3 ")
+                    print(infos)
                 else:
                     list_strains = [pattern.sub('', a.strip()).upper(
                     ) for a in infos[1].split('=') if (a != '' and a != 'none')]
@@ -456,7 +456,7 @@ class Strains(object):
 
             if istype:
                 year_date = self.get_priority_year(standard_name, sourcest)
-                
+
                 if not isofficial:
                     category_name = self.select_category_name(standard_name,
                                                               misspelling_names,
@@ -469,7 +469,7 @@ class Strains(object):
                 break
 
         return (matched_strain_id, category_name, istype, year_date)
-    
+
     def type_species_or_subspecies(self, gid):
         """Determine if genome is the 'type strain of species' or 'type strain of subspecies'."""
 
@@ -546,16 +546,15 @@ class Strains(object):
             else:
                 repository_strain_ids = strain_dictionary.get(standard_name)
 
-            matched_strain_id, category, istype, year_date = self.strains_iterate(gid, 
-                                                                standard_name, 
-                                                                repository_strain_ids, 
-                                                                raw_names, 
-                                                                misspelling_names, 
-                                                                synonyms, 
-                                                                equivalent_names, 
-                                                                isofficial, 
-                                                                sourcest)
-            
+            matched_strain_id, category, istype, year_date = self.strains_iterate(gid,
+                                                                                  standard_name,
+                                                                                  repository_strain_ids,
+                                                                                  raw_names,
+                                                                                  misspelling_names,
+                                                                                  synonyms,
+                                                                                  equivalent_names,
+                                                                                  isofficial,
+                                                                                  sourcest)
 
             isneotype = False
             if not istype and sourcest == 'lpsn':
@@ -1018,15 +1017,15 @@ class Strains(object):
 
             self.metadata[gid]['ncbi_expanded_standardized_strain_ids'] = strain_ids
 
-    def generate_type_strain_table((self,
-            metadata_file,
-            ncbi_names_file,
-            ncbi_nodes_file,
-            lpsn_dir,
-            dsmz_dir,
-            straininfo_dir,
-            year_table,
-            sourcest):
+    def generate_type_strain_table(self,
+                                   metadata_file,
+                                   ncbi_names_file,
+                                   ncbi_nodes_file,
+                                   lpsn_dir,
+                                   dsmz_dir,
+                                   straininfo_dir,
+                                   year_table,
+                                   sourcest):
         """Parse multiple sources to identify genomes assembled from type material."""
 
         # initialize data being parsed from file

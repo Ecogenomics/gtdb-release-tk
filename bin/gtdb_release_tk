@@ -280,14 +280,13 @@ if __name__ == '__main__':
                                              formatter_class=CustomHelpFormatter,
                                              description='Generate JSON file used to create the tree in http://gtdb.ecogenomic.org/tree.')
     json_tree_parser.add_argument(
-        '--taxonomy_file', help='file indicating taxonomy of each genome.')
+        '--taxonomy_file', required=True, help='file indicating taxonomy of each genome.')
     json_tree_parser.add_argument(
-        '--metadata_file', help='GTDB metadata file.')
+        '--metadata_file', required=True, help='GTDB metadata file.')
     json_tree_parser.add_argument(
-        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes.')
-    json_tree_parser.add_argument('--output_dir', help="output directory")
+        '--output_dir', required=True, help="output directory")
     json_tree_parser.add_argument(
-        '--release_number', help='release number (ex. 86)')
+        '--release_number', required=True, help='release number (ex. 86)')
     json_tree_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 

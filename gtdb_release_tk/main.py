@@ -203,13 +203,11 @@ class OptionsParser():
 
     def json_tree_parser(self, options):
         """generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree"""
-        print('in DEV')
-        self.logger.info('Done.')
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.json_tree_parser(options.taxonomy_file,
-                           options.metadata_file,
-                           options.user_gid_table)
+                           options.metadata_file)
+        self.logger.info('Done.')
 
     def genome_category_rank(self, options):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
@@ -432,7 +430,7 @@ class OptionsParser():
             self.itol(options)
         elif options.subparser_name == 'tax_comp_files':
             self.tax_comp_files(options)
-        elif options.subparser_name == 'json_tree_parser':
+        elif options.subparser_name == 'json_tree_file':
             self.json_tree_parser(options)
         elif options.subparser_name == 'genomic_stats':
             self.genomic_stats(options)
