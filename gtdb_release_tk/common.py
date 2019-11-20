@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import defaultdict, namedtuple
 
 
 ENV_CATEGORIES = set(['derived from single cell',
@@ -131,3 +132,56 @@ def parse_species_clusters(gtdb_sp_clusters_file, user_gids):
                     sp_clusters[rid].add(cid)
             
     return sp_clusters
+    
+
+def parse_gtdb_metadata(metadata_file, fields, user_gids):
+    """Parse genome quality from GTDB metadata.
+
+    Parameters
+    ----------
+    metadata_file : str
+        Metadata for all genomes in CSV file.
+    fields : iterable
+        Fields  to read.
+
+    Return
+    ------
+    dict : d[genome_id] -> namedtuple
+        Value for fields indicted by genome IDs.
+    """
+
+    gtdb_metadata = namedtuple('gtdb_metadata', ' '.join(fields))
+    m = {}
+
+    with open(metadata_file, encoding='utf-8') as f:
+        headers = f.readline().strip().split('\t')
+
+        genome_index = headers.index('accession')
+
+        indices = []
+        for field in fields:
+            indices.append(headers.index(field))
+
+        for line in f:
+            line_split = line.strip().split('\t')
+            gid = line_split[genome_index]
+            gid = user_gids.get(gid, gid)
+
+            values = []
+            for i in indices:
+                # save values as floats or strings
+                v = line_split[i]
+                try:
+                    values.append(float(v))
+                except ValueError:
+                    if v is None or v == '' or v == 'none':
+                        values.append(None)
+                    elif v == 'f' or v.lower() == 'false':
+                        values.append(False)
+                    elif v == 't' or v.lower() == 'true':
+                        values.append(True)
+                    else:
+                        values.append(v)
+            m[gid] = gtdb_metadata._make(values)
+
+    return m
