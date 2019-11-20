@@ -19,9 +19,11 @@ import os
 import sys
 import shutil
 import logging
+import ntpath
 from pathlib import Path, PurePath
 from collections import defaultdict
 from collections import Counter
+import json
 
 
 import dendropy
@@ -53,28 +55,28 @@ class WebsiteData(object):
 
         self.logger = logging.getLogger('timestamp')
 
-    def taxonomy_files(self, 
-                        metadata_file, 
-                        gtdb_sp_clusters_file, 
-                        user_gid_table):
+    def taxonomy_files(self,
+                       metadata_file,
+                       gtdb_sp_clusters_file,
+                       user_gid_table):
         """Generate taxonomy files for GTDB website."""
 
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
-        
+
         # get GTDB species clusters
         self.logger.info('Parsing all species clusters from GTDB metadata.')
         sp_clusters = parse_species_clusters(gtdb_sp_clusters_file, user_gids)
-        
+
         genome_rep_id = {}
         for rep_id, gids in sp_clusters.items():
             for gid in gids:
                 genome_rep_id[gid] = rep_id
-            
+
         self.logger.info(' ...identified {:,} representative genomes spanning {:,} genomes.'.format(
-                            len(sp_clusters),
-                            len(genome_rep_id)))
+            len(sp_clusters),
+            len(genome_rep_id)))
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
@@ -92,7 +94,7 @@ class WebsiteData(object):
 
         for gid in genome_rep_id:
             assert(not gid.startswith('U_'))
-            
+
             rep_id = genome_rep_id[gid]
             taxa = reps[rep_id]
 
@@ -318,7 +320,7 @@ class WebsiteData(object):
             mean_ani_index = header.index('Mean ANI')
             min_ani_index = header.index('Min ANI')
             mean_af_index = header.index('Mean AF')
-            min_ani_index = header.index('Min AF')
+            min_af_index = header.index('Min AF')
             clustered_genomes_index = header.index('Clustered genomes')
 
             for line in f:
@@ -332,7 +334,7 @@ class WebsiteData(object):
                 mean_ani = line_split[mean_ani_index]
                 min_ani = line_split[min_ani_index]
                 mean_af = line_split[mean_af_index]
-                min_af = line_split[min_ani_index]
+                min_af = line_split[min_af_index]
 
                 clustered_genomes = set([type_genome])
                 if cluster_size > 0:
@@ -448,6 +450,7 @@ class WebsiteData(object):
                             rep_count))
 
     def tree_files(self,
+                   metadata_file,
                    bac_tree,
                    ar_tree,
                    user_gid_table):
@@ -494,92 +497,114 @@ class WebsiteData(object):
                               schema='newick',
                               suppress_rooting=True,
                               unquoted_underscores=True)
-                              
+
+        # create trees with species assignments as terminal labels
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        gtdb_reps = parse_rep_genomes(metadata_file, user_gids)
+        self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
+            sum([1 for t in gtdb_reps.values()]),
+            sum([1 for t in gtdb_reps.values() if t[0] == 'd__Bacteria']),
+            sum([1 for t in gtdb_reps.values() if t[0] == 'd__Archaea'])))
+
+        self.logger.info('Creating trees with species labels.')
+        for domain_tree, output_tree in [(bac_tree, f'bac120_r{self.release_number}.sp_labels.tree'),
+                                         (ar_tree, f'ar122_r{self.release_number}.sp_labels.tree')]:
+            for leaf in domain_tree.leaf_node_iter():
+                gid = leaf.taxon.label
+                gtdb_sp = gtdb_reps[gid][6]
+                leaf.taxon.label = gtdb_sp
+
+            domain_tree.write_to_path(self.output_dir / output_tree,
+                                      schema='newick',
+                                      suppress_rooting=True,
+                                      unquoted_underscores=True)
+
     def marker_files(self, bac120_gene_dir,
-                            ar122_gene_dir,
-                            user_gid_table):
+                     ar122_gene_dir,
+                     user_gid_table):
         """Generate marker gene file."""
-        
+
         # copy and rename marker info files
         self.logger.info('Copying and renaming marker info files.')
         shutil.copyfile(PurePath(bac120_gene_dir) / 'bac120_markers_info.tsv',
                         self.output_dir / f'bac120_msa_marker_info_r{self.release_number}.tsv')
         shutil.copyfile(PurePath(ar122_gene_dir) / 'ar122_markers_info.tsv',
                         self.output_dir / f'ar122_msa_marker_info_r{self.release_number}.tsv')
-                        
+
         # compress individual marker gene alignments
-        self.logger.info('Creating compressed files containing all marker gene MSAs.')
+        self.logger.info(
+            'Creating compressed files containing all marker gene MSAs.')
         for msa_dir, prefix in [(ar122_gene_dir, 'ar122'), (bac120_gene_dir, 'bac120')]:
             self.logger.info(f'Reading {msa_dir}.')
             msa_file = self.output_dir / f'{prefix}_msa_individual_genes_r{self.release_number}.tar.gz'
-            
+
             msa_files = set()
             for f in os.listdir(msa_dir):
                 if f.endswith('.faa') and '_concatenated' not in f:
                     msa_files.add(f)
-            
+
             cmd = 'tar -zcvf {}_msa_individual_genes_r{}.tar.gz --directory={} {}'.format(
-                    prefix,
-                    self.release_number,
-                    msa_dir, 
-                    ' '.join(msa_files))
+                prefix,
+                self.release_number,
+                msa_dir,
+                ' '.join(msa_files))
             os.system(cmd)
-            
+
     def msa_files(self, bac120_msa_file,
-                        ar122_msa_file,
-                        metadata_file,
-                        user_gid_table):
+                  ar122_msa_file,
+                  metadata_file,
+                  user_gid_table):
         """Generate concatenated MSA files."""
-        
+
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
-        
+
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
         reps = parse_rep_genomes(metadata_file, user_gids)
         self.logger.info(' ...identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
-                            sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
-                            sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
-         
+            sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
+            sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
+
         # create MSA files for representative genomes with modified genome IDs
         self.logger.info('Creating MSA files.')
         for msa_file, prefix in [(ar122_msa_file, 'ar122'), (bac120_msa_file, 'bac120')]:
             out_file = f'{prefix}_msa_r{self.release_number}.faa'
             fout = open(self.output_dir / out_file, 'w')
             count = 0
-            for seq_id,seq in seq_io.read_seq(msa_file):
+            for seq_id, seq in seq_io.read_seq(msa_file):
                 seq_id = user_gids.get(seq_id, seq_id)
                 if seq_id in reps:
                     fout.write(f'>{seq_id}\n')
                     fout.write(f'{seq}\n')
                     count += 1
-                    
+
             self.logger.info(f'MSA file {out_file} contains {count:,} genomes.')
-                    
+
             fout.close()
-            
+
     def metadata_files(self, metadata_file,
-                        metadata_fields,
-                        gtdb_sp_clusters_file,
-                        user_gid_table):
+                       metadata_fields,
+                       gtdb_sp_clusters_file,
+                       user_gid_table):
         """Generate GTDB metadata files."""
-        
+
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
-        
+
         # get GTDB species clusters
         self.logger.info('Parsing all species clusters from GTDB metadata.')
         sp_clusters = parse_species_clusters(gtdb_sp_clusters_file, user_gids)
         self.logger.info(' ...identified {:,} representative genomes spanning {:,} genomes.'.format(
             len(sp_clusters),
             sum([len(cid) for cid in sp_clusters.values()])))
-            
+
         all_gids = set()
         for gids in sp_clusters.values():
             all_gids.update(gids)
-        
+
         # read metadata fields to retain
         self.logger.info('Reading metadata fields to retain.')
         fields = set()
@@ -588,7 +613,7 @@ class WebsiteData(object):
             for line in f:
                 fields.add(line.split('\t')[0])
         self.logger.info(f' ...identified {len(fields):,} fields to retain.')
-        
+
         # get list of all genome IDs in metadata file
         metadata_gids = set()
         with open(metadata_file, encoding='utf-8') as f:
@@ -596,50 +621,51 @@ class WebsiteData(object):
             for line in f:
                 line_split = line.strip().split('\t')
                 metadata_gids.add(line_split[0])
-        
+
         # write out bacterial and archaeal metadata files
         self.logger.info('Creating domain-specific metadata fields.')
         fout_bac = open(self.output_dir / f'bac120_metadata_r{self.release_number}.tsv', 'w',
                         encoding='utf-8')
         fout_ar = open(self.output_dir / f'ar122_metadata_r{self.release_number}.tsv', 'w',
-                        encoding='utf-8')
-        
+                       encoding='utf-8')
+
         fields_sorted = sorted(fields)
         fields_sorted.remove('accession')
-        fout_bac.write('{}\t{}\n'.format('accession', '\t'.join(fields_sorted)))
+        fout_bac.write('{}\t{}\n'.format(
+            'accession', '\t'.join(fields_sorted)))
         fout_ar.write('{}\t{}\n'.format('accession', '\t'.join(fields_sorted)))
-        
+
         count = 0
         with open(metadata_file, encoding='utf-8') as f:
             header = f.readline().strip().split('\t')
-            
+
             field_index = {}
             for field in fields_sorted:
                 field_index[field] = header.index(field)
-                
+
             for line in f:
                 line_split = line.strip().split('\t')
-                
+
                 gid = line_split[0]
                 new_gid = user_gids.get(gid, gid)
                 if gid != new_gid and new_gid in metadata_gids:
                     # skip this record since they GTDB user genome is already
                     # in the metadata file under the NCBI accession number
                     continue
-                
+
                 if new_gid in all_gids:
                     count += 1
                     gtdb_taxonomy = line_split[field_index['gtdb_taxonomy']]
                     gtdb_taxa = [t.strip() for t in gtdb_taxonomy.split(';')]
                     gtdb_domain = gtdb_taxa[0]
-                    
+
                     if gtdb_domain == 'd__Bacteria':
                         fout = fout_bac
                     elif gtdb_domain == 'd__Archaea':
                         fout = fout_ar
                     else:
                         self.logger.error(f'Unrecognized GTDB domain: {gtdb_domain} {gid}')
-                        
+
                     fout.write(new_gid)
                     for field in fields_sorted:
                         if field == 'gtdb_genome_representative':
@@ -647,12 +673,13 @@ class WebsiteData(object):
                             new_gid = user_gids.get(gid, gid)
                             fout.write('\t{}'.format(new_gid))
                         else:
-                            fout.write('\t{}'.format(line_split[field_index[field]]))
+                            fout.write('\t{}'.format(
+                                line_split[field_index[field]]))
                     fout.write('\n')
-                         
+
         fout_bac.close()
         fout_ar.close()
-        
+
         self.logger.info(f'Wrote metadata for {count:,} genomes.')
         
     def arb_files(self, metadata_file,
@@ -741,14 +768,14 @@ class WebsiteData(object):
                     sp_clusters_file,
                     hq_genome_file):
         """Perform validation checks on GTDB website files."""
-        
+
         # parse taxonomy file
         self.logger.info('Parsing taxonomy file.')
         taxonomy = {}
         for line in open(taxonomy_file):
             line_split = line.strip().split('\t')
             taxonomy[line_split[0]] = line_split[1]
-            
+
         # get GTDB species clusters
         self.logger.info('Validating species clusters.')
         sp_clusters = parse_species_clusters(sp_clusters_file, {})
@@ -782,12 +809,12 @@ class WebsiteData(object):
         # validate that tree spans representatives
         self.logger.info('Validating tree file.')
         tree = dendropy.Tree.get_from_path(tree_file,
-                                               schema='newick',
-                                               rooting='force-rooted',
-                                               preserve_underscores=True)
+                                           schema='newick',
+                                           rooting='force-rooted',
+                                           preserve_underscores=True)
         tree_gids = set([leaf.taxon.label for leaf in tree.leaf_node_iter()])
         assert(len(tree_gids.difference(sp_clusters)) == 0)
-        
+
         # validate that metadata file contains all representative genomes
         self.logger.info('Validating metadata file.')
         metadata_gids = set()
@@ -796,35 +823,36 @@ class WebsiteData(object):
             gtdb_taxonomy_index = header.index('gtdb_taxonomy')
             gtdb_rep_index = header.index('gtdb_representative')
             gtdb_rep_genome_index = header.index('gtdb_genome_representative')
-            
+
             for line in f:
                 line_split = line.strip().split('\t')
                 gid = line_split[0]
                 metadata_gids.add(gid)
-                
+
                 gtdb_rep = line_split[gtdb_rep_index]
                 if ((gid in sp_clusters and gtdb_rep == 'f')
-                    or (gid not in sp_clusters and gtdb_rep == 't')):
-                    self.logger.info('GTDB species representative information is incorrect: {gid}')
+                        or (gid not in sp_clusters and gtdb_rep == 't')):
+                    self.logger.info(
+                        'GTDB species representative information is incorrect: {gid}')
                     sys.exit(-1)
-                    
+
                 rep_id = line_split[gtdb_rep_genome_index]
                 assert(taxonomy[rep_id] == line_split[gtdb_taxonomy_index])
                 assert(rep_id in sp_clusters)
                 assert(rep_id in tree_gids)
-                
+
                 if gid in taxonomy:
                     if taxonomy[gid] != line_split[gtdb_taxonomy_index]:
                         self.logger.error(f'GTDB taxonomy is incorrect in metadata file: {gid}')
                         sys.exit(-1)
-                
+
         assert(len(set(taxonomy).symmetric_difference(metadata_gids)) == 0)
-        
+
         # validate that MSA file spans representatives
         self.logger.info('Validating MSA file.')
         msa_seqs = seq_io.read(msa_file)
         assert(len(set(msa_seqs).symmetric_difference(tree_gids)) == 0)
-        
+
         # validate that SSU file spans representatives
         self.logger.info('Validating SSU file.')
         ssu_seqs = set()
@@ -833,16 +861,19 @@ class WebsiteData(object):
             if ssu_taxonomy != taxonomy[seq_id]:
                 self.logger.error(f'GTDB taxonomy is incorrect in SSU file: {gid}')
             ssu_seqs.add(seq_id)
-        
+
         assert(len(ssu_seqs.difference(tree_gids)) == 0)
-        
+
         self.logger.info('Passed validation.')
-                         
-    def tax_comp_files(self, old_taxonomy, new_taxonomy, gid_table, keep_no_change, keep_placeholder_name, top_change):
+
+    def tax_comp_files(self, old_taxonomy, new_taxonomy, gid_table, changes_only, filter_placeholder_name, top_change):
 
         gtogfile = open(os.path.join(
             self.output_dir, 'genomes_summary.tsv'), "w")
-        gtogfile.write("genome_id\tfirst_taxonomy\tsecond_taxonomy\tstatus\n")
+        old_taxonomy_name = os.path.splitext(ntpath.basename(old_taxonomy))[0]
+        new_taxonomy_name = os.path.splitext(ntpath.basename(new_taxonomy))[0]
+        gtogfile.write("genome_id\t{}\t{}\tstatus\n".format(
+            old_taxonomy_name, new_taxonomy_name))
         for dom in ["d__Archaea", "d__Bacteria"]:
             tempdict = {}  # temporary dictionary for the information in old taxonomy
             olddict = {}
@@ -854,17 +885,25 @@ class WebsiteData(object):
 
             with open(gid_table, "r") as tax_map:
                 for line in tax_map:
-                    genes_id = line.strip('\n').split("\t")
-                    # IDs that start with U_
+                    genes_id = line.strip().split("\t")
+
                     u_id = genes_id[0]
-                    # IDs that start with GCA or GCF
-                    gc_id = genes_id[2]
-                    # delete GB or RS prefix to ensure id-consistency
-                    if gc_id.startswith("GB") or gc_id.startswith("RS"):
-                        gc_id = gc_id[3:]
-                    # map k, v of all id_mappings
-                    mapdict[gc_id] = u_id
-                    mapdict[u_id] = gc_id
+                    if len(genes_id) == 3:
+                        gc_id = genes_id[2]
+                        mapdict[gc_id] = u_id
+                        mapdict[u_id] = gc_id
+
+                        # delete GB or RS prefix to ensure id-consistency
+                        # depending on the format of the input file
+                        if gc_id.startswith("GB") or gc_id.startswith("RS"):
+                            gc_id = gc_id[3:]
+
+                        mapdict[gc_id] = u_id
+                        mapdict[u_id] = gc_id
+                    else:
+                        uba_id = genes_id[1]
+                        mapdict[uba_id] = u_id
+                        mapdict[u_id] = uba_id
 
             with open(new_taxonomy) as taxnew:
                 for line in taxnew:
@@ -936,25 +975,205 @@ class WebsiteData(object):
             self.genomebygenomecompare(olddict, newdict, gtogfile)
 
             print("- Analysis of phyla")
-            self.rundistrib(olddict, newdict, "p", os.path.join(self.output_dir, pref +
-                                                                "_phylum_difference.tsv"), "phylum", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "p", os.path.join(self.output_dir,
+                                                                pref + "_phylum_difference.tsv"),
+                            "Phylum", "Phyla",
+                            old_taxonomy_name, new_taxonomy_name,
+                            filter_placeholder_name, changes_only, top_change)
             print("- Analysis of classes")
-            self.rundistrib(olddict, newdict, "c", os.path.join(self.output_dir, pref +
-                                                                "_class_difference.tsv"), "class", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "c", os.path.join(self.output_dir,
+                                                                pref + "_class_difference.tsv"),
+                            "Class", "Classes",
+                            old_taxonomy_name, new_taxonomy_name,
+                            filter_placeholder_name, changes_only, top_change)
             print("- Analysis of orders")
-            self.rundistrib(olddict, newdict, "o", os.path.join(self.output_dir, pref +
-                                                                "_order_difference.tsv"), "order", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "o", os.path.join(self.output_dir,
+                                                                pref + "_order_difference.tsv"),
+                            "Order", "Orders",
+                            old_taxonomy_name, new_taxonomy_name,
+                            filter_placeholder_name, changes_only, top_change)
             print("- Analysis of families")
-            self.rundistrib(olddict, newdict, "f", os.path.join(self.output_dir, pref +
-                                                                "_family_difference.tsv"), "family", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "f", os.path.join(self.output_dir,
+                                                                pref + "_family_difference.tsv"),
+                            "Family", "Families",
+                            old_taxonomy_name, new_taxonomy_name,
+                            filter_placeholder_name, changes_only, top_change)
             print("- Analysis of genera")
-            self.rundistrib(olddict, newdict, "g", os.path.join(self.output_dir, pref +
-                                                                "_genus_difference.tsv"), "genus", keep_placeholder_name, keep_no_change, top_change)
+            self.rundistrib(olddict, newdict, "g", os.path.join(self.output_dir,
+                                                                pref + "_genus_difference.tsv"),
+                            "Genus", "Genera",
+                            old_taxonomy_name, new_taxonomy_name,
+                            filter_placeholder_name, changes_only, top_change)
+
+            print("- Analysis of species")
+            self.rundistrib(olddict, newdict, "s", os.path.join(self.output_dir,
+                                                                pref + "_species_difference.tsv"),
+                            "Species", "Species",
+                            old_taxonomy_name, new_taxonomy_name,
+                            filter_placeholder_name, changes_only, top_change)
 
         gtogfile.close()
-        
-    def json_tree_file(self, taxonomy_file, metadata_file, gid_table):
-        user_gids = parse_user_gid_table(gid_table)
+
+    def clean_empty_children(self, d):
+        if "children" in d:
+            v = d.get("children")
+            if not v:
+                del d["children"]
+                return d
+            else:
+                tmp_list = []
+                for it in v:
+                    dict_tmp = self.clean_empty_children(it)
+                    tmp_list.append(dict_tmp)
+                d["children"] = tmp_list
+                return d
+        else:
+            return d
+
+    def count_children(self, d):
+        if "extra_genomes" in d:
+            d["countgen"] = d["extra_genomes"]
+            return d
+        if "children" in d and "value" not in d:
+            v = d.get("children")
+            countgen = 0
+            for it in v:
+                dict_tmp = self.count_children(it)
+                countgen += dict_tmp["countgen"]
+            d["countgen"] = countgen
+            return d
+
+        elif "children" not in d and "value" not in d:
+            d["countgen"] = 1
+            return d
+        return d
+
+    def add_type_species(self, d, type_spe_list):
+        if "children" in d:
+            v = d.get("children")
+            for it in v:
+                if it['name'] in type_spe_list:
+                    it['type_material'] = 'type_species'
+                else:
+                    dict_tmp = self.add_type_species(it, type_spe_list)
+        return d
+
+    def conv(self, k, v, meta_information, type_spe_list):
+        dict_rank = {"name": k,
+                     "type": "d",
+                     "children": list({"name": x,
+                                       "type": "p",
+                                       "children": list({"name": z,
+                                                         "type": "c",
+                                                         "children": list({"name": o,
+                                                                           "type": "o",
+                                                                           "children": list({"name": f,
+                                                                                             "type": "f",
+                                                                                             "children": list({"name": g,
+                                                                                                               "type": "g",
+                                                                                                               "children": list({"name": s,
+                                                                                                                                 "type": "s",
+                                                                                                                                 "children": list(self.process_genome(gen, meta_information) for gen in self.sorted_genome(v[x][z][o][f][g][s], meta_information))} for s in sorted(v[x][z][o][f][g].keys()))} for g in sorted(v[x][z][o][f].keys()))} for f in sorted(v[x][z][o].keys()))} for o in sorted(v[x][z].keys()))} for z in sorted(v[x].keys()))} for x in sorted(v.keys()))}
+        cleaned_dict = self.clean_empty_children(dict_rank)
+        cleaned_dict = self.count_children(cleaned_dict)
+        cleaned_dict = self.add_type_species(cleaned_dict, type_spe_list)
+        return cleaned_dict
+
+    def sorted_genome(self, list_genomes, meta_information):
+        list_representatives = [
+            gen for gen in list_genomes if meta_information.get(gen).get('rep') == 't']
+        list_type_species = [gen for gen in list_genomes if meta_information.get(gen).get(
+            'type') == 'type strain of species' and gen not in list_representatives]
+        list_type_subspecies = [gen for gen in list_genomes if meta_information.get(gen).get(
+            'type') == 'type strain of subspecies' and gen not in list_representatives]
+
+        dict_quality = {gen: meta_information.get(gen).get('comp') - 5 * meta_information.get(gen).get(
+            'conta') for gen in list_genomes if gen not in list_representatives + list_type_species + list_type_subspecies}
+        list_quality = sorted(dict_quality, key=dict_quality.get)
+        full_list = list_representatives + list_type_species + \
+            list_type_subspecies + list_quality
+        if len(full_list) > 100:
+            shorten_list = full_list[0:100]
+            remaining_genomes = len(full_list) - len(shorten_list)
+            shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
+            return shorten_list
+        return full_list
+
+    def process_genome(self, genome, meta_information):
+        result_genome = {"name": genome, "type": 'genome'}
+        if genome.startswith('+'):
+            result_genome["extra_genomes"] = int(
+                genome.split(' ')[1].replace(',', ''))
+            return result_genome
+        if meta_information.get(genome).get('type').startswith('type strain'):
+            result_genome["type_material"] = meta_information.get(
+                genome).get('type').replace(' ', '_')
+        if meta_information.get(genome).get('rep') == 't':
+            result_genome["rep"] = True
+        return result_genome
+
+    def json_tree_parser(self, taxonomy_file, metadata_file):
+        meta_information, type_spe_list = self.parse_metadata(metadata_file)
+        tax_dict = {}
+        with open(taxonomy_file, 'r') as f:
+            for line in f:
+                genome, tax_string = line.strip().split("\t")
+                drank, prank, crank, orank, frank, grank, srank = tax_string.split(
+                    ';')
+                if len(drank) > 3:
+                    if drank not in tax_dict:
+                        tax_dict[drank] = {}
+                else:
+                    tax_dict.set_default(
+                        'd__Undefined', {}).set_default(genome, {})
+                    continue
+                if len(prank) > 3:
+                    if prank not in tax_dict[drank]:
+                        tax_dict[drank][prank] = {}
+                if len(crank) > 3:
+                    if crank not in tax_dict[drank][prank]:
+                        tax_dict[drank][prank][crank] = {}
+                if len(orank) > 3:
+                    if orank not in tax_dict[drank][prank][crank]:
+                        tax_dict[drank][prank][crank][orank] = {}
+                if len(frank) > 3:
+                    if frank not in tax_dict[drank][prank][crank][orank]:
+                        tax_dict[drank][prank][crank][orank][frank] = {}
+                if len(grank) > 3:
+                    if grank not in tax_dict[drank][prank][crank][orank][frank]:
+                        tax_dict[drank][prank][crank][orank][frank][grank] = {}
+                if len(srank) > 3:
+                    if srank not in tax_dict[drank][prank][crank][orank][frank][grank]:
+                        tax_dict[drank][prank][crank][orank][frank][grank][srank] = []
+                    tax_dict[drank][prank][crank][orank][frank][grank][srank].append(
+                        genome)
+        with open('genome_taxonomy_r{}_count.json'.format(self.release_number), 'w') as outfile:
+            json.dump({"name": "Domain", "type": "root", "children": list(self.conv(
+                k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False)
+
+    def parse_metadata(self, metadatafile):
+        result = {}
+        type_spe_list = []
+        with open(metadatafile) as metafile:
+            header = metafile.readline()
+            listheaders = header.rstrip().split('\t')
+            gr = listheaders.index('gtdb_representative')
+            gtd = listheaders.index("gtdb_type_designation")
+            gcomp = listheaders.index("checkm_completeness")
+            gconta = listheaders.index("checkm_contamination")
+            gtsofg = listheaders.index("gtdb_type_species_of_genus")
+            gtdb_tax = listheaders.index("gtdb_taxonomy")
+            for line in metafile:
+                infos = line.rstrip().split('\t')
+                result[infos[0]] = {'rep': infos[gr],
+                                    'type': infos[gtd],
+                                    'comp': float(infos[gcomp]),
+                                    'conta': float(infos[gconta]),
+                                    'type_spe': infos[gtsofg]}
+                if infos[gtsofg] == 't':
+                    type_spe_list.append(infos[gtdb_tax].split(';')[6])
+
+        return (result, type_spe_list)
 
     def genomebygenomecompare(self, olddict, newdict, gtogfile):
         orderrank = ["domain", "phylum", "class",
@@ -977,16 +1196,28 @@ class WebsiteData(object):
                 gtogfile.write("{0}\t{1}\tnot_available\t\n".format(
                     k, olddict.get(k).get('full')))
 
-    def rundistrib(self, olddict, newdict, rank, outfile, ref, keep_placeholder_name, keep_no_change, top_change):
+    def rundistrib(self,
+                   olddict, newdict,
+                   rank,
+                   outfile,
+                   rank_label, plural_rank_label,
+                   old_taxonomy_name, new_taxonomy_name,
+                   filter_placeholder_name,
+                   changes_only,
+                   top_change):
+        """Compare taxa in a pair of taxonomies."""
+
         orderrank = ["d", "p", "c", 'o', 'f', 'g', 's']
-        different_ranks = []
+
         # take the different ranks in the dictionaries and then count the appearances of each pair
         # of ranks ie. (p__Fusobacteria, p_Fusobacteriota),200
+        different_ranks = []
         for k, v in newdict.items():
             if k in olddict:
                 different_ranks.append((olddict.get(k).get(rank), v.get(rank)))
         order_counter = Counter(different_ranks).most_common()
         results_dict = {}
+
         """create a dictionary with the name of the rank in olddict as key and the number of 
         genomes belonging to that rank encountered, along with different rank names on newdict
         for those genomes and how many times the different names appear."""
@@ -1009,19 +1240,26 @@ class WebsiteData(object):
                 else:
                     results_dict[k]['genomes'] = [
                         results_dict[k]['genomes'][0]]
-            if keep_no_change == True and k == results_dict[k]['genomes'][0][0] and results_dict[k]['nber_g'] == results_dict[k]['genomes'][0][1]:
+
+            if changes_only and k == results_dict[k]['genomes'][0][0] and results_dict[k]['nber_g'] == results_dict[k]['genomes'][0][1]:
                 to_pop.append(k)
-            if keep_placeholder_name == True and self.hasNumber(k) == True and results_dict[k]['genomes'][0][0] == rank + "__":
+            if filter_placeholder_name and self.hasNumber(k) == True and results_dict[k]['genomes'][0][0] == rank + "__":
                 to_pop.append(k)
-            elif keep_placeholder_name == True and self.hasNumber(results_dict[k]['genomes'][0][0]) == True and k == rank + "__":
+            elif filter_placeholder_name and self.hasNumber(results_dict[k]['genomes'][0][0]) == True and k == rank + "__":
                 to_pop.append(k)
+
+        self.logger.info(
+            'Removed {} taxa from tables based on filtering parameters.'.format(len(to_pop)))
 
         for k in to_pop:
             results_dict.pop(k)
 
         outf = open(outfile, "w")
-        outf.write(
-            "Previous {0}\tNumber of genomes\tNumber of new {0}\tList of new {0}\n".format(ref))
+        outf.write("{0} {1}\tNo. genomes\tNo. {2} {3}\t{2} {3}\n".format(
+            old_taxonomy_name,
+            rank_label,
+            new_taxonomy_name,
+            plural_rank_label))
         for k, v in results_dict.items():
             for sk, sv in olddict.items():
                 if sv.get(rank) == k:
@@ -1030,11 +1268,6 @@ class WebsiteData(object):
             number_sub = len(v.get("genomes"))
 
             results = []
-
-            # Pierre: unclear why we wouldn't report this case
-            #***if len(v.get("genomes")) == 1 and v.get("genomes")[0][0] == k:
-            #***    continue
-
             for newg in v.get("genomes"):
                 newg_name = newg[0]
                 newg_numb = float(newg[1])
@@ -1042,9 +1275,13 @@ class WebsiteData(object):
                     if sv.get(rank) == newg_name:
                         pranknew = sv.get(orderrank[orderrank.index(rank) - 1])
                         break
+
                 res = newg_name
-                if prankold != pranknew:
-                    res = res + "(" + pranknew + ")"
+                if not newg_name.startswith('s__') or newg_name == 's__':
+                    # report parent taxa, except at the rank of species unless the species
+                    # name (and hence genus) is unspecified
+                    if prankold.replace('Candidatus ', '') != pranknew.replace('Candidatus ', ''):
+                        res = res + "(" + pranknew + ")"
                 res = "{0} {1}%".format(res, round(
                     (newg_numb / v.get("nber_g")) * 100, 2))
                 results.append(res)
