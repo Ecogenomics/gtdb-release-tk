@@ -349,7 +349,7 @@ class RepsPerRank(object):
         self.logger.info('Reading SSU length.')
         ssu_length = self.read_ssu_file(ssu_fasta_file)
             
-        # sample genomew per taxonomic group at the ranks of phylum to genus
+        # sample genomes per taxonomic group at the ranks of phylum to genus
         self.logger.info('Selecting representatives.')
         for domain in ['archaea', 'bacteria']:
             self.logger.info('Processing {} taxa:'.format(domain.capitalize()))

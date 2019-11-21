@@ -63,10 +63,12 @@ def print_help():
       taxonomy_files  -> Generate GTDB taxonomy files
       tree_files      -> Generate tree files spanning representative genomes
       sp_cluster_file -> Generate file indicating GTDB species clusters
+      hq_genome_file  -> Generate file indicating HQ MIMAG genomes
       ssu_files       -> Generate 16S rRNA FASTA files
       marker_files    -> Generate marker gene files
       msa_files       -> Generate concatenated MSA files
       metadata_files  -> Generate GTDB metadata files
+      arb_files       -> Generate ARB metadata file
       validate        -> Perform validation checks on GTDB website files
       
     Internal files for GTDB website:
@@ -157,6 +159,22 @@ if __name__ == '__main__':
     sp_cluster_file_parser.add_argument('output_dir', help="output directory")
     sp_cluster_file_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
+        
+    # generate files indicating HQ genome for each species cluster
+    hq_genome_file_parser = subparsers.add_parser('hq_genome_file',
+                                                   formatter_class=CustomHelpFormatter,
+                                                   description='Generate file indicating HQ genomes.')
+    hq_genome_file_parser.add_argument(
+        'metadata_file', help='file indicating metadata of each genome')
+    hq_genome_file_parser.add_argument(
+        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    hq_genome_file_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    hq_genome_file_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    hq_genome_file_parser.add_argument('output_dir', help="output directory")
+    hq_genome_file_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # generate 16S rRNA FASTA files for GTDB website
     ssu_files_parser = subparsers.add_parser('ssu_files',
@@ -218,40 +236,41 @@ if __name__ == '__main__':
 
     # generate GTDB metadata files
     metadata_files_parser = subparsers.add_parser('metadata_files',
-                                                  formatter_class=CustomHelpFormatter,
-                                                  description='Generate GTDB metadata files.')
-    metadata_files_parser.add_argument(
-        'metadata_file', help='file indicating metadata of each genome')
-    metadata_files_parser.add_argument(
-        'metadata_fields', help='file indicating GTDB metadata fileds to retain')
-    metadata_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    metadata_files_parser.add_argument(
-        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    metadata_files_parser.add_argument(
-        'release_number', help='release number (ex. 86)')
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate GTDB metadata files.')
+    metadata_files_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
+    metadata_files_parser.add_argument('metadata_fields', help='file indicating GTDB metadata fields to retain')
+    metadata_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    metadata_files_parser.add_argument('gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
+    metadata_files_parser.add_argument('release_number', help='release number (ex. 86)')
     metadata_files_parser.add_argument('output_dir', help="output directory")
-    metadata_files_parser.add_argument(
-        '--silent', help="suppress output", action='store_true')
+    metadata_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate GTDB metadata files
+    arb_files_parser = subparsers.add_parser('arb_files',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate ARB metadata file.')
+    arb_files_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
+    arb_files_parser.add_argument('metadata_fields', help='file indicating GTDB metadata fields to retain')
+    arb_files_parser.add_argument('user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    arb_files_parser.add_argument('bac120_msa_file', help='MSA for bacterial representative genomes')
+    arb_files_parser.add_argument('ar122_msa_file', help='MSA for archaeal representative genomes')
+    arb_files_parser.add_argument('release_number', help='release number (ex. 86)')
+    arb_files_parser.add_argument('output_dir', help="output directory")
+    arb_files_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # perform validation checks on GTDB website files
     validate_parser = subparsers.add_parser('validate',
-                                            formatter_class=CustomHelpFormatter,
-                                            description='Perform validation checks on GTDB website files.')
-    validate_parser.add_argument(
-        'taxonomy_file', help='file indicating taxonomy of each genome')
-    validate_parser.add_argument(
-        'tree_file', help='tree spanning representative genomes')
-    validate_parser.add_argument(
-        'metadata_file', help='file indicating metadata of each genome')
-    validate_parser.add_argument(
-        'msa_file', help='file with MSA of representative genomes')
-    validate_parser.add_argument(
-        'ssu_file', help='file with SSU genes for representative genomes')
-    validate_parser.add_argument(
-        'sp_clusters_file', help='file indicating GTDB species clusters')
-    validate_parser.add_argument(
-        '--silent', help="suppress output", action='store_true')
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Perform validation checks on GTDB website files.')
+    validate_parser.add_argument('taxonomy_file', help='file indicating taxonomy of each genome')
+    validate_parser.add_argument('tree_file', help='tree spanning representative genomes')
+    validate_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
+    validate_parser.add_argument('msa_file', help='file with MSA of representative genomes')
+    validate_parser.add_argument('ssu_file', help='file with SSU genes for representative genomes')
+    validate_parser.add_argument('sp_clusters_file', help='file indicating GTDB species clusters')
+    validate_parser.add_argument('hq_genome_file', help='file indicating HQ MIMAG genomes')
+    validate_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # generate correspondence between standardly named taxonomies ordered by
     # degree of polyphyly

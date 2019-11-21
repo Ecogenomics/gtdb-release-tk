@@ -37,7 +37,8 @@ import biolib.seq_io as seq_io
 from gtdb_release_tk.common import (parse_user_gid_table,
                                     parse_rep_genomes,
                                     parse_genomic_path_file,
-                                    parse_species_clusters)
+                                    parse_species_clusters,
+                                    parse_gtdb_metadata)
 
 from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN
 
@@ -354,6 +355,99 @@ class WebsiteData(object):
                 assert(cluster_size + 1 == len(clustered_genomes))
 
         fout.close()
+        
+    def hq_genome_file(self, metadata_file,
+                            gtdb_sp_clusters_file,
+                            user_gid_table):
+        """Generate file indicating HQ genomes."""
+
+        # parse user genome ID mapping table
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+
+        # get representative genome for each GTDB species cluster
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        reps = parse_rep_genomes(metadata_file, user_gids)
+        self.logger.info(' ...identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
+            sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
+            sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
+
+        # get metadata required to access genome quality
+        metadata = parse_gtdb_metadata(metadata_file, [
+                                                'checkm_completeness',
+                                                'checkm_contamination',
+                                                'ssu_count',
+                                                'lsu_5s_count',
+                                                'lsu_23s_count',
+                                                'trna_aa_count',
+                                                'ncbi_genome_category',
+                                                'mimag_high_quality',
+                                                'gtdb_taxonomy'],
+                                                user_gids)
+        
+        fout = open(self.output_dir /
+                    'hq_mimag_genomes_r{}.tsv'.format(self.release_number), 'w')
+        fout.write('Representative genome')
+        fout.write('\tCompleteness (%)\tContamination (%)\t5S rRNA count\t16S rRNA count\t23S rRNA count\ttRNA count')
+        fout.write('\tGenome category\tGTDB taxonomy\tGTDB representative genome\n')
+        
+        genome_count = 0
+        species = set()
+        rep_count = 0
+        for gid in metadata:
+            if gid.startswith('U_'):
+                continue
+                
+            gtdb_taxa = [t.strip() for t in metadata[gid].gtdb_taxonomy.split(';')]
+            gtdb_sp = gtdb_taxa[6]
+            if gtdb_sp == 's__':
+                continue
+                
+            comp = metadata[gid].checkm_completeness
+            cont = metadata[gid].checkm_contamination
+            count_5s = metadata[gid].lsu_5s_count
+            count_16s = metadata[gid].ssu_count
+            count_23s = metadata[gid].lsu_23s_count
+            trna_count = metadata[gid].trna_aa_count
+            
+            genome_category = 'isolate'
+            category_str = metadata[gid].ncbi_genome_category
+            if category_str:
+                if ('metagenome' in metadata[gid].ncbi_genome_category.lower()
+                    or 'environment' in metadata[gid].ncbi_genome_category.lower()):
+                        genome_category = 'MAG'
+                elif 'single cell' in metadata[gid].ncbi_genome_category.lower():
+                    genome_category = 'SAG'
+            
+            if (comp > 90
+                and cont < 5
+                and count_5s >= 1
+                and count_16s >= 1
+                and count_23s >= 1
+                and trna_count >= 18):
+                fout.write('{}'.format(gid))
+                fout.write('\t{:.1f}\t{:.2f}\t{}\t{}\t{}\t{}'.format(
+                            comp,
+                            cont,
+                            count_5s,
+                            count_16s,
+                            count_23s,
+                            trna_count))
+                fout.write('\t{}\t{}\t{}'.format(
+                            genome_category,
+                            metadata[gid].gtdb_taxonomy,
+                            gid in reps))
+                fout.write('\n')
+                
+                genome_count += 1
+                species.add(gtdb_sp)
+                rep_count += (gid in reps)
+        fout.close()
+        
+        self.logger.info('Identified {:,} high-quality MIMAG genomes from {:,} species spanning {:,} GTDB representatives.'.format(
+                            genome_count,
+                            len(species),
+                            rep_count))
 
     def tree_files(self,
                    metadata_file,
@@ -587,14 +681,92 @@ class WebsiteData(object):
         fout_ar.close()
 
         self.logger.info(f'Wrote metadata for {count:,} genomes.')
+        
+    def arb_files(self, metadata_file,
+                        metadata_fields,
+                        user_gid_table,
+                        bac120_msa_file,
+                        ar122_msa_file):
+        """Generate ARB metadata files."""
+        
+        # parse user genome ID mapping table
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+        
+        # read metadata fields to retain
+        self.logger.info('Reading metadata fields to retain.')
+        fields = set()
+        with open(metadata_fields) as f:
+            f.readline()
+            for line in f:
+                fields.add(line.strip().split('\t')[0])
+        self.logger.info(f' ...identified {len(fields):,} fields to retain.')
+        
+        # remove fields that cause problems in ARB
+        self.logger.info('Removing fields known to cause issues in ARB.')
+        if 'gtdb_clustered_genomes' in fields:
+            fields.remove('gtdb_clustered_genomes')
+        
+        # read genome metadata
+        self.logger.info('Reading genome metadata.')
+        metadata = defaultdict(lambda: {})
+        with open(metadata_file, encoding='utf-8') as f:
+            header = f.readline().strip().split('\t')
 
+            for line in f:
+                line_split = line.strip().split('\t')
+                
+                gid = line_split[0]
+                gid = user_gids.get(gid, gid)
+                
+                for idx, field in enumerate(header):
+                    if field not in fields:
+                        continue
+                        
+                    value = line_split[idx]
+                    metadata[gid][field] = value
+
+        # read MSA files
+        seqs = {}
+        for seq_file in [bac120_msa_file, ar122_msa_file]:
+            for seq_id, seq in seq_io.read_seq(bac120_msa_file):
+                seqs[seq_id] = seq
+        
+        # write out ARB metadata file for each domain
+        for prefix, msa_file in [('bac120', bac120_msa_file), ('ar122', ar122_msa_file)]:
+            # read MSA files
+            seqs = seq_io.read(msa_file)
+            
+            # write out record for each genome
+            fout = open(self.output_dir / f'{prefix}_arb_r{self.release_number}.tsv', 'w', encoding='utf-8')
+            for gid, msa in seqs.items():
+                gid = user_gids.get(gid, gid)
+                
+                fout.write("BEGIN\n")
+                fout.write("db_name={}\n".format(gid))
+                for field, value in metadata[gid].items():
+                    # replace equal signs as these are incompatible with the ARB parser
+                    if value:
+                        value = value.replace('=', '/')
+                        
+                    if len(value) > 1000:
+                        print(gid, field, value)
+
+                    fout.write("{}={}\n".format(field, value))
+                
+                fout.write("multiple_homologs=\n")
+                fout.write("aligned_seq={}\n".format(msa))
+                fout.write("END\n\n")
+            fout.close()
+        
     def validate(self,
-                 taxonomy_file,
-                 tree_file,
-                 metadata_file,
-                 msa_file,
-                 ssu_file,
-                 sp_clusters_file):
+                    taxonomy_file,
+                    tree_file,
+                    metadata_file,
+                    msa_file,
+                    ssu_file,
+                    sp_clusters_file,
+                    hq_genome_file):
         """Perform validation checks on GTDB website files."""
 
         # parse taxonomy file
@@ -611,6 +783,28 @@ class WebsiteData(object):
         for gids in sp_clusters.values():
             all_gids.update(gids)
         assert(len(set(taxonomy).difference(all_gids)) == 0)
+        
+        # get HQ MIMAG genomes
+        self.logger.info('Validating MIMAG HQ genome file.')
+        hq_genomes = set()
+        with open(hq_genome_file) as f:
+            header = f.readline().strip().split('\t')
+            
+            gtdb_taxonomy_index = header.index('GTDB taxonomy')
+            gtdb_rep_index = header.index('GTDB representative genome')
+            
+            for line in f:
+                line_split = line.strip().split('\t')
+                
+                gid = line_split[0]
+                if gid in taxonomy:
+                    is_rep = (line_split[gtdb_rep_index].lower() == 'true')
+                    
+                    assert(line_split[gtdb_taxonomy_index] == taxonomy[gid])
+                    assert(gid in taxonomy)
+                    
+                    if is_rep:
+                        assert(gid in sp_clusters)
 
         # validate that tree spans representatives
         self.logger.info('Validating tree file.')

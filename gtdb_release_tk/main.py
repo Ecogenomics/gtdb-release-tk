@@ -95,6 +95,21 @@ class OptionsParser():
                           options.user_gid_table)
 
         self.logger.info('Done.')
+        
+    def hq_genome_file(self, options):
+        """Generate file indicating HQ genomes."""
+
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.gtdb_sp_clusters_file)
+        check_file_exists(options.user_gid_table)
+        make_sure_path_exists(options.output_dir)
+
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.hq_genome_file(options.metadata_file,
+                        options.gtdb_sp_clusters_file,
+                        options.user_gid_table)
+
+        self.logger.info('Done.')
 
     def ssu_files(self, options):
         """Generate 16S rRNA FASTA files for GTDB website."""
@@ -164,6 +179,28 @@ class OptionsParser():
                          options.user_gid_table)
 
         self.logger.info('Done.')
+        
+    def arb_files(self, options):
+        """Generate ARB metadata file."""
+        
+        self.logger.warning('IN PROGRESS')
+        return
+
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.metadata_fields)
+        check_file_exists(options.user_gid_table)
+        check_file_exists(options.bac120_msa_file)
+        check_file_exists(options.ar122_msa_file)
+        make_sure_path_exists(options.output_dir)
+        
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.arb_files(options.metadata_file,
+                                options.metadata_fields,
+                                options.user_gid_table,
+                                options.bac120_msa_file,
+                                options.ar122_msa_file)
+
+        self.logger.info('Done.')
 
     def validate(self, options):
         """Perform validation checks on GTDB website files."""
@@ -174,14 +211,16 @@ class OptionsParser():
         check_file_exists(options.msa_file)
         check_file_exists(options.ssu_file)
         check_file_exists(options.sp_clusters_file)
+        check_file_exists(options.hq_genome_file)
 
         p = WebsiteData(None, None)
         p.validate(options.taxonomy_file,
-                   options.tree_file,
-                   options.metadata_file,
-                   options.msa_file,
-                   options.ssu_file,
-                   options.sp_clusters_file)
+                        options.tree_file,
+                        options.metadata_file,
+                        options.msa_file,
+                        options.ssu_file,
+                        options.sp_clusters_file,
+                        options.hq_genome_file)
 
         self.logger.info('Done.')
 
@@ -408,6 +447,8 @@ class OptionsParser():
             self.tree_files(options)
         elif options.subparser_name == 'sp_cluster_file':
             self.sp_cluster_file(options)
+        elif options.subparser_name == 'hq_genome_file':
+            self.hq_genome_file(options)
         elif options.subparser_name == 'ssu_files':
             self.ssu_files(options)
         elif options.subparser_name == 'marker_files':
@@ -416,6 +457,8 @@ class OptionsParser():
             self.msa_files(options)
         elif options.subparser_name == 'metadata_files':
             self.metadata_files(options)
+        elif options.subparser_name == 'arb_files':
+            self.arb_files(options)
         elif options.subparser_name == 'validate':
             self.validate(options)
         elif options.subparser_name == 'genome_category_rank':
