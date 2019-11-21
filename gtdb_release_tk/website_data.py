@@ -879,7 +879,7 @@ class WebsiteData(object):
                                                                                                                "type": "g",
                                                                                                                "children": list({"name": s,
                                                                                                                                  "type": "s",
-                                                                                                                                 "children": list(self.process_genome(gen, meta_information) for gen in self.sorted_genome(v[x][z][o][f][g][s], meta_information))} for s in sorted(v[x][z][o][f][g].keys()))} for g in sorted(v[x][z][o][f].keys()))} for f in sorted(v[x][z][o].keys()))} for o in sorted(v[x][z].keys()))} for z in sorted(v[x].keys()))} for x in sorted(v.keys()))}
+                                                                                                                                 "children": list(self.process_genome(gen, meta_information) for gen in self.sorted_genome(v[x][z][o][f][g][s], meta_information))} for s in self.sort_ranks(v[x][z][o][f][g].keys()))} for g in self.sort_ranks(v[x][z][o][f].keys()))} for f in self.sort_ranks(v[x][z][o].keys()))} for o in self.sort_ranks(v[x][z].keys()))} for z in self.sort_ranks(v[x].keys()))} for x in self.sort_ranks(v.keys()))}
         cleaned_dict = self.clean_empty_children(dict_rank)
         cleaned_dict = self.count_children(cleaned_dict)
         cleaned_dict = self.add_type_species(cleaned_dict, type_spe_list)
@@ -904,6 +904,20 @@ class WebsiteData(object):
             shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
             return shorten_list
         return full_list
+
+    def is_valid_name(self, rank_name):
+        rank_name = rank_name[3:].split('_')[0]
+        if rank_name.replace(' ', '').isalpha() and rank_name[0].isupper() and rank_name[1:].islower():
+            return True
+        return False
+
+    def sort_ranks(self, list_ranks):
+        results = []
+        valid_names = sorted([x for x in list_ranks if self.is_valid_name(x)])
+        placeholder_names = sorted(
+            [x for x in list_ranks if x not in valid_names])
+        results = valid_names + placeholder_names
+        return results
 
     def process_genome(self, genome, meta_information):
         result_genome = {"name": genome, "type": 'genome'}
