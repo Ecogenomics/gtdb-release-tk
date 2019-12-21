@@ -180,6 +180,17 @@ class OptionsParser():
 
         self.logger.info('Done.')
         
+    def dict_file(self, options):
+        """Generate GTDB dictionary file."""
+
+        check_file_exists(options.taxonomy_file)
+        make_sure_path_exists(options.output_dir)
+        
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.dict_file(options.taxonomy_file)
+
+        self.logger.info('Done.')
+
     def arb_files(self, options):
         """Generate ARB metadata file."""
         
@@ -457,6 +468,8 @@ class OptionsParser():
             self.msa_files(options)
         elif options.subparser_name == 'metadata_files':
             self.metadata_files(options)
+        elif options.subparser_name == 'dict_file':
+            self.dict_file(options)
         elif options.subparser_name == 'arb_files':
             self.arb_files(options)
         elif options.subparser_name == 'validate':

@@ -681,6 +681,31 @@ class WebsiteData(object):
         fout_ar.close()
 
         self.logger.info(f'Wrote metadata for {count:,} genomes.')
+
+    def dict_file(self, taxonomy_file):
+        """Generate GTDB dictionary file."""
+
+        taxa = set()
+        with open(taxonomy_file, encoding='utf-8') as f:
+            for line in f:
+                tokens = line.strip().split('\t')
+
+                for taxon in tokens[1].split(';'):
+                    taxa.add(taxon.strip()[3:])
+                    taxa.add(taxon.strip())
+
+                    if taxon.startswith('s__'):
+                        generic, specific = taxon[3:].split()
+                        taxa.add(generic.strip())
+                        taxa.add(specific.strip())
+                        taxa.add(f's__{generic.strip()}')
+                        taxa.add(f'{generic[0]}. {specific}')
+                        taxa.add(f's__{generic[0]}. {specific}')
+                      
+        fout = open(self.output_dir / f'gtdb_r{self.release_number}.dic', 'w', encoding='utf-8')
+        for t in sorted(taxa):
+            fout.write(f'{t}\n')
+        fout.close()
         
     def arb_files(self, metadata_file,
                         metadata_fields,

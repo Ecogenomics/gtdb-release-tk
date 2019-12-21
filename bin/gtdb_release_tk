@@ -68,6 +68,7 @@ def print_help():
       marker_files    -> Generate marker gene files
       msa_files       -> Generate concatenated MSA files
       metadata_files  -> Generate GTDB metadata files
+      dict_file       -> Generate dictionary containing all GTDB taxa
       arb_files       -> Generate ARB metadata file
       validate        -> Perform validation checks on GTDB website files
       
@@ -245,6 +246,15 @@ if __name__ == '__main__':
     metadata_files_parser.add_argument('release_number', help='release number (ex. 86)')
     metadata_files_parser.add_argument('output_dir', help="output directory")
     metadata_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate GTDB dictionary
+    dict_file_parser = subparsers.add_parser('dict_file',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Create dictionary with all GTDB taxa.')
+    dict_file_parser.add_argument('taxonomy_file', help='file indicating GTDB taxonomy of reference genomes')
+    dict_file_parser.add_argument('release_number', help='release number (ex. 86)')
+    dict_file_parser.add_argument('output_dir', help="output directory")
+    dict_file_parser.add_argument('--silent', help="suppress output", action='store_true')
     
     # generate GTDB metadata files
     arb_files_parser = subparsers.add_parser('arb_files',
@@ -493,8 +503,7 @@ if __name__ == '__main__':
                                         formatter_class=CustomHelpFormatter,
                                         description='Steps to update LPSN Metadata.')
 
-    lpsn_subparser = lpsn_parser.add_subparsers(required=True,
-                                                help='Command to process LPSN metadata',
+    lpsn_subparser = lpsn_parser.add_subparsers(help='Command to process LPSN metadata',
                                                 dest='lpsn_subparser_name')
 
     lpsn_parser_lpsn_wf = lpsn_subparser.add_parser('lpsn_wf',
@@ -532,8 +541,7 @@ if __name__ == '__main__':
                                            formatter_class=CustomHelpFormatter,
                                            description='Steps to update Bacdive Metadata.')
 
-    bacdive_subparser = bacdive_parser.add_subparsers(required=True,
-                                                      help='Command to process Bacdive metadata',
+    bacdive_subparser = bacdive_parser.add_subparsers(help='Command to process Bacdive metadata',
                                                       dest='bacdive_subparser_name')
 
     bacdive_parser_dl_strains = bacdive_subparser.add_parser('download_strains',
@@ -553,8 +561,7 @@ if __name__ == '__main__':
     strains_parser = subparsers.add_parser('strains',
                                            formatter_class=CustomHelpFormatter,
                                            description='Tools to combine Medata from different databases.')
-    strains_subparser = strains_parser.add_subparsers(required=True,
-                                                      help='Tools to combine Medata from different databases.',
+    strains_subparser = strains_parser.add_subparsers(help='Tools to combine Medata from different databases.',
                                                       dest='strains_subparser_name')
 
     strains_parser_date = strains_subparser.add_parser('date_table',
