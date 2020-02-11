@@ -80,7 +80,7 @@ class LPSN(object):
                     desc = line_split[3].strip()
 
                     family = ''
-                    if line_split[1]:
+                    if line_split[1] == 'True':
                         family = desc[desc.find(
                             'family ?') + len('family ?'):].strip()
                         family = 'f__' + family.split()[0]
@@ -96,7 +96,7 @@ class LPSN(object):
                     desc = line_split[3].strip()
 
                     genus = ''
-                    if line_split[1]:
+                    if line_split[1] == 'True':
                         genus = 'g__' + line_split[2].split()[0]
 
                     if (species, genus, desc) not in processed_species:
