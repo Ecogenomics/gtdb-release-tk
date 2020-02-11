@@ -37,7 +37,7 @@ import multiprocessing as mp
 
 
 class Strains(object):
-    def __init__(self):
+    def __init__(self, output_dir, cpus):
         """Initialization."""
         self.year = datetime.datetime.now().year
 
@@ -60,6 +60,8 @@ class Strains(object):
                                           'strain_id',
                                           'year_date'])
         self.logger = logging.getLogger('timestamp')
+        self.cpus = cpus
+        self.output_dir = output_dir
 
     def load_date_dict(self, lpsn_species_info):
         datedict = {}
@@ -200,7 +202,7 @@ class Strains(object):
             'Read type material information for %d NCBI taxIDs.' % len(type_material))
 
         # sanity check results
-        for k, v in category_names.iteritems():
+        for k, v in category_names.items():
             if len(set(v['synonym']).intersection(v.get('scientific name'))) > 0 or len(set(v['synonym']).intersection(v['equivalent name'])) > 0:
                 print('ERROR')
                 print(v['synonym'])
@@ -917,7 +919,7 @@ class Strains(object):
         agreed_type_of_species = 0
         agreed_type_of_subspecies = 0
         num_type_species_of_genus = 0
-        for gid, metadata in self.metadata.iteritems():
+        for gid, metadata in self.metadata.items():
             fout.write(gid)
 
             species_name = self.get_species_name(gid)
