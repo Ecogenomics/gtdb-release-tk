@@ -216,7 +216,7 @@ class Strains(object):
         """Parse data from GTDB metadata file."""
 
         metadata = {}
-        with open(metadata_file) as metaf:
+        with open(metadata_file, encoding='utf-8') as metaf:
             headers_line = metaf.readline()
             separator = ','
             if '\t' in headers_line:
@@ -271,7 +271,7 @@ class Strains(object):
         straininfo_strains_dic = {}
         pattern = re.compile('[\W_]+')
         p = re.compile('(\w+)\s\(now\s(\w+)\)\s(\d+)', re.IGNORECASE)
-        with open(os.path.join(straininfo_dir, 'straininfo_strains.tsv')) as ststr:
+        with open(os.path.join(straininfo_dir, 'straininfo_strains.tsv'), encoding='utf-8') as ststr:
             ststr.readline()
             for line in ststr:
                 infos = line.rstrip('\n').split('\t')
@@ -309,7 +309,7 @@ class Strains(object):
         # We load the dictionary of strains from DSMZ
         dsmz_strains_dic = {}
         pattern = re.compile('[\W_]+')
-        with open(os.path.join(dsmz_dir, 'dsmz_strains.tsv')) as dsstr:
+        with open(os.path.join(dsmz_dir, 'dsmz_strains.tsv'), encoding='utf-8') as dsstr:
             dsstr.readline()
             for line in dsstr:
                 infos = line.rstrip('\n').split('\t')
@@ -327,7 +327,7 @@ class Strains(object):
         # We load the dictionary of strains from LPSN
         pattern = re.compile('[\W_]+')
         lpsn_strains_dic = {}
-        with open(os.path.join(lpsn_dir, 'lpsn_strains.tsv')) as lpstr:
+        with open(os.path.join(lpsn_dir, 'lpsn_strains.tsv'), encoding='utf-8') as lpstr:
             lpstr.readline()
             for line in lpstr:
                 infos = line.rstrip('\n').split('\t')
@@ -344,9 +344,9 @@ class Strains(object):
                     lpsn_strains_dic[infos[0]] = {
                         'strains': '='.join(set(list_strains)), 'neotypes': '='.join(set(list_neotypes))}
         return lpsn_strains_dic
-
+    
     def _read_type_species_of_genus(self, species_file):
-        """Read type species of genus."""
+        """Read type species of genus information from DSMZ files."""
 
         type_species_of_genus = {}
         genus_type_species = {}
@@ -356,6 +356,11 @@ class Strains(object):
             for line in lpstr:
                 line_split = line.rstrip('\n').split('\t')
                 sp, genus, authority = line_split
+                
+                if 'Type species of the genus' in authority and not genus:
+                    self.logger.error('Appears {} should be considered the type species of {}.'.format(
+                                        sp, genus))
+                    sys.exit(-1)
 
                 if genus:
                     sp = sp.replace('s__', '')
@@ -363,7 +368,7 @@ class Strains(object):
 
                     if genus in genus_type_species:
                         self.logger.warning(
-                            'Identified multiple type species for %s in %s.' % (genus, species_file))
+                            'Identified multiple type species for {} in {}.'.format(genus, species_file))
                     else:
                         genus_type_species[genus] = sp
 
@@ -856,8 +861,8 @@ class Strains(object):
                 year_date))
 
             processed += 1
-            statusStr = '-> Processing %d genomes assembled from type material.'.ljust(
-                86) % processed
+            statusStr = '-> Processing {:,} genomes assembled from type material.'.format(
+                        processed).ljust(86)
             sys.stdout.write('%s\r' % statusStr)
             sys.stdout.flush()
 
@@ -931,8 +936,7 @@ class Strains(object):
             fout.write('\t%s\t%s' % (ncbi_authority.get(metadata['ncbi_taxid'], '').replace('"', '~'),
                                      metadata['ncbi_type_material_designation']))
 
-            # GTDB sets the type material designation in a specific priority
-            # order
+            # GTDB sets the type material designation in a specific priority order
             highest_priority_designation = self.NOT_TYPE_MATERIAL
             for sr in [lpsn, dsmz, straininfo]:
                 if gid in sr and self.type_priority.index(sr[gid].type_designation) < self.type_priority.index(highest_priority_designation):
@@ -946,6 +950,11 @@ class Strains(object):
                         or canonical_sp_name in lpsn_type_species_of_genus or canonical_sp_name in dsmz_type_species_of_genus)):
                 type_species_of_genus = True
                 num_type_species_of_genus += 1
+                
+            if '001951015' in gid: #***
+                print(gid, highest_priority_designation, species_name, canonical_sp_name)
+                print(type_species_of_genus)
+                print('****')
 
             gtdb_type_sources = []
             for sr_id, sr in [('LPSN', lpsn), ('DSMZ', dsmz), ('StrainInfo', straininfo)]:
@@ -1029,6 +1038,36 @@ class Strains(object):
                                    year_table,
                                    sourcest):
         """Parse multiple sources to identify genomes assembled from type material."""
+        
+        
+        
+        lpsn_type_species_of_genus, lpsn_genus_type_species = self._read_type_species_of_genus(
+                os.path.join(lpsn_dir, 'lpsn_species.tsv'))
+        dsmz_type_species_of_genus, dsmz_genus_type_species = self._read_type_species_of_genus(
+            os.path.join(dsmz_dir, 'dsmz_species.tsv'))
+            
+        if 'Rickettsia rickettsii' in lpsn_type_species_of_genus: #***
+            print("'Rickettsia rickettsii' in lpsn_type_species_of_genus", "TRUE!!!")
+        else:
+            print("'Rickettsia rickettsii' in lpsn_type_species_of_genus", "FALSE!!!")
+            
+        if 'Rickettsia rickettsii' in dsmz_type_species_of_genus: #***
+            print("'Rickettsia rickettsii' in dsmz_type_species_of_genus", "TRUE!!!")
+        else:
+            print("'Rickettsia rickettsii' in dsmz_type_species_of_genus", "FALSE!!!")
+            
+        sys.exit(-1)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
         # initialize data being parsed from file
         self.logger.info('Parsing GTDB metadata.')
