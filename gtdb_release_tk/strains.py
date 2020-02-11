@@ -938,7 +938,6 @@ class Strains(object):
                 if gid in sr and self.type_priority.index(sr[gid].type_designation) < self.type_priority.index(highest_priority_designation):
                     highest_priority_designation = sr[gid].type_designation
             fout.write('\t%s' % highest_priority_designation)
-
             type_species_of_genus = False
             canonical_sp_name = ' '.join(species_name.split()[0:2])
             if (highest_priority_designation == 'type strain of species' and
