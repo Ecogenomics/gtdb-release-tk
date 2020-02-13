@@ -15,32 +15,31 @@
 #                                                                             #
 ###############################################################################
 
-import os
-import sys
-import shutil
+import json
 import logging
 import ntpath
-from pathlib import Path, PurePath
-from collections import defaultdict
+import os
+import shutil
+import multiprocessing as mp
+import glob
+
+from biolib.common import make_sure_path_exists
+from tqdm import tqdm
+import sys
 from collections import Counter
-import json
+from collections import defaultdict
 
+from pathlib import Path, PurePath
 
-import dendropy
-
-from numpy import (arange as np_arange,
-                   array as np_array)
-
-from biolib.taxonomy import Taxonomy
 import biolib.seq_io as seq_io
+import dendropy
 
 from gtdb_release_tk.common import (parse_user_gid_table,
                                     parse_rep_genomes,
                                     parse_genomic_path_file,
                                     parse_species_clusters,
-                                    parse_gtdb_metadata)
-
-from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN
+                                    parse_gtdb_metadata, parse_tophit_file, parse_taxonomy_file)
+from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN, BAC120_MARKERS, AR122_MARKERS
 
 
 class WebsiteData(object):
@@ -583,6 +582,172 @@ class WebsiteData(object):
             self.logger.info(f'MSA file {out_file} contains {count:,} genomes.')
 
             fout.close()
+
+    def _gene_files_worker(self, q_worker, q_writer, q_results):
+        while True:
+            # Extract the next job
+            job = q_worker.get(block=True)
+            if job is None:
+                break
+            gid, domain, dir_base = job
+
+            dir_prodigal = os.path.join(dir_base, 'prodigal')
+            path_pfam_th = glob.glob(f'{dir_prodigal}/*_pfam_tophit.tsv')[0]
+            path_tigr_th = glob.glob(f'{dir_prodigal}/*_tigrfam_tophit.tsv')[0]
+            th_pfam = parse_tophit_file(path_pfam_th)
+            th_tigr = parse_tophit_file(path_tigr_th)
+            th_all = {**th_pfam, **th_tigr}
+
+            # Determine which marker set to use
+            if domain == 'd__Archaea':
+                marker_set = AR122_MARKERS
+            elif domain == 'd__Bacteria':
+                marker_set = BAC120_MARKERS
+            else:
+                raise Exception('Unknown domain.')
+
+            # Load the NT and AA files
+            path_fna = glob.glob(f'{dir_prodigal}/*_protein.fna')[0]
+            path_faa = glob.glob(f'{dir_prodigal}/*_protein.faa')[0]
+            fna = seq_io.read_fasta(path_fna)
+            faa = seq_io.read_fasta(path_faa)
+
+            # Extract the sequences for each marker
+            for marker in marker_set:
+                if marker in th_all:
+
+                    sorted_hits = sorted(th_all[marker], key=lambda x: (-x[2], x[1]))
+                    best_gid = sorted_hits[0][0]
+
+                    # Multihit check if seqs are the same, if not blanks
+                    if len(th_all[marker]) > 1:
+                        multi_seqs = {faa[x[0]] for x in th_all[marker]}
+
+                        # Multiple hits with different genes - don't keep it
+                        if len(multi_seqs) > 1:
+                            pass
+                        else:
+                            gene_id, e_val, bit_score = sorted_hits[0]
+                            q_results.put((gid, marker, best_gid, fna[gene_id], faa[gene_id], domain))
+
+                    # Just a single hit - take it
+                    else:
+                        gene_id, e_val, bit_score = sorted_hits[0]
+                        q_results.put((gid, marker, best_gid, fna[gene_id], faa[gene_id], domain))
+
+            # Done
+            q_writer.put(gid)
+
+        return True
+
+    def _gene_files_writer(self, q_writer, n_total):
+        with tqdm(total=n_total) as pbar:
+            while True:
+                job = q_writer.get(block=True)
+                if job is None:
+                    break
+                pbar.update(1)
+        return True
+
+    def gene_files(self, user_gid_table, path_taxonomy, cpus):
+        cpus = max(1, cpus)
+
+        # Get a mapping of accession to directory
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+
+        # Parse the metadata file
+        self.logger.info('Parsing taxonomy file.')
+        user_tax = parse_taxonomy_file(path_taxonomy)
+
+        # Setup the multiprocessing objects
+        manager = mp.Manager()
+        q_worker = manager.Queue()
+        q_writer = manager.Queue()
+        q_results = manager.Queue()
+
+        # Create a queue of items to be processed
+        self.logger.info('Creating a queue of jobs to be processed.')
+        for gid, dir_base in user_gids.items():
+            domain = user_tax[gid].split(';')[0]
+            q_worker.put((gid, domain, dir_base))
+        [q_worker.put(None) for _ in range(cpus)]
+
+        # Create the workers
+        self.logger.info('Starting jobs.')
+        p_workers = [mp.Process(target=self._gene_files_worker,
+                                args=(q_worker, q_writer, q_results))
+                     for _ in range(cpus)]
+        p_writer = mp.Process(target=self._gene_files_writer,
+                                args=(q_writer, len(user_gids)))
+
+        # Start each of the threads.
+        try:
+            # Start the writer and each processing thread.
+            p_writer.start()
+            for p_worker in p_workers:
+                p_worker.start()
+
+            for p_worker in p_workers:
+                p_worker.join()
+
+                # Gracefully terminate the program.
+                if p_worker.exitcode != 0:
+                    raise Exception('Worker returned non-zero exit code.')
+
+            # Stop the writer thread.
+            q_writer.put(None)
+            p_writer.join()
+
+        except Exception:
+            for p in p_workers:
+                p.terminate()
+            p_writer.terminate()
+            raise
+
+        # Parse the results
+        arc_fna, arc_faa, bac_fna, bac_faa = dict(), dict(), dict(), dict()
+        q_results.put(None)
+        cur_result = q_results.get()
+        while cur_result is not None:
+            gid, marker, gene_id, fna, faa, domain = cur_result
+
+            if domain == 'd__Archaea':
+                out_fna, out_faa = arc_fna, arc_faa
+            elif domain == 'd__Bacteria':
+                out_fna, out_faa = bac_fna, bac_faa
+            else:
+                raise Exception("Unknown domain.")
+
+            if marker not in out_fna:
+                out_fna[marker] = list()
+            if marker not in out_faa:
+                out_faa[marker] = list()
+
+            out_fna[marker].append((gid, gene_id, fna))
+            out_faa[marker].append((gid, gene_id, faa))
+
+            cur_result = q_results.get()
+
+        # Write the output to disk
+        for out_dict, domain, ext in [(arc_fna, 'ar122', 'fna'),
+                                      (arc_faa, 'ar122', 'faa'),
+                                      (bac_fna, 'bac120', 'fna'),
+                                      (bac_faa, 'bac120', 'faa')]:
+            cur_root = os.path.join(self.output_dir, f'{domain}_{self.release_number}_individual_genes', ext)
+            make_sure_path_exists(cur_root)
+
+            for marker, seqs in sorted(out_dict.items()):
+                cur_path = os.path.join(cur_root, f'{marker}.{ext}')
+
+                with open(cur_path, 'w') as fh:
+                    for cur_gid, cur_gene_id, cur_seq in seqs:
+                        fh.write(f'>{cur_gid}\n{cur_seq}\n')
+                pass
+
+        self.logger.info('Done.')
+
+
 
     def metadata_files(self, metadata_file,
                        metadata_fields,

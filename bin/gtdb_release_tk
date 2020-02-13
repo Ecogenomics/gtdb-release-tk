@@ -24,11 +24,9 @@ __maintainer__ = "Donovan Parks"
 __email__ = "donovan.parks@gmail.com"
 __status__ = "Development"
 
+import argparse
 import os
 import sys
-import ntpath
-import logging
-import argparse
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -37,7 +35,6 @@ from gtdb_release_tk.main import OptionsParser
 
 from biolib.logger import logger_setup
 from biolib.misc.custom_help_formatter import CustomHelpFormatter
-from biolib.common import make_sure_path_exists
 
 
 def version():
@@ -67,6 +64,7 @@ def print_help():
       ssu_files       -> Generate 16S rRNA FASTA files
       marker_files    -> Generate marker gene files
       msa_files       -> Generate concatenated MSA files
+      gene_files      -> Generate untrimmed ar122/bac120 gene files.
       metadata_files  -> Generate GTDB metadata files
       dict_file       -> Generate dictionary containing all GTDB taxa
       arb_files       -> Generate ARB metadata file
@@ -234,6 +232,17 @@ if __name__ == '__main__':
     msa_files_parser.add_argument('output_dir', help="output directory")
     msa_files_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
+
+    # generate untrimmed gene files bac120/ar122
+    gene_files_parser = subparsers.add_parser('gene_files',
+                                              formatter_class=CustomHelpFormatter,
+                                              description='Generate concatenated untrimmed gene files.')
+    gene_files_parser.add_argument('--taxonomy_file', help='tsv of gid and taxonomy')
+    gene_files_parser.add_argument('--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    gene_files_parser.add_argument('--release_number', help='release number (e.g. 86)')
+    gene_files_parser.add_argument('--output_dir', help="output directory")
+    gene_files_parser.add_argument('--silent', help="suppress output", action='store_true')
+    gene_files_parser.add_argument('--cpus', default=1, type=int, help="number of threads to use (default: 1)")
 
     # generate GTDB metadata files
     metadata_files_parser = subparsers.add_parser('metadata_files',
