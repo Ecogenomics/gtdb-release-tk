@@ -95,7 +95,7 @@ class OptionsParser():
                           options.user_gid_table)
 
         self.logger.info('Done.')
-        
+
     def hq_genome_file(self, options):
         """Generate file indicating HQ genomes."""
 
@@ -106,8 +106,8 @@ class OptionsParser():
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.hq_genome_file(options.metadata_file,
-                        options.gtdb_sp_clusters_file,
-                        options.user_gid_table)
+                         options.gtdb_sp_clusters_file,
+                         options.user_gid_table)
 
         self.logger.info('Done.')
 
@@ -189,13 +189,13 @@ class OptionsParser():
                          options.user_gid_table)
 
         self.logger.info('Done.')
-        
+
     def dict_file(self, options):
         """Generate GTDB dictionary file."""
 
         check_file_exists(options.taxonomy_file)
         make_sure_path_exists(options.output_dir)
-        
+
         p = WebsiteData(options.release_number, options.output_dir)
         p.dict_file(options.taxonomy_file)
 
@@ -203,7 +203,7 @@ class OptionsParser():
 
     def arb_files(self, options):
         """Generate ARB metadata file."""
-        
+
         self.logger.warning('IN PROGRESS')
         return
 
@@ -213,13 +213,13 @@ class OptionsParser():
         check_file_exists(options.bac120_msa_file)
         check_file_exists(options.ar122_msa_file)
         make_sure_path_exists(options.output_dir)
-        
+
         p = WebsiteData(options.release_number, options.output_dir)
         p.arb_files(options.metadata_file,
-                                options.metadata_fields,
-                                options.user_gid_table,
-                                options.bac120_msa_file,
-                                options.ar122_msa_file)
+                    options.metadata_fields,
+                    options.user_gid_table,
+                    options.bac120_msa_file,
+                    options.ar122_msa_file)
 
         self.logger.info('Done.')
 
@@ -236,12 +236,12 @@ class OptionsParser():
 
         p = WebsiteData(None, None)
         p.validate(options.taxonomy_file,
-                        options.tree_file,
-                        options.metadata_file,
-                        options.msa_file,
-                        options.ssu_file,
-                        options.sp_clusters_file,
-                        options.hq_genome_file)
+                   options.tree_file,
+                   options.metadata_file,
+                   options.msa_file,
+                   options.ssu_file,
+                   options.sp_clusters_file,
+                   options.hq_genome_file)
 
         self.logger.info('Done.')
 
@@ -447,7 +447,7 @@ class OptionsParser():
                               options.output_file)
 
     def generate_type_table(self, options):
-        p = Strains()
+        p = Strains(options.output_dir, options.cpus)
         p.generate_type_strain_table(options.metadata_file,
                                      options.ncbi_names,
                                      options.ncbi_nodes,
@@ -455,9 +455,7 @@ class OptionsParser():
                                      options.dsmz_dir,
                                      options.straininfo_dir,
                                      options.year_table,
-                                     options.source_strain,
-                                     options.output_dir,
-                                     options.cpus)
+                                     options.source_strain)
 
     def parse_options(self, options):
         """Parse user options and call the correct pipeline(s)"""

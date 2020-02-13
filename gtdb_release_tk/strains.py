@@ -37,7 +37,7 @@ import multiprocessing as mp
 
 
 class Strains(object):
-    def __init__(self):
+    def __init__(self, output_dir, cpus):
         """Initialization."""
         self.year = datetime.datetime.now().year
 
@@ -60,6 +60,8 @@ class Strains(object):
                                           'strain_id',
                                           'year_date'])
         self.logger = logging.getLogger('timestamp')
+        self.cpus = cpus
+        self.output_dir = output_dir
 
     def load_date_dict(self, lpsn_species_info):
         datedict = {}
@@ -146,7 +148,7 @@ class Strains(object):
                 species_taxids.add(cur_taxid)
 
         self.logger.info(
-            'Identified %d NCBI taxonomy species nodes.' % len(species_taxids))
+            'Identified {:,} NCBI taxonomy species nodes.'.format(len(species_taxids)))
 
         # determine species taxID of all taxa of interest
         species_of_taxid = {}
@@ -166,7 +168,7 @@ class Strains(object):
                 parent_taxid = parent[parent_taxid]
 
         self.logger.info(
-            'Associated %d NCBI taxon nodes with their parent species node.' % len(species_of_taxid))
+            'Associated {:,} NCBI taxon nodes with their parent species node.'.format(len(species_of_taxid)))
 
         # parse auxillary names associated with a NCBI taxID and
         # type material strain IDs for species
@@ -195,12 +197,12 @@ class Strains(object):
                         category_names[cur_taxid][tokens[3]].append(tokens[1])
 
         self.logger.info(
-            'Read auxillary species name information for %d NCBI taxIDs.' % len(category_names))
+            'Read auxillary species name information for {:,} NCBI taxIDs.'.format(len(category_names)))
         self.logger.info(
-            'Read type material information for %d NCBI taxIDs.' % len(type_material))
+            'Read type material information for {:,} NCBI taxIDs.'.format(len(type_material)))
 
         # sanity check results
-        for k, v in category_names.iteritems():
+        for k, v in category_names.items():
             if len(set(v['synonym']).intersection(v.get('scientific name'))) > 0 or len(set(v['synonym']).intersection(v['equivalent name'])) > 0:
                 print('ERROR')
                 print(v['synonym'])
@@ -214,7 +216,7 @@ class Strains(object):
         """Parse data from GTDB metadata file."""
 
         metadata = {}
-        with open(metadata_file) as metaf:
+        with open(metadata_file, encoding='utf-8') as metaf:
             headers_line = metaf.readline()
             separator = ','
             if '\t' in headers_line:
@@ -269,7 +271,7 @@ class Strains(object):
         straininfo_strains_dic = {}
         pattern = re.compile('[\W_]+')
         p = re.compile('(\w+)\s\(now\s(\w+)\)\s(\d+)', re.IGNORECASE)
-        with open(os.path.join(straininfo_dir, 'straininfo_strains.tsv')) as ststr:
+        with open(os.path.join(straininfo_dir, 'straininfo_strains.tsv'), encoding='utf-8') as ststr:
             ststr.readline()
             for line in ststr:
                 infos = line.rstrip('\n').split('\t')
@@ -307,7 +309,7 @@ class Strains(object):
         # We load the dictionary of strains from DSMZ
         dsmz_strains_dic = {}
         pattern = re.compile('[\W_]+')
-        with open(os.path.join(dsmz_dir, 'dsmz_strains.tsv')) as dsstr:
+        with open(os.path.join(dsmz_dir, 'dsmz_strains.tsv'), encoding='utf-8') as dsstr:
             dsstr.readline()
             for line in dsstr:
                 infos = line.rstrip('\n').split('\t')
@@ -325,7 +327,7 @@ class Strains(object):
         # We load the dictionary of strains from LPSN
         pattern = re.compile('[\W_]+')
         lpsn_strains_dic = {}
-        with open(os.path.join(lpsn_dir, 'lpsn_strains.tsv')) as lpstr:
+        with open(os.path.join(lpsn_dir, 'lpsn_strains.tsv'), encoding='utf-8') as lpstr:
             lpstr.readline()
             for line in lpstr:
                 infos = line.rstrip('\n').split('\t')
@@ -342,28 +344,37 @@ class Strains(object):
                     lpsn_strains_dic[infos[0]] = {
                         'strains': '='.join(set(list_strains)), 'neotypes': '='.join(set(list_neotypes))}
         return lpsn_strains_dic
-
+    
     def _read_type_species_of_genus(self, species_file):
-        """Read type species of genus."""
+        """Read type species of genus information from DSMZ files."""
 
         type_species_of_genus = {}
         genus_type_species = {}
+        multiple_types = set()
         with open(species_file) as lpstr:
             lpstr.readline()
 
             for line in lpstr:
                 line_split = line.rstrip('\n').split('\t')
                 sp, genus, authority = line_split
+                
+                if 'Type species of the genus' in authority and not genus:
+                    self.logger.error('Appears {} should be considered the type species of {}.'.format(
+                                        sp, genus))
+                    sys.exit(-1)
 
                 if genus:
                     sp = sp.replace('s__', '')
                     type_species_of_genus[sp] = genus
 
                     if genus in genus_type_species:
-                        self.logger.warning(
-                            'Identified multiple type species for %s in %s.' % (genus, species_file))
+                        self.logger.warning('Identified multiple type species for {} in {}. Type species for this genus will be ignored.'.format(genus, species_file))
+                        multiple_types.add(genus)
                     else:
                         genus_type_species[genus] = sp
+                        
+        for genus in multiple_types:
+            del genus_type_species[genus]
 
         return type_species_of_genus, genus_type_species
 
@@ -399,8 +410,7 @@ class Strains(object):
 
         if ncbi_subspecies:
             if 'subsp.' not in ncbi_subspecies:
-                self.logger.warning(
-                    "NCBI subspecies name without 'subsp.' definition: %s" % ncbi_subspecies)
+                self.logger.warning(f"NCBI subspecies name without 'subsp.' definition: {ncbi_subspecies}")
 
             return self.remove_brackets(ncbi_subspecies)
 
@@ -590,7 +600,7 @@ class Strains(object):
                 if match:
                     prev_gtdb_type_status = match.gtdb_type_status
                     if prev_gtdb_type_status != gtdb_type_status:
-                        self.logger.error('Official species name has ambiguous type status: %s, %s, %s' % (
+                        self.logger.error('Official species name has ambiguous type status: {}, {}, {}'.format(
                             gid,
                             gtdb_type_status,
                             prev_gtdb_type_status))
@@ -622,7 +632,7 @@ class Strains(object):
         elif spe_name in misspelling_names:
             return 'misspelling name'
 
-        self.logger.error('Failed to identify category of name: %s' % spe_name)
+        self.logger.error(f'Failed to identify category of name: {spe_name}')
         sys.exit(-1)
 
     def standardise_names(self, potential_names):
@@ -854,9 +864,9 @@ class Strains(object):
                 year_date))
 
             processed += 1
-            statusStr = '-> Processing %d genomes assembled from type material.'.ljust(
-                86) % processed
-            sys.stdout.write('%s\r' % statusStr)
+            statusStr = '-> Processing {:,} genomes assembled from type material.'.format(
+                        processed).ljust(86)
+            sys.stdout.write('{}\r'.format(statusStr))
             sys.stdout.flush()
 
         sys.stdout.write('\n')
@@ -917,25 +927,24 @@ class Strains(object):
         agreed_type_of_species = 0
         agreed_type_of_subspecies = 0
         num_type_species_of_genus = 0
-        for gid, metadata in self.metadata.iteritems():
+        for gid, metadata in self.metadata.items():
             fout.write(gid)
 
             species_name = self.get_species_name(gid)
-            fout.write('\t%s\t%s\t%s\t%s' % (species_name,
+            fout.write('\t{}\t{}\t{}\t{}'.format(species_name,
                                              metadata['ncbi_organism_name'],
                                              metadata['ncbi_strain_ids'],
                                              '; '.join(metadata['ncbi_expanded_standardized_strain_ids'])))
 
-            fout.write('\t%s\t%s' % (ncbi_authority.get(metadata['ncbi_taxid'], '').replace('"', '~'),
+            fout.write('\t{}\t{}'.format(ncbi_authority.get(metadata['ncbi_taxid'], '').replace('"', '~'),
                                      metadata['ncbi_type_material_designation']))
 
-            # GTDB sets the type material designation in a specific priority
-            # order
+            # GTDB sets the type material designation in a specific priority order
             highest_priority_designation = self.NOT_TYPE_MATERIAL
             for sr in [lpsn, dsmz, straininfo]:
                 if gid in sr and self.type_priority.index(sr[gid].type_designation) < self.type_priority.index(highest_priority_designation):
                     highest_priority_designation = sr[gid].type_designation
-            fout.write('\t%s' % highest_priority_designation)
+            fout.write('\t{}'.format(highest_priority_designation))
 
             type_species_of_genus = False
             canonical_sp_name = ' '.join(species_name.split()[0:2])
@@ -949,15 +958,15 @@ class Strains(object):
             for sr_id, sr in [('LPSN', lpsn), ('DSMZ', dsmz), ('StrainInfo', straininfo)]:
                 if gid in sr and sr[gid].type_designation == highest_priority_designation:
                     gtdb_type_sources.append(sr_id)
-            fout.write('\t%s' % '; '.join(gtdb_type_sources))
+            fout.write('\t{}'.format('; '.join(gtdb_type_sources)))
 
-            fout.write('\t%s\t%s\t%s' % (lpsn[gid].type_designation if gid in lpsn else self.NOT_TYPE_MATERIAL,
+            fout.write('\t{}\t{}\t{}'.format(lpsn[gid].type_designation if gid in lpsn else self.NOT_TYPE_MATERIAL,
                                          dsmz[gid].type_designation if gid in dsmz else self.NOT_TYPE_MATERIAL,
                                          straininfo[gid].type_designation if gid in straininfo else self.NOT_TYPE_MATERIAL))
-            fout.write('\t%s\t%s\t%s' % (lpsn[gid].priority_year if gid in lpsn else '',
+            fout.write('\t{}\t{}\t{}'.format(lpsn[gid].priority_year if gid in lpsn else '',
                                          dsmz[gid].priority_year if gid in dsmz else '',
                                          straininfo[gid].priority_year if gid in straininfo else ''))
-            fout.write('\t%s\n' % type_species_of_genus)
+            fout.write('\t{}\n'.format(type_species_of_genus))
 
             if metadata['ncbi_type_material_designation'] == 'none' and highest_priority_designation == self.TYPE_SPECIES:
                 missing_type_at_ncbi += 1
@@ -975,15 +984,15 @@ class Strains(object):
                     agreed_type_of_subspecies += 1
 
         self.logger.info(
-            'Identified %d genomes designated as the type species of genus.' % num_type_species_of_genus)
+            'Identified {:,} genomes designated as the type species of genus.'.format(num_type_species_of_genus))
         self.logger.info(
-            'Genomes that appear to have missing type species information at NCBI: %d' % missing_type_at_ncbi)
+            'Genomes that appear to have missing type species information at NCBI: {:,}'.format(missing_type_at_ncbi))
         self.logger.info(
-            'Genomes that are only effectively published or erroneously missing type species information at GTDB: %d' % missing_type_at_gtdb)
+            'Genomes that are only effectively published or erroneously missing type species information at GTDB: {:,}'.format(missing_type_at_gtdb))
         self.logger.info(
-            'Genomes where GTDB and NCBI both designate type strain of species: %d' % agreed_type_of_species)
+            'Genomes where GTDB and NCBI both designate type strain of species: {:,}'.format(agreed_type_of_species))
         self.logger.info(
-            'Genomes where GTDB and NCBI both designate type strain of subspecies: %d' % agreed_type_of_subspecies)
+            'Genomes where GTDB and NCBI both designate type strain of subspecies: {:,}'.format(agreed_type_of_subspecies))
 
         fout.close()
 
@@ -1058,8 +1067,7 @@ class Strains(object):
             self.lpsn_strains_dic = self.load_lpsn_strains_dictionary(lpsn_dir)
 
             self.logger.info('Processing LPSN data.')
-            lpsn_summary_file = os.path.join(
-                self.output_dir, 'lpsn_summary.tsv')
+            lpsn_summary_file = os.path.join(self.output_dir, 'lpsn_summary.tsv')
             self.parse_strains('lpsn',
                                self.lpsn_strains_dic,
                                lpsn_summary_file)
@@ -1090,22 +1098,27 @@ class Strains(object):
         # generate global summary file if information was generated from all
         # sources
         if sourcest == 'all':
+            self.logger.info('Reading type species of genus as defined at LPSN.')
             lpsn_type_species_of_genus, lpsn_genus_type_species = self._read_type_species_of_genus(
                 os.path.join(lpsn_dir, 'lpsn_species.tsv'))
+            self.logger.info(f' ... identified type species for {len(lpsn_type_species_of_genus):,} genera.')
+            
+            self.logger.info('Reading type species of genus as defined at BacDive.')
             dsmz_type_species_of_genus, dsmz_genus_type_species = self._read_type_species_of_genus(
                 os.path.join(dsmz_dir, 'dsmz_species.tsv'))
+            self.logger.info(f' ... identified type species for {len(lpsn_type_species_of_genus):,} genera.')
 
             for genus in lpsn_genus_type_species:
                 if genus in dsmz_genus_type_species:
                     if lpsn_genus_type_species[genus] != dsmz_genus_type_species[genus]:
-                        self.logger.warning('LPSN and DSMZ disagree of type species for %s: %s %s' % (
-                            genus,
-                            lpsn_genus_type_species[genus],
-                            dsmz_genus_type_species[genus]))
+                        self.logger.warning('LPSN and DSMZ disagree on type species of genus for {}: {} {}'.format(
+                                                genus,
+                                                lpsn_genus_type_species[genus],
+                                                dsmz_genus_type_species[genus]))
 
-            self.logger.info('Identified %d LPSN and %d DSMZ type species of genus.' % (
-                len(lpsn_type_species_of_genus),
-                len(dsmz_type_species_of_genus)))
+            self.logger.info('Identified {:,} LPSN and {:,} DSMZ type species of genus.'.format(
+                                len(lpsn_type_species_of_genus),
+                                len(dsmz_type_species_of_genus)))
 
             self.logger.info(
                 'Generating summary type information table across all strain repositories.')
