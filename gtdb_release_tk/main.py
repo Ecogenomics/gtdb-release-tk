@@ -27,9 +27,7 @@ from biolib.common import check_file_exists, make_sure_path_exists, check_dir_ex
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
-from gtdb_release_tk.lpsn import LPSN
-from gtdb_release_tk.bacdive import BacDive
-from gtdb_release_tk.strains import Strains
+from gtdb_release_tk.litterature import LitteratureParser
 
 
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
@@ -406,46 +404,17 @@ class OptionsParser():
 
         self.logger.info('Done.')
 
-    def full_lpsn_wf(self, options):
-        """Full workflow to parse LPSN."""
-        make_sure_path_exists(options.output_dir)
-        p = LPSN(options.output_dir)
-        p.full_lpsn_wf()
+    def nomenclatural_check(self, options):
+        """List latin names present/absent from NCBI,LPSN,Bacdive."""
 
-    def pull_html(self, options):
-        """Pull all genus.html files."""
-        make_sure_path_exists(options.output_dir)
-        p = LPSN(options.output_dir)
-        p.pull_html()
+        p = LitteratureParser(options.output_directory)
+        p.run(options.ncbi_node_file,
+              options.ncbi_name_file,
+              options.lpsn_species_file,
+              options.bacdive_species_file,
+              options.gtdb_taxonomy)
 
-    def parse_html(self, options):
-        """Parse all html files."""
-        make_sure_path_exists(options.output_dir)
-        p = LPSN(options.output_dir)
-        p.parse_html(options.input_dir)
-
-    def download_strains(self, options):
-        make_sure_path_exists(options.output_dir)
-        p = BacDive(options.output_dir, options.username, options.pwd)
-        p.download_strains()
-
-    def generate_date_table(self, options):
-        p = Strains()
-        p.generate_date_table(options.lpsn_species_info,
-                              options.dsmz_species_info,
-                              options.straininfo_species_info,
-                              options.output_file)
-
-    def generate_type_table(self, options):
-        p = Strains(options.output_dir, options.cpus)
-        p.generate_type_strain_table(options.metadata_file,
-                                     options.ncbi_names,
-                                     options.ncbi_nodes,
-                                     options.lpsn_dir,
-                                     options.dsmz_dir,
-                                     options.straininfo_dir,
-                                     options.year_table,
-                                     options.source_strain)
+        self.logger.info('Done.')
 
     def parse_options(self, options):
         """Parse user options and call the correct pipeline(s)"""
@@ -496,25 +465,8 @@ class OptionsParser():
             self.taxa_count(options)
         elif options.subparser_name == 'top_taxa':
             self.top_taxa(options)
-        elif options.subparser_name == 'lpsn':
-            if options.lpsn_subparser_name == 'lpsn_wf':
-                self.full_lpsn_wf(options)
-            elif options.lpsn_subparser_name == 'parse_html':
-                self.parse_html(options)
-            elif options.lpsn_subparser_name == 'pull_html':
-                self.pull_html(options)
-            else:
-                self.logger.error('Unknown command: ' +
-                                  options.lpsn_subparser_name + '\n')
-        elif options.subparser_name == 'bacdive':
-            if options.bacdive_subparser_name == 'download_strains':
-                self.download_strains(options)
-        elif options.subparser_name == 'strains':
-            if options.strains_subparser_name == 'date_table':
-                self.generate_date_table(options)
-            if options.strains_subparser_name == 'type_table':
-                self.generate_type_table(options)
-
+        elif options.subparser_name == 'nomenclatural_check':
+            self.nomenclatural_check(options)
         else:
             self.logger.error('Unknown command: ' +
                               options.subparser_name + '\n')
