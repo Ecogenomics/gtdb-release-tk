@@ -185,3 +185,25 @@ def parse_gtdb_metadata(metadata_file, fields, user_gids):
             m[gid] = gtdb_metadata._make(values)
 
     return m
+
+def parse_tophit_file(path):
+    out = dict()
+    with open(path, 'r') as fh:
+        fh.readline()
+        for line in fh.readlines():
+            gid, hits = line.strip().split('\t')
+            for hit in hits.split(';'):
+                fam_id, e_val, bitscore = hit.split(',')
+                e_val, bitscore = float(e_val), float(bitscore)
+                if fam_id not in out:
+                    out[fam_id] = list()
+                out[fam_id].append((gid, e_val, bitscore))
+    return out
+
+def parse_taxonomy_file(path):
+    out = dict()
+    with open(path, 'r') as fh:
+        for line in fh.readlines():
+            gid, tax = line.strip().split('\t')
+            out[gid.replace('RS_', '').replace('GB_', '')] = tax
+    return out

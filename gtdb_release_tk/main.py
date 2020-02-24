@@ -161,6 +161,16 @@ class OptionsParser():
 
         self.logger.info('Done.')
 
+    def gene_files(self, options):
+        """Generate untrimmed gene files for bac120/ar122"""
+        make_sure_path_exists(options.output_dir)
+        check_file_exists(options.user_gid_table)
+
+        w = WebsiteData(options.release_number, options.output_dir)
+        w.gene_files(options.user_gid_table, options.taxonomy_file, options.cpus)
+
+        self.logger.info('Done.')
+
     def metadata_files(self, options):
         """Generate GTDB metadata files."""
 
@@ -433,6 +443,8 @@ class OptionsParser():
             self.marker_files(options)
         elif options.subparser_name == 'msa_files':
             self.msa_files(options)
+        elif options.subparser_name == 'gene_files':
+            self.gene_files(options)
         elif options.subparser_name == 'metadata_files':
             self.metadata_files(options)
         elif options.subparser_name == 'dict_file':
