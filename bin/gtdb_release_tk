@@ -30,18 +30,10 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-
 from gtdb_release_tk.main import OptionsParser
-
+from gtdb_release_tk import version
 from biolib.logger import logger_setup
 from biolib.misc.custom_help_formatter import CustomHelpFormatter
-
-
-def version():
-    """Read program version from file."""
-    import gtdb_release_tk
-    version_file = open(os.path.join(gtdb_release_tk.__path__[0], 'VERSION'))
-    return version_file.readline().strip()
 
 
 def print_help():
