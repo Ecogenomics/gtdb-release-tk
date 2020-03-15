@@ -1,6 +1,6 @@
 # GTDB Release Toolkit
 
-[![ace-internal](https://img.shields.io/conda/vn/ace-internal/gtdb_release_tk.svg?color=green)](https://anaconda.org/bioconda/gtdbtk)
+[![ace-internal](https://img.shields.io/conda/vn/ace-internal/gtdb_release_tk.svg?color=green)](https://anaconda.org/ace-internal/gtdb_release_tk)
 
 The GTDB Release Toolkit provides functionality for updating the GTDB to the next release and generating data files for the GTDB website.
 
