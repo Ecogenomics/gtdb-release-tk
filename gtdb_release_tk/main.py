@@ -167,7 +167,31 @@ class OptionsParser():
         check_file_exists(options.user_gid_table)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.gene_files(options.user_gid_table, options.taxonomy_file, options.cpus)
+        w.gene_files(options.user_gid_table,
+                     options.taxonomy_file, options.cpus)
+
+        self.logger.info('Done.')
+
+    def protein_files(self, options):
+        """Generate the archive containing all protein (AA) for representative genomes."""
+        make_sure_path_exists(options.output_dir)
+        check_file_exists(options.user_gid_table)
+        check_file_exists(options.genome_dirs)
+
+
+        w = WebsiteData(options.release_number, options.output_dir)
+        w.protein_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+
+        self.logger.info('Done.')
+
+    def nucleotide_files(self, options):
+        """Generate the archive containing all protein (AA) for representative genomes."""
+        make_sure_path_exists(options.output_dir)
+        check_file_exists(options.user_gid_table)
+        check_file_exists(options.genome_dirs)
+
+        w = WebsiteData(options.release_number, options.output_dir)
+        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
 
         self.logger.info('Done.')
 
@@ -445,6 +469,10 @@ class OptionsParser():
             self.msa_files(options)
         elif options.subparser_name == 'gene_files':
             self.gene_files(options)
+        elif options.subparser_name == 'protein_files':
+            self.protein_files(options)
+        elif options.subparser_name == 'nucleotide_files':
+            self.nucleotide_files(options)
         elif options.subparser_name == 'metadata_files':
             self.metadata_files(options)
         elif options.subparser_name == 'dict_file':

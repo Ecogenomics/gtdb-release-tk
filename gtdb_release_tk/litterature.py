@@ -81,6 +81,12 @@ class TaxonomyNCBI(object):
 
         return d
 
+    def file_len(self, fname):
+        with open(fname) as f:
+            for i, l in enumerate(f):
+                pass
+        return i + 1
+
     def _read_names(self, names_file):
         """Read NCBI names.dmp file.
 
@@ -95,8 +101,16 @@ class TaxonomyNCBI(object):
           Name record of nodes marked as 'scientific name'.
         """
 
+        name_classes = []
+
         d = {}
+
+        count_total = self.file_len(names_file)
+
+        count = 0
         for line in open(names_file):
+            count += 1
+            print('{}/{}'.format(count, count_total), end='\r')
             line_split = [t.strip() for t in line.split('|')]
 
             tax_id = line_split[0]
@@ -104,8 +118,13 @@ class TaxonomyNCBI(object):
             unique_name = line_split[2]
             name_class = line_split[3]
 
-            if name_class == 'scientific name':
-                d[tax_id] = self.NameRecord(name_txt)
+            name_classes.append(name_class)
+
+            # if name_class == 'scientific name' or name_class == 'synonym':
+            d[tax_id] = self.NameRecord(name_txt)
+
+        for it in set(name_classes):
+            print(f'{it}')
 
         return d
 
@@ -137,6 +156,7 @@ class TaxonomyNCBI(object):
 
         for tax_id, node_info in node_records.items():
             count_id += 1
+            print('{}/{}'.format(count_id, len(node_records)), end='\r')
             tax_id_ranks = []
             current_node = node_info
             to_add = False
@@ -148,7 +168,6 @@ class TaxonomyNCBI(object):
             if '2' in tax_id_ranks or '2157' in tax_id_ranks:
                 full_ranks.extend(tax_id_ranks)
 
-            print('{}/{}'.format(count_id, len(node_records)), end='\r')
         set_full_ranks = set(full_ranks)
 
         outf = open(self.outfile, 'w')
@@ -206,7 +225,10 @@ class LitteratureParser(object):
                     dict_gtdbranks[tax[3:]] = ';'.join(taxline[0:idx + 1])
         gtdb_ranks = set(gtdb_ranks)
 
+        count_rank = 0
         for rk in gtdb_ranks:
+            count_rank += 1
+            print('{}/{} of gtdb ranks'.format(count_rank, len(gtdb_ranks)), end='\r')
             if re.search("^[A-Za-z\s]+$", rk):
                 if any(rk in s for s in all_ranks):
                     gtdb_name_in_ncbi.write(

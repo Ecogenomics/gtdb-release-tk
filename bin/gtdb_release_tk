@@ -55,17 +55,19 @@ def print_help():
       hq_genome_file  -> Generate file indicating HQ MIMAG genomes
       ssu_files       -> Generate 16S rRNA FASTA files
       marker_files    -> Generate marker gene files
+      protein_files   -> Generate the archive containing all protein (AA) for representative genomes.
+      nucleotide_files-> Generate the archive containing all protein (nt) for representative genomes.
       msa_files       -> Generate concatenated MSA files
       gene_files      -> Generate untrimmed ar122/bac120 gene files.
       metadata_files  -> Generate GTDB metadata files
       dict_file       -> Generate dictionary containing all GTDB taxa
       arb_files       -> Generate ARB metadata file
       validate        -> Perform validation checks on GTDB website files
-      
+
     Internal files for GTDB website:
       tax_comp_files  -> Generate comparison files between 2 taxonomy ordered by degree of polyphyly
       json_tree_file  -> Generate JSON file used to populate http://gtdb.ecogenomic.org/tree
-      
+
     Auxiliary data files:
       reps_per_rank -> Select representative genomes at each taxonomic rank
 
@@ -77,15 +79,15 @@ def print_help():
       ncbi_compare          -> Bar plot comparing GTDB and NCBI taxonomies
       sp_rep_type           -> Pie chart indicating type information for the GTBD species representatives
       itol                  -> Generate tree and iTOL files for producing iTOL tree image
-      
+
     Tables:
       taxa_count -> Create table with number of taxa at each taxonomic rank
       top_taxa   -> Create table with most abundant taxa at each taxonomic rank
-      
+
     Meta-database:
       nomenclatural_check  -> List of latin names present/absent from NCBI,LPSN,Bacdive.
-    
-      
+
+
   Use: gtdb_release_tk <command> -h for command specific help.
 
   Feature requests or bug reports can be sent to Donovan Parks (donovan.parks@gmail.com)
@@ -205,6 +207,46 @@ if __name__ == '__main__':
     marker_files_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
+    # generate package with all protein (AA) for all rep genomes
+    prot_file_parser = subparsers.add_parser('protein_files',
+                                             formatter_class=CustomHelpFormatter,
+                                             description='Generate the archive containing all protein (AA) for representative genomes.')
+    prot_file_parser.add_argument(
+        '--taxonomy_file', help='tsv of gid and taxonomy')
+    prot_file_parser.add_argument(
+        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    prot_file_parser.add_argument(
+        '--release_number', help='release number (e.g. 86)')
+    prot_file_parser.add_argument(
+        '--genome_dirs', help='File listing the path to all NCBI genome files.')
+    prot_file_parser.add_argument(
+        '--uba_path', help='root path for files not present in NCBI (UBA).')
+    prot_file_parser.add_argument('--output_dir', help="output directory")
+    prot_file_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+    prot_file_parser.add_argument(
+        '--cpus', default=1, type=int, help="number of threads to use (default: 1)")
+
+    # generate package with all protein (nucl) for all rep genomes
+    nuc_file_parser = subparsers.add_parser('nucleotide_files',
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Generate the archive containing all protein (nucl) for representative genomes.')
+    nuc_file_parser.add_argument(
+        '--taxonomy_file', help='tsv of gid and taxonomy')
+    nuc_file_parser.add_argument(
+        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    nuc_file_parser.add_argument(
+        '--release_number', help='release number (e.g. 86)')
+    nuc_file_parser.add_argument(
+        '--genome_dirs', help='File listing the path to all NCBI genome files.')
+    nuc_file_parser.add_argument(
+        '--uba_path', help='root path for files not present in NCBI (UBA).')
+    nuc_file_parser.add_argument('--output_dir', help="output directory")
+    nuc_file_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+    nuc_file_parser.add_argument(
+        '--cpus', default=1, type=int, help="number of threads to use (default: 1)")
+
     # generate concatenated MSA files
     msa_files_parser = subparsers.add_parser('msa_files',
                                              formatter_class=CustomHelpFormatter,
@@ -227,12 +269,17 @@ if __name__ == '__main__':
     gene_files_parser = subparsers.add_parser('gene_files',
                                               formatter_class=CustomHelpFormatter,
                                               description='Generate concatenated untrimmed gene files.')
-    gene_files_parser.add_argument('--taxonomy_file', help='tsv of gid and taxonomy')
-    gene_files_parser.add_argument('--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    gene_files_parser.add_argument('--release_number', help='release number (e.g. 86)')
+    gene_files_parser.add_argument(
+        '--taxonomy_file', help='tsv of gid and taxonomy')
+    gene_files_parser.add_argument(
+        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    gene_files_parser.add_argument(
+        '--release_number', help='release number (e.g. 86)')
     gene_files_parser.add_argument('--output_dir', help="output directory")
-    gene_files_parser.add_argument('--silent', help="suppress output", action='store_true')
-    gene_files_parser.add_argument('--cpus', default=1, type=int, help="number of threads to use (default: 1)")
+    gene_files_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+    gene_files_parser.add_argument(
+        '--cpus', default=1, type=int, help="number of threads to use (default: 1)")
 
     # generate GTDB metadata files
     metadata_files_parser = subparsers.add_parser('metadata_files',
