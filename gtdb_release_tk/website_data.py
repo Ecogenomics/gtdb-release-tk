@@ -15,32 +15,31 @@
 #                                                                             #
 ###############################################################################
 
-import os
-import sys
-import shutil
+import json
 import logging
 import ntpath
-from pathlib import Path, PurePath
-from collections import defaultdict
+import os
+import shutil
+import multiprocessing as mp
+import glob
+
+from biolib.common import make_sure_path_exists
+from tqdm import tqdm
+import sys
 from collections import Counter
-import json
+from collections import defaultdict
 
+from pathlib import Path, PurePath
 
-import dendropy
-
-from numpy import (arange as np_arange,
-                   array as np_array)
-
-from biolib.taxonomy import Taxonomy
 import biolib.seq_io as seq_io
+import dendropy
 
 from gtdb_release_tk.common import (parse_user_gid_table,
                                     parse_rep_genomes,
                                     parse_genomic_path_file,
                                     parse_species_clusters,
-                                    parse_gtdb_metadata)
-
-from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN
+                                    parse_gtdb_metadata, parse_tophit_file, parse_taxonomy_file)
+from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN, BAC120_MARKERS, AR122_MARKERS
 
 
 class WebsiteData(object):
@@ -355,10 +354,10 @@ class WebsiteData(object):
                 assert(cluster_size + 1 == len(clustered_genomes))
 
         fout.close()
-        
+
     def hq_genome_file(self, metadata_file,
-                            gtdb_sp_clusters_file,
-                            user_gid_table):
+                       gtdb_sp_clusters_file,
+                       user_gid_table):
         """Generate file indicating HQ genomes."""
 
         # parse user genome ID mapping table
@@ -374,80 +373,83 @@ class WebsiteData(object):
 
         # get metadata required to access genome quality
         metadata = parse_gtdb_metadata(metadata_file, [
-                                                'checkm_completeness',
-                                                'checkm_contamination',
-                                                'ssu_count',
-                                                'lsu_5s_count',
-                                                'lsu_23s_count',
-                                                'trna_aa_count',
-                                                'ncbi_genome_category',
-                                                'mimag_high_quality',
-                                                'gtdb_taxonomy'],
-                                                user_gids)
-        
+            'checkm_completeness',
+            'checkm_contamination',
+            'ssu_count',
+            'lsu_5s_count',
+            'lsu_23s_count',
+            'trna_aa_count',
+            'ncbi_genome_category',
+            'mimag_high_quality',
+            'gtdb_taxonomy'],
+            user_gids)
+
         fout = open(self.output_dir /
                     'hq_mimag_genomes_r{}.tsv'.format(self.release_number), 'w')
         fout.write('Representative genome')
-        fout.write('\tCompleteness (%)\tContamination (%)\t5S rRNA count\t16S rRNA count\t23S rRNA count\ttRNA count')
-        fout.write('\tGenome category\tGTDB taxonomy\tGTDB representative genome\n')
-        
+        fout.write(
+            '\tCompleteness (%)\tContamination (%)\t5S rRNA count\t16S rRNA count\t23S rRNA count\ttRNA count')
+        fout.write(
+            '\tGenome category\tGTDB taxonomy\tGTDB representative genome\n')
+
         genome_count = 0
         species = set()
         rep_count = 0
         for gid in metadata:
             if gid.startswith('U_'):
                 continue
-                
-            gtdb_taxa = [t.strip() for t in metadata[gid].gtdb_taxonomy.split(';')]
+
+            gtdb_taxa = [t.strip()
+                         for t in metadata[gid].gtdb_taxonomy.split(';')]
             gtdb_sp = gtdb_taxa[6]
             if gtdb_sp == 's__':
                 continue
-                
+
             comp = metadata[gid].checkm_completeness
             cont = metadata[gid].checkm_contamination
             count_5s = metadata[gid].lsu_5s_count
             count_16s = metadata[gid].ssu_count
             count_23s = metadata[gid].lsu_23s_count
             trna_count = metadata[gid].trna_aa_count
-            
+
             genome_category = 'isolate'
             category_str = metadata[gid].ncbi_genome_category
             if category_str:
                 if ('metagenome' in metadata[gid].ncbi_genome_category.lower()
-                    or 'environment' in metadata[gid].ncbi_genome_category.lower()):
-                        genome_category = 'MAG'
+                        or 'environment' in metadata[gid].ncbi_genome_category.lower()):
+                    genome_category = 'MAG'
                 elif 'single cell' in metadata[gid].ncbi_genome_category.lower():
                     genome_category = 'SAG'
-            
+
             if (comp > 90
                 and cont < 5
                 and count_5s >= 1
                 and count_16s >= 1
                 and count_23s >= 1
-                and trna_count >= 18):
+                    and trna_count >= 18):
                 fout.write('{}'.format(gid))
                 fout.write('\t{:.1f}\t{:.2f}\t{}\t{}\t{}\t{}'.format(
-                            comp,
-                            cont,
-                            count_5s,
-                            count_16s,
-                            count_23s,
-                            trna_count))
+                    comp,
+                    cont,
+                    count_5s,
+                    count_16s,
+                    count_23s,
+                    trna_count))
                 fout.write('\t{}\t{}\t{}'.format(
-                            genome_category,
-                            metadata[gid].gtdb_taxonomy,
-                            gid in reps))
+                    genome_category,
+                    metadata[gid].gtdb_taxonomy,
+                    gid in reps))
                 fout.write('\n')
-                
+
                 genome_count += 1
                 species.add(gtdb_sp)
                 rep_count += (gid in reps)
         fout.close()
-        
+
         self.logger.info('Identified {:,} high-quality MIMAG genomes from {:,} species spanning {:,} GTDB representatives.'.format(
-                            genome_count,
-                            len(species),
-                            rep_count))
+            genome_count,
+            len(species),
+            rep_count))
 
     def tree_files(self,
                    metadata_file,
@@ -584,6 +586,251 @@ class WebsiteData(object):
 
             fout.close()
 
+    def _gene_files_worker(self, q_worker, q_writer, q_results):
+        while True:
+            # Extract the next job
+            job = q_worker.get(block=True)
+            if job is None:
+                break
+            gid, domain, dir_base = job
+
+            dir_prodigal = os.path.join(dir_base, 'prodigal')
+            path_pfam_th = glob.glob(f'{dir_prodigal}/*_pfam_tophit.tsv')[0]
+            path_tigr_th = glob.glob(f'{dir_prodigal}/*_tigrfam_tophit.tsv')[0]
+            th_pfam = parse_tophit_file(path_pfam_th)
+            th_tigr = parse_tophit_file(path_tigr_th)
+            th_all = {**th_pfam, **th_tigr}
+
+            # Determine which marker set to use
+            if domain == 'd__Archaea':
+                marker_set = AR122_MARKERS
+            elif domain == 'd__Bacteria':
+                marker_set = BAC120_MARKERS
+            else:
+                raise Exception('Unknown domain.')
+
+            # Load the NT and AA files
+            path_fna = glob.glob(f'{dir_prodigal}/*_protein.fna')[0]
+            path_faa = glob.glob(f'{dir_prodigal}/*_protein.faa')[0]
+            fna = seq_io.read_fasta(path_fna)
+            faa = seq_io.read_fasta(path_faa)
+
+            # Extract the sequences for each marker
+            for marker in marker_set:
+                if marker in th_all:
+
+                    sorted_hits = sorted(
+                        th_all[marker], key=lambda x: (-x[2], x[1]))
+                    best_gid = sorted_hits[0][0]
+
+                    # Multihit check if seqs are the same, if not blanks
+                    if len(th_all[marker]) > 1:
+                        multi_seqs = {faa[x[0]] for x in th_all[marker]}
+
+                        # Multiple hits with different genes - don't keep it
+                        if len(multi_seqs) > 1:
+                            pass
+                        else:
+                            gene_id, e_val, bit_score = sorted_hits[0]
+                            q_results.put(
+                                (gid, marker, best_gid, fna[gene_id], faa[gene_id], domain))
+
+                    # Just a single hit - take it
+                    else:
+                        gene_id, e_val, bit_score = sorted_hits[0]
+                        q_results.put(
+                            (gid, marker, best_gid, fna[gene_id], faa[gene_id], domain))
+
+            # Done
+            q_writer.put(gid)
+
+        return True
+
+    def _gene_files_writer(self, q_writer, n_total):
+        with tqdm(total=n_total) as pbar:
+            while True:
+                job = q_writer.get(block=True)
+                if job is None:
+                    break
+                pbar.update(1)
+        return True
+
+    def gene_files(self, user_gid_table, path_taxonomy, cpus):
+        cpus = max(1, cpus)
+
+        # Get a mapping of accession to directory
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+
+        # Parse the metadata file
+        self.logger.info('Parsing taxonomy file.')
+        user_tax = parse_taxonomy_file(path_taxonomy)
+
+        # Setup the multiprocessing objects
+        manager = mp.Manager()
+        q_worker = manager.Queue()
+        q_writer = manager.Queue()
+        q_results = manager.Queue()
+
+        # Create a queue of items to be processed
+        self.logger.info('Creating a queue of jobs to be processed.')
+        for gid, dir_base in user_gids.items():
+            domain = user_tax[gid].split(';')[0]
+            q_worker.put((gid, domain, dir_base))
+        [q_worker.put(None) for _ in range(cpus)]
+
+        # Create the workers
+        self.logger.info('Starting jobs.')
+        p_workers = [mp.Process(target=self._gene_files_worker,
+                                args=(q_worker, q_writer, q_results))
+                     for _ in range(cpus)]
+        p_writer = mp.Process(target=self._gene_files_writer,
+                              args=(q_writer, len(user_gids)))
+
+        # Start each of the threads.
+        try:
+            # Start the writer and each processing thread.
+            p_writer.start()
+            for p_worker in p_workers:
+                p_worker.start()
+
+            for p_worker in p_workers:
+                p_worker.join()
+
+                # Gracefully terminate the program.
+                if p_worker.exitcode != 0:
+                    raise Exception('Worker returned non-zero exit code.')
+
+            # Stop the writer thread.
+            q_writer.put(None)
+            p_writer.join()
+
+        except Exception:
+            for p in p_workers:
+                p.terminate()
+            p_writer.terminate()
+            raise
+
+        # Parse the results
+        arc_fna, arc_faa, bac_fna, bac_faa = dict(), dict(), dict(), dict()
+        q_results.put(None)
+        cur_result = q_results.get()
+        while cur_result is not None:
+            gid, marker, gene_id, fna, faa, domain = cur_result
+
+            if domain == 'd__Archaea':
+                out_fna, out_faa = arc_fna, arc_faa
+            elif domain == 'd__Bacteria':
+                out_fna, out_faa = bac_fna, bac_faa
+            else:
+                raise Exception("Unknown domain.")
+
+            if marker not in out_fna:
+                out_fna[marker] = list()
+            if marker not in out_faa:
+                out_faa[marker] = list()
+
+            out_fna[marker].append((gid, gene_id, fna))
+            out_faa[marker].append((gid, gene_id, faa))
+
+            cur_result = q_results.get()
+
+        # Write the output to disk
+        for out_dict, domain, ext in [(arc_fna, 'ar122', 'fna'),
+                                      (arc_faa, 'ar122', 'faa'),
+                                      (bac_fna, 'bac120', 'fna'),
+                                      (bac_faa, 'bac120', 'faa')]:
+            cur_root = os.path.join(self.output_dir, f'{domain}_{self.release_number}_individual_genes', ext)
+            make_sure_path_exists(cur_root)
+
+            for marker, seqs in sorted(out_dict.items()):
+                cur_path = os.path.join(cur_root, f'{marker}.{ext}')
+
+                with open(cur_path, 'w') as fh:
+                    for cur_gid, cur_gene_id, cur_seq in seqs:
+                        fh.write(f'>{cur_gid}\n{cur_seq}\n')
+                pass
+
+        self.logger.info('Done.')
+
+    def protein_files(self, user_gid_table, path_taxonomy, genome_dirs, uba_path):
+        # Get a mapping of accession to directory
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+        inv_user_gids = {v.replace('GB_', '').replace(
+            'RS_', ''): k for k, v in user_gids.items()}
+
+        genome_paths = parse_genomic_path_file(genome_dirs, user_gids)
+
+        # Parse the metadata file
+        self.logger.info('Parsing taxonomy file.')
+        user_tax = parse_taxonomy_file(path_taxonomy)
+
+        domain = None
+        make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
+        make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
+
+        for gid, tax in user_tax.items():
+            domain = None
+            if tax.startswith('d__Archaea'):
+                domain = 'archaea'
+            else:
+                domain = 'bacteria'
+            if gid.startswith('U'):
+                dir_prodigal = os.path.join(os.path.join(
+                    uba_path, inv_user_gids.get(gid)), 'prodigal')
+
+            else:
+                print(gid)
+                if gid in genome_paths:
+                    dir_prodigal = os.path.join(
+                        genome_paths.get(gid), 'prodigal')
+                else:
+                    dir_prodigal = os.path.join(
+                        uba_path, inv_user_gids.get(gid), 'prodigal')
+            protein_file = path_pfam_th = glob.glob(f'{dir_prodigal}/*_protein.faa')[0]
+            shutil.copy(protein_file, os.path.join(
+                self.output_dir, domain, gid + '_protein.faa'))
+
+    def nucleotide_files(self, user_gid_table, path_taxonomy, genome_dirs, uba_path):
+        # Get a mapping of accession to directory
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+        inv_user_gids = {v.replace('GB_', '').replace(
+            'RS_', ''): k for k, v in user_gids.items()}
+
+        genome_paths = parse_genomic_path_file(genome_dirs, user_gids)
+
+        # Parse the metadata file
+        self.logger.info('Parsing taxonomy file.')
+        user_tax = parse_taxonomy_file(path_taxonomy)
+
+        domain = None
+        make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
+        make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
+
+        for gid, tax in user_tax.items():
+            domain = None
+            if tax.startswith('d__Archaea'):
+                domain = 'archaea'
+            else:
+                domain = 'bacteria'
+            if gid.startswith('U'):
+                dir_prodigal = os.path.join(os.path.join(
+                    uba_path, inv_user_gids.get(gid)), 'prodigal')
+
+            else:
+                print(gid)
+                if gid in genome_paths:
+                    dir_prodigal = os.path.join(
+                        genome_paths.get(gid), 'prodigal')
+                else:
+                    dir_prodigal = os.path.join(
+                        uba_path, inv_user_gids.get(gid), 'prodigal')
+            protein_file = path_pfam_th = glob.glob(f'{dir_prodigal}/*_protein.fna')[0]
+            shutil.copy(protein_file, os.path.join(
+                self.output_dir, domain, gid + '_protein.fna'))
+
     def metadata_files(self, metadata_file,
                        metadata_fields,
                        gtdb_sp_clusters_file,
@@ -701,23 +948,23 @@ class WebsiteData(object):
                         taxa.add(f's__{generic.strip()}')
                         taxa.add(f'{generic[0]}. {specific}')
                         taxa.add(f's__{generic[0]}. {specific}')
-                      
+
         fout = open(self.output_dir / f'gtdb_r{self.release_number}.dic', 'w', encoding='utf-8')
         for t in sorted(taxa):
             fout.write(f'{t}\n')
         fout.close()
-        
+
     def arb_files(self, metadata_file,
-                        metadata_fields,
-                        user_gid_table,
-                        bac120_msa_file,
-                        ar122_msa_file):
+                  metadata_fields,
+                  user_gid_table,
+                  bac120_msa_file,
+                  ar122_msa_file):
         """Generate ARB metadata files."""
-        
+
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
-        
+
         # read metadata fields to retain
         self.logger.info('Reading metadata fields to retain.')
         fields = set()
@@ -726,12 +973,12 @@ class WebsiteData(object):
             for line in f:
                 fields.add(line.strip().split('\t')[0])
         self.logger.info(f' ...identified {len(fields):,} fields to retain.')
-        
+
         # remove fields that cause problems in ARB
         self.logger.info('Removing fields known to cause issues in ARB.')
         if 'gtdb_clustered_genomes' in fields:
             fields.remove('gtdb_clustered_genomes')
-        
+
         # read genome metadata
         self.logger.info('Reading genome metadata.')
         metadata = defaultdict(lambda: {})
@@ -740,14 +987,14 @@ class WebsiteData(object):
 
             for line in f:
                 line_split = line.strip().split('\t')
-                
+
                 gid = line_split[0]
                 gid = user_gids.get(gid, gid)
-                
+
                 for idx, field in enumerate(header):
                     if field not in fields:
                         continue
-                        
+
                     value = line_split[idx]
                     metadata[gid][field] = value
 
@@ -756,42 +1003,43 @@ class WebsiteData(object):
         for seq_file in [bac120_msa_file, ar122_msa_file]:
             for seq_id, seq in seq_io.read_seq(bac120_msa_file):
                 seqs[seq_id] = seq
-        
+
         # write out ARB metadata file for each domain
         for prefix, msa_file in [('bac120', bac120_msa_file), ('ar122', ar122_msa_file)]:
             # read MSA files
             seqs = seq_io.read(msa_file)
-            
+
             # write out record for each genome
             fout = open(self.output_dir / f'{prefix}_arb_r{self.release_number}.tsv', 'w', encoding='utf-8')
             for gid, msa in seqs.items():
                 gid = user_gids.get(gid, gid)
-                
+
                 fout.write("BEGIN\n")
                 fout.write("db_name={}\n".format(gid))
                 for field, value in metadata[gid].items():
-                    # replace equal signs as these are incompatible with the ARB parser
+                    # replace equal signs as these are incompatible with the
+                    # ARB parser
                     if value:
                         value = value.replace('=', '/')
-                        
+
                     if len(value) > 1000:
                         print(gid, field, value)
 
                     fout.write("{}={}\n".format(field, value))
-                
+
                 fout.write("multiple_homologs=\n")
                 fout.write("aligned_seq={}\n".format(msa))
                 fout.write("END\n\n")
             fout.close()
-        
+
     def validate(self,
-                    taxonomy_file,
-                    tree_file,
-                    metadata_file,
-                    msa_file,
-                    ssu_file,
-                    sp_clusters_file,
-                    hq_genome_file):
+                 taxonomy_file,
+                 tree_file,
+                 metadata_file,
+                 msa_file,
+                 ssu_file,
+                 sp_clusters_file,
+                 hq_genome_file):
         """Perform validation checks on GTDB website files."""
 
         # parse taxonomy file
@@ -808,26 +1056,26 @@ class WebsiteData(object):
         for gids in sp_clusters.values():
             all_gids.update(gids)
         assert(len(set(taxonomy).difference(all_gids)) == 0)
-        
+
         # get HQ MIMAG genomes
         self.logger.info('Validating MIMAG HQ genome file.')
         hq_genomes = set()
         with open(hq_genome_file) as f:
             header = f.readline().strip().split('\t')
-            
+
             gtdb_taxonomy_index = header.index('GTDB taxonomy')
             gtdb_rep_index = header.index('GTDB representative genome')
-            
+
             for line in f:
                 line_split = line.strip().split('\t')
-                
+
                 gid = line_split[0]
                 if gid in taxonomy:
                     is_rep = (line_split[gtdb_rep_index].lower() == 'true')
-                    
+
                     assert(line_split[gtdb_taxonomy_index] == taxonomy[gid])
                     assert(gid in taxonomy)
-                    
+
                     if is_rep:
                         assert(gid in sp_clusters)
 
@@ -1257,7 +1505,7 @@ class WebsiteData(object):
         order_counter = Counter(different_ranks).most_common()
         results_dict = {}
 
-        """create a dictionary with the name of the rank in olddict as key and the number of 
+        """create a dictionary with the name of the rank in olddict as key and the number of
         genomes belonging to that rank encountered, along with different rank names on newdict
         for those genomes and how many times the different names appear."""
         for item in order_counter:
