@@ -71,6 +71,7 @@ def print_help():
       dict_file       -> Generate dictionary containing all GTDB taxa
       arb_files       -> Generate ARB metadata file
       validate        -> Perform validation checks on GTDB website files
+      add_sp_label    -> Generate tree with species labels
       
     Internal files for GTDB website:
       tax_comp_files  -> Generate comparison files between 2 taxonomy ordered by degree of polyphyly
@@ -281,6 +282,15 @@ if __name__ == '__main__':
     validate_parser.add_argument('sp_clusters_file', help='file indicating GTDB species clusters')
     validate_parser.add_argument('hq_genome_file', help='file indicating HQ MIMAG genomes')
     validate_parser.add_argument('--silent', help="suppress output", action='store_true')
+    
+    # generate tree with species labels
+    add_sp_label_parser = subparsers.add_parser('add_sp_label',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Generate tree with species labels.')
+    add_sp_label_parser.add_argument('tree_file', help='tree spanning representative genomes')
+    add_sp_label_parser.add_argument('taxonomy_file', help='file indicating taxonomy of each genome')
+    add_sp_label_parser.add_argument('output_tree', help='output tree with appended species labels')
+    add_sp_label_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # generate correspondence between standardly named taxonomies ordered by
     # degree of polyphyly

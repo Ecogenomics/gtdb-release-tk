@@ -1,3 +1,6 @@
+0.0.5
+- added method to add species labels to leaf nodes
+
 0.0.4
 - fixed bug in sp_cluster method where minimum intra-species ANI was actually the minimum intra-species AF
 - added hq_sp_files method

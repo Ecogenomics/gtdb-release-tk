@@ -22,7 +22,10 @@ import re
 import logging
 from collections import defaultdict
 
+import dendropy
+
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
+from biolib.taxonomy import Taxonomy
 
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
@@ -232,6 +235,36 @@ class OptionsParser():
                    options.ssu_file,
                    options.sp_clusters_file,
                    options.hq_genome_file)
+
+        self.logger.info('Done.')
+        
+    def add_sp_label(self, options):
+        """Generate tree with species labels."""
+
+        check_file_exists(options.taxonomy_file)
+        check_file_exists(options.tree_file)
+        
+        self.logger.info('Reading GTDB taxonomy.')
+        gtdb_taxonomy = Taxonomy().read(options.taxonomy_file)
+        
+        self.logger.info('Reading input tree.')
+        tree = dendropy.Tree.get_from_path(options.tree_file, 
+                                            schema='newick', 
+                                            rooting='force-rooted', 
+                                            preserve_underscores=True)
+                                            
+        self.logger.info('Appending species labels.')
+        for node in tree.postorder_node_iter():
+            if node.is_leaf():
+                gid = node.taxon.label
+                species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace('s__', '')
+                node.taxon.label += ' | {}'.format(species)
+                
+        self.logger.info('Writing output tree.')
+        tree.write_to_path(options.output_tree, 
+                            schema='newick', 
+                            suppress_rooting=True, 
+                            unquoted_underscores=True)
 
         self.logger.info('Done.')
 
@@ -472,6 +505,8 @@ class OptionsParser():
             self.arb_files(options)
         elif options.subparser_name == 'validate':
             self.validate(options)
+        elif options.subparser_name == 'add_sp_label':
+            self.add_sp_label(options)
         elif options.subparser_name == 'genome_category_rank':
             self.genome_category_rank(options)
         elif options.subparser_name == 'nomenclatural_rank':
