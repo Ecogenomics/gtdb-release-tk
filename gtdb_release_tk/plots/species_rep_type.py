@@ -197,7 +197,7 @@ class SpeciesRepType(object):
         for rid in sp_clusters:
             if rid.startswith('UBA') or genome_category[rid] == 'derived from metagenome':
                 sp_genome_types[rid] = 'MAG'
-            elif genome_category[rid] == 'derived from environmental_sample':
+            elif genome_category[rid] in ['derived from environmental sample', 'derived from environmental_sample']:
                 sp_genome_types[rid] = 'MAG'
             elif genome_category[rid] == 'derived from single cell':
                 sp_genome_types[rid] = 'SAG'

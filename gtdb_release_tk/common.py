@@ -5,6 +5,7 @@ from collections import defaultdict, namedtuple
 
 ENV_CATEGORIES = set(['derived from single cell',
                         'derived from metagenome', 
+                        'derived from environmental sample',
                         'derived from environmental_sample'])
                         
                         
