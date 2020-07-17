@@ -65,18 +65,26 @@ class GenomicStatsPlot(AbstractPlot):
         self.rows = rows
         self.cols = cols
 
-    def plot(self, plot_num, data, xlabel, ylabel, txt_position=None):
+    def plot(self, plot_num, data, xlabel, ylabel, txt_position=None, center_xticks=False):
         """Create histogram for statistic."""
         
         self.axis = self.fig.add_subplot(self.rows, self.cols, plot_num)
+        
+        align = 'mid'
+        if center_xticks:
+            # not intuative, but setting the alignment to left
+            # puts labels in the middle of each bar
+            align = 'left' 
+                        
 
         weights = np_ones_like(data)/float(len(data))
+        num_bins = min(20, len(set(data))-1)
         counts, bins, patches = self.axis.hist(data, 
-                                                bins=min(20, len(set(data))-1), 
+                                                bins=num_bins, 
                                                 rwidth=0.9, 
                                                 weights=weights, 
                                                 color='#fdae6b',
-                                                align='mid')
+                                                align=align)
 
         self.axis.set_xlabel(xlabel)
         self.axis.set_ylabel(ylabel)
@@ -289,7 +297,7 @@ class GenomicStats(object):
         # SSU count panel
         self.logger.info(f'Creating SSU count plot.')
         data = self.get_stat_data(metadata, 'ssu_count', 1, -1, 12, all_genomes)
-        plot.plot(3, data, 'No. SSU genes', f'{ylabel} ({len(data):,})')
+        plot.plot(3, data, 'No. SSU genes', f'{ylabel} ({len(data):,})', center_xticks=True)
         table_data.append(('No. SSU genes', 
                             f'{np_median(data):.1f}',
                             f'{np_mean(data):.1f}',
