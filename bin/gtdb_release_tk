@@ -154,8 +154,6 @@ if __name__ == '__main__':
     hq_genome_file_parser.add_argument(
         'metadata_file', help='file indicating metadata of each genome')
     hq_genome_file_parser.add_argument(
-        'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    hq_genome_file_parser.add_argument(
         'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     hq_genome_file_parser.add_argument(
         'release_number', help='release number (ex. 86)')

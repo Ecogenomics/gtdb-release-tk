@@ -297,7 +297,7 @@ class WebsiteData(object):
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
         reps = parse_rep_genomes(metadata_file, user_gids)
-        self.logger.info(' ...identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
+        self.logger.info(' - identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
 
@@ -355,9 +355,9 @@ class WebsiteData(object):
 
         fout.close()
 
-    def hq_genome_file(self, metadata_file,
-                       gtdb_sp_clusters_file,
-                       user_gid_table):
+    def hq_genome_file(self,
+                        metadata_file,
+                        user_gid_table):
         """Generate file indicating HQ genomes."""
 
         # parse user genome ID mapping table
@@ -367,7 +367,7 @@ class WebsiteData(object):
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
         reps = parse_rep_genomes(metadata_file, user_gids)
-        self.logger.info(' ...identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
+        self.logger.info(' - identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
 
@@ -381,6 +381,8 @@ class WebsiteData(object):
             'trna_aa_count',
             'ncbi_genome_category',
             'mimag_high_quality',
+            'mimag_medium_quality',
+            'mimag_low_quality',
             'gtdb_taxonomy'],
             user_gids)
 
@@ -440,6 +442,9 @@ class WebsiteData(object):
                     metadata[gid].gtdb_taxonomy,
                     gid in reps))
                 fout.write('\n')
+                
+                if not metadata[gid].mimag_high_quality:
+                    self.logger.warning('This genome should be considered high quality, but the mimag_high_quality flag was set to False: {}'.format(gid))
 
                 genome_count += 1
                 species.add(gtdb_sp)

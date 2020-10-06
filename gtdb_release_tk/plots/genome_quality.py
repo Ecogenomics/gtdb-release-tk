@@ -276,6 +276,7 @@ class GenomeQuality(object):
                                             'mimag_lq'])
 
         metadata = {}
+        mimag_hq_count = 0
         for mf in [bac120_metadata_file, ar120_metadata_file]:
             with open(mf, encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
@@ -309,7 +310,7 @@ class GenomeQuality(object):
                                                 mimag_hq=mimag_hq,
                                                 mimag_mq=mimag_mq,
                                                 mimag_lq=mimag_lq)
-                                                
+
         return metadata
  
     def run(self, 
@@ -320,7 +321,7 @@ class GenomeQuality(object):
         # get genome metadata
         self.logger.info('Reading GTDB metadata.')
         metadata = self.read_metadata(bac120_metadata_file, ar120_metadata_file)
-        self.logger.info(f' ...read metadata for {len(metadata):,} representative genomes.')
+        self.logger.info(f' - read metadata for {len(metadata):,} representative genomes.')
         
         # get completenss, contamination, and MIMAG quality of each 
         # GTDB species representative
@@ -346,7 +347,7 @@ class GenomeQuality(object):
                 # this occurs becomes some representatives have >10% contamination
                 exception_count += 1
                 
-        self.logger.info(' ...HQ = {:,}, MQ = {:,}, LQ = {:,}, exceptions = {:,}'.format(
+        self.logger.info(' - HQ = {:,}, MQ = {:,}, LQ = {:,}, exceptions = {:,}'.format(
                             mimag_category.count('hq'),
                             mimag_category.count('mq'),
                             mimag_category.count('lq'),
@@ -361,7 +362,8 @@ class GenomeQuality(object):
         plot = GenomeQualityPlot(options)
         
         plot.plot(comp, cont, 
-                    mimag_category, exception_count,
+                    mimag_category,
+                    exception_count,
                     'Completeness (%)', 
                     'Contamination (%)', 
                     num_bins=25,

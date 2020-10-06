@@ -48,6 +48,9 @@ def sp_cluster_type_category(gids, genome_category):
 def parse_user_gid_table(user_gid_table):
     """Parse user genome ID table."""
     
+    if user_gid_table.lower() == 'none':
+        return {}
+    
     user_gids = {}
     with open(user_gid_table) as f:
         for line in f:

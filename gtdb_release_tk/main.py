@@ -101,13 +101,12 @@ class OptionsParser():
         """Generate file indicating HQ genomes."""
 
         check_file_exists(options.metadata_file)
-        check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
+        if options.user_gid_table.lower() != 'none':
+            check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.hq_genome_file(options.metadata_file,
-                         options.gtdb_sp_clusters_file,
                          options.user_gid_table)
 
         self.logger.info('Done.')
