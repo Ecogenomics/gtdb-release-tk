@@ -46,8 +46,7 @@ from numpy import (median as np_median,
                     ones_like as np_ones_like,
                     bincount as np_bincount)
                     
-from matplotlib.ticker import FuncFormatter
-from pylab import MaxNLocator
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 
 import gtdb_release_tk.HTML as HTML
