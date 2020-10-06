@@ -43,11 +43,6 @@ def print_help():
     print('                ...::: GTDB Release Toolkit v' + version() + ' :::...''')
     print('''\
 
-    Moving to new release:
-      blah
-      blah
-      blah
-
     External files for GTDB website:
       taxonomy_files  -> Generate GTDB taxonomy files
       tree_files      -> Generate tree files spanning representative genomes
