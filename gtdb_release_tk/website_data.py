@@ -23,7 +23,7 @@ import shutil
 import multiprocessing as mp
 import glob
 
-from biolib.common import make_sure_path_exists
+from biolib.common import make_sure_path_exists, canonical_gid
 from tqdm import tqdm
 import sys
 from collections import Counter
@@ -34,7 +34,7 @@ from pathlib import Path, PurePath
 import biolib.seq_io as seq_io
 import dendropy
 
-from gtdb_release_tk.common import (parse_user_gid_table,
+from gtdb_release_tk.common import (parse_user_gid_table, parse_canonical_gid_table,
                                     parse_rep_genomes,
                                     parse_genomic_path_file,
                                     parse_species_clusters,
@@ -84,6 +84,7 @@ class WebsiteData(object):
             sum([1 for t in reps.values()]),
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
+        print(reps)
 
         # create archaeal and bacterial taxonomy files
         fout_ar = open(
@@ -287,12 +288,17 @@ class WebsiteData(object):
 
     def sp_cluster_file(self, metadata_file,
                         gtdb_sp_clusters_file,
-                        user_gid_table):
+                        user_gid_table,
+                        canonical_gid_table):
         """Generate file indicating GTDB species clusters."""
 
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
+
+        # parse canonical ID mapping table
+        self.logger.info('Parsing canonical ID mapping table.')
+        canonical_gids = parse_canonical_gid_table(canonical_gid_table)
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
@@ -313,7 +319,7 @@ class WebsiteData(object):
         with open(gtdb_sp_clusters_file) as f:
             header = f.readline().strip().split('\t')
 
-            type_genome_index = header.index('Type genome')
+            type_genome_index = header.index('Representative')
             ani_index = header.index('ANI radius')
             cluster_size_index = header.index('No. clustered genomes')
             mean_ani_index = header.index('Mean ANI')
@@ -327,6 +333,8 @@ class WebsiteData(object):
 
                 type_genome = line_split[type_genome_index]
                 type_genome = user_gids.get(type_genome, type_genome)
+                type_genome = canonical_gids.get(type_genome, type_genome)
+                print(type_genome)
 
                 ani = line_split[ani_index]
                 cluster_size = int(line_split[cluster_size_index])
@@ -455,12 +463,17 @@ class WebsiteData(object):
                    metadata_file,
                    bac_tree,
                    ar_tree,
-                   user_gid_table):
+                   user_gid_table,
+                   canonical_gid_table):
         """Generate tree files spanning representative genomes."""
 
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
+
+        # parse canonical ID mapping table
+        self.logger.info('Parsing canonical ID mapping table.')
+        canonical_gids = parse_canonical_gid_table(canonical_gid_table)
 
         # ensure proper genome IDs for bacterial tree
         self.logger.info('Reading GTDB bacterial reference tree.')
@@ -474,7 +487,9 @@ class WebsiteData(object):
         for leaf in bac_tree.leaf_node_iter():
             gid = leaf.taxon.label
             assert(not gid.startswith('D-'))
-            leaf.taxon.label = user_gids.get(gid, gid)
+            gid = user_gids.get(gid, gid)
+            gid = canonical_gids.get(gid, gid)
+            leaf.taxon.label = gid
 
         bac_tree.write_to_path(self.output_dir / f'bac120_r{self.release_number}.tree',
                                schema='newick',
@@ -493,7 +508,9 @@ class WebsiteData(object):
         for leaf in ar_tree.leaf_node_iter():
             gid = leaf.taxon.label
             assert(not gid.startswith('D-'))
-            leaf.taxon.label = user_gids.get(gid, gid)
+            gid = user_gids.get(gid, gid)
+            gid = canonical_gids.get(gid, gid)
+            leaf.taxon.label = gid
 
         ar_tree.write_to_path(self.output_dir / f'ar122_r{self.release_number}.tree',
                               schema='newick',
@@ -526,6 +543,10 @@ class WebsiteData(object):
                      user_gid_table):
         """Generate marker gene file."""
 
+        # parse user genome ID mapping table
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+
         # copy and rename marker info files
         self.logger.info('Copying and renaming marker info files.')
         shutil.copyfile(PurePath(bac120_gene_dir) / 'bac120_markers_info.tsv',
@@ -540,15 +561,24 @@ class WebsiteData(object):
             self.logger.info(f'Reading {msa_dir}.')
             msa_file = self.output_dir / f'{prefix}_msa_individual_genes_r{self.release_number}.tar.gz'
 
+            processed_sequence_path = os.path.join(self.output_dir, prefix)
+            make_sure_path_exists(processed_sequence_path)
+
             msa_files = set()
             for f in os.listdir(msa_dir):
                 if f.endswith('.faa') and '_concatenated' not in f:
+                    fasta_seqs = seq_io.read_fasta(os.path.join(msa_dir, f))
+                    with open(os.path.join(processed_sequence_path, os.path.basename(f)), 'w') as temp_file:
+                        for k, seqs in fasta_seqs.items():
+                            temp_file.write('>{}\n{}\n'.format(
+                                user_gids.get(k, k), seqs))
+
                     msa_files.add(f)
 
             cmd = 'tar -zcvf {}_msa_individual_genes_r{}.tar.gz --directory={} {}'.format(
                 prefix,
                 self.release_number,
-                msa_dir,
+                processed_sequence_path,
                 ' '.join(msa_files))
             os.system(cmd)
 
@@ -655,9 +685,9 @@ class WebsiteData(object):
                 pbar.update(1)
         return True
 
-    def gene_files(self, user_gid_table, path_taxonomy, cpus):
+    def gene_files(self, user_gid_table, path_taxonomy, genome_dirs_file, metadata_file, cpus, only_reps=False):
         cpus = max(1, cpus)
-
+        print('gene_files')
         # Get a mapping of accession to directory
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
@@ -665,6 +695,15 @@ class WebsiteData(object):
         # Parse the metadata file
         self.logger.info('Parsing taxonomy file.')
         user_tax = parse_taxonomy_file(path_taxonomy)
+
+        # get representative genome for each GTDB species cluster
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        reps = parse_rep_genomes(metadata_file, user_gids)
+
+        # Parse the genomic path
+        self.logger.info(
+            'Parsing genome directory files ( including UBA paths).')
+        genome_dirs = parse_genomic_path_file(genome_dirs_file, user_gids)
 
         # Setup the multiprocessing objects
         manager = mp.Manager()
@@ -674,9 +713,15 @@ class WebsiteData(object):
 
         # Create a queue of items to be processed
         self.logger.info('Creating a queue of jobs to be processed.')
-        for gid, dir_base in user_gids.items():
-            domain = user_tax[gid].split(';')[0]
-            q_worker.put((gid, domain, dir_base))
+        iterations = 0
+        for gid, dir_base in user_tax.items():
+            domain = dir_base.split(';')[0]
+            if only_reps and gid in reps:
+                q_worker.put((gid, domain, genome_dirs.get(gid)))
+                iterations += 1
+            elif not only_reps:
+                q_worker.put((gid, domain, genome_dirs.get(gid)))
+                iterations += 1
         [q_worker.put(None) for _ in range(cpus)]
 
         # Create the workers
@@ -748,88 +793,86 @@ class WebsiteData(object):
 
                 with open(cur_path, 'w') as fh:
                     for cur_gid, cur_gene_id, cur_seq in seqs:
-                        fh.write(f'>{cur_gid}\n{cur_seq}\n')
+                        process_id = user_gids.get(cur_gid, cur_gid)
+                        fh.write(f'>{process_id}\n{cur_seq}\n')
                 pass
 
         self.logger.info('Done.')
 
-    def protein_files(self, user_gid_table, path_taxonomy, genome_dirs, uba_path):
+    def protein_files(self, user_gid_table, raw_taxonomy, genome_dirs_file, metadata_file):
         # Get a mapping of accession to directory
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
-        inv_user_gids = {v.replace('GB_', '').replace(
-            'RS_', ''): k for k, v in user_gids.items()}
-
-        genome_paths = parse_genomic_path_file(genome_dirs, user_gids)
 
         # Parse the metadata file
         self.logger.info('Parsing taxonomy file.')
-        user_tax = parse_taxonomy_file(path_taxonomy)
+        user_tax = parse_taxonomy_file(raw_taxonomy)
+
+        # get representative genome for each GTDB species cluster
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        reps = parse_rep_genomes(metadata_file, user_gids)
 
         domain = None
         make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
         make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
 
-        for gid, tax in user_tax.items():
-            domain = None
-            if tax.startswith('d__Archaea'):
-                domain = 'archaea'
-            else:
-                domain = 'bacteria'
-            if gid.startswith('U'):
-                dir_prodigal = os.path.join(os.path.join(
-                    uba_path, inv_user_gids.get(gid)), 'prodigal')
+        # Parse the genomic path
+        self.logger.info(
+            'Parsing genome directory files ( including UBA paths).')
+        genome_dirs = parse_genomic_path_file(genome_dirs_file, user_gids)
 
-            else:
-                print(gid)
-                if gid in genome_paths:
-                    dir_prodigal = os.path.join(
-                        genome_paths.get(gid), 'prodigal')
-                else:
-                    dir_prodigal = os.path.join(
-                        uba_path, inv_user_gids.get(gid), 'prodigal')
-            protein_file = path_pfam_th = glob.glob(f'{dir_prodigal}/*_protein.faa')[0]
-            shutil.copy(protein_file, os.path.join(
-                self.output_dir, domain, gid + '_protein.faa'))
+        print(reps)
 
-    def nucleotide_files(self, user_gid_table, path_taxonomy, genome_dirs, uba_path):
+        for gid, taxonomy in user_tax.items():
+            print(gid)
+            if gid in reps:
+                path_of_interest = os.path.join(
+                    genome_dirs.get(gid), 'prodigal')
+                print(path_of_interest)
+                protein_files = glob.glob(f'{path_of_interest}/*_protein.faa')
+                print(protein_files)
+                for protein_file in protein_files:
+                    if taxonomy.startswith('d__Archaea'):
+                        domain = 'archaea'
+                    else:
+                        domain = 'bacteria'
+                    shutil.copy(protein_file, os.path.join(
+                        self.output_dir, domain, user_gids.get(gid, gid) + '_protein.faa'))
+
+    def nucleotide_files(self, user_gid_table, raw_taxonomy, genome_dirs_file, metadata_file):
         # Get a mapping of accession to directory
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
-        inv_user_gids = {v.replace('GB_', '').replace(
-            'RS_', ''): k for k, v in user_gids.items()}
-
-        genome_paths = parse_genomic_path_file(genome_dirs, user_gids)
 
         # Parse the metadata file
         self.logger.info('Parsing taxonomy file.')
-        user_tax = parse_taxonomy_file(path_taxonomy)
+        user_tax = parse_taxonomy_file(raw_taxonomy)
+
+        # get representative genome for each GTDB species cluster
+        self.logger.info('Parsing representative genomes from GTDB metadata.')
+        reps = parse_rep_genomes(metadata_file, user_gids)
 
         domain = None
         make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
         make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
 
-        for gid, tax in user_tax.items():
-            domain = None
-            if tax.startswith('d__Archaea'):
-                domain = 'archaea'
-            else:
-                domain = 'bacteria'
-            if gid.startswith('U'):
-                dir_prodigal = os.path.join(os.path.join(
-                    uba_path, inv_user_gids.get(gid)), 'prodigal')
+        # Parse the genomic path
+        self.logger.info(
+            'Parsing genome directory files ( including UBA paths).')
+        genome_dirs = parse_genomic_path_file(genome_dirs_file, user_gids)
 
-            else:
-                print(gid)
-                if gid in genome_paths:
-                    dir_prodigal = os.path.join(
-                        genome_paths.get(gid), 'prodigal')
-                else:
-                    dir_prodigal = os.path.join(
-                        uba_path, inv_user_gids.get(gid), 'prodigal')
-            protein_file = path_pfam_th = glob.glob(f'{dir_prodigal}/*_protein.fna')[0]
-            shutil.copy(protein_file, os.path.join(
-                self.output_dir, domain, gid + '_protein.fna'))
+        for gid, taxonomy in user_tax.items():
+            if gid in reps:
+                path_of_interest = os.path.join(
+                    genome_dirs.get(gid), 'prodigal')
+                protein_files = glob.glob(f'{path_of_interest}/*_protein.fna')
+                for protein_file in protein_files:
+                    if taxonomy.startswith('d__Archaea'):
+                        domain = 'archaea'
+                    else:
+                        domain = 'bacteria'
+                    shutil.copy(protein_file, os.path.join(
+                        self.output_dir, domain, user_gids.get(gid, gid) + '_protein.fna'))
 
     def metadata_files(self, metadata_file,
                        metadata_fields,
@@ -928,6 +971,48 @@ class WebsiteData(object):
         fout_ar.close()
 
         self.logger.info(f'Wrote metadata for {count:,} genomes.')
+
+    def copy_all_genes(self, bac120_taxonomy, ar122_taxonomy, user_gid_table, genome_dirs_file, extension):
+        # parse user genome ID mapping table
+        self.logger.info('Parsing user genome ID mapping table.')
+        user_gids = parse_user_gid_table(user_gid_table)
+
+        # parse genome directory files ( including UBA paths)
+        self.logger.info(
+            'Parsing genome directory files ( including UBA paths).')
+        genome_dirs = parse_genomic_path_file(genome_dirs_file, user_gids)
+
+        for domain, taxonomy_file in [('archaea', ar122_taxonomy), ('bacteria', bac120_taxonomy)]:
+            count = 0
+            with open(taxonomy_file, 'r') as tf:
+
+                for line in tf:
+                    gid = line.strip().split('\t')[0]
+                    if gid in genome_dirs:
+                        if '/GCA/' in genome_dirs.get(gid):
+                            prefix = 'GCA'
+                        else:
+                            prefix = 'GCF'
+                    else:
+                        self.logger.info(
+                            "{} is missing a directory".format(gid))
+                        sys.exit()
+                    out_dir = '{}/{}/{}'.format(self.output_dir, domain,
+                                                '/'.join([prefix, gid[1:4], gid[4:7], gid[7:10]]))
+                    #print([prefix, gid[1:4], gid[4:7], gid[7:10]])
+
+                    make_sure_path_exists(out_dir)
+                    full_id = '_'.join(os.path.basename(
+                        genome_dirs.get(gid)).split('_')[:2])
+                    #==========================================================
+                    # #print(
+                    #     '{}/prodigal/{}{}'.format(genome_dirs.get(gid), full_id, extension))
+                    # #print('{}/{}{}'.format(out_dir, gid, extension))
+                    #==========================================================
+                    shutil.copy('{}/prodigal/{}{}'.format(genome_dirs.get(gid), full_id, extension),
+                                '{}/{}{}'.format(out_dir, gid, extension))
+                    count += 1
+                    print(count, end='\r')
 
     def dict_file(self, taxonomy_file):
         """Generate GTDB dictionary file."""
@@ -1353,18 +1438,19 @@ class WebsiteData(object):
         return cleaned_dict
 
     def sorted_genome(self, list_genomes, meta_information):
+        print(list_genomes)
+        for g in list_genomes:
+            print(g)
+            print(meta_information.get(g).get('rep'))
         list_representatives = [
             gen for gen in list_genomes if meta_information.get(gen).get('rep') == 't']
         list_type_species = [gen for gen in list_genomes if meta_information.get(gen).get(
-            'type') == 'type strain of species' and gen not in list_representatives]
-        list_type_subspecies = [gen for gen in list_genomes if meta_information.get(gen).get(
-            'type') == 'type strain of subspecies' and gen not in list_representatives]
+            'type_str') and gen not in list_representatives]
 
         dict_quality = {gen: meta_information.get(gen).get('comp') - 5 * meta_information.get(gen).get(
-            'conta') for gen in list_genomes if gen not in list_representatives + list_type_species + list_type_subspecies}
+            'conta') for gen in list_genomes if gen not in list_representatives + list_type_species}
         list_quality = sorted(dict_quality, key=dict_quality.get)
-        full_list = list_representatives + list_type_species + \
-            list_type_subspecies + list_quality
+        full_list = list_representatives + list_type_species + list_quality
         if len(full_list) > 100:
             shorten_list = full_list[0:100]
             remaining_genomes = len(full_list) - len(shorten_list)
@@ -1392,7 +1478,7 @@ class WebsiteData(object):
             result_genome["extra_genomes"] = int(
                 genome.split(' ')[1].replace(',', ''))
             return result_genome
-        if meta_information.get(genome).get('type').startswith('type strain'):
+        if meta_information.get(genome).get('type').startswith('type strain') and meta_information.get(genome).get('type_str') is True:
             result_genome["type_material"] = meta_information.get(
                 genome).get('type').replace(' ', '_')
         if meta_information.get(genome).get('rep') == 't':
@@ -1448,7 +1534,11 @@ class WebsiteData(object):
             gtd = listheaders.index("gtdb_type_designation")
             gcomp = listheaders.index("checkm_completeness")
             gconta = listheaders.index("checkm_contamination")
-            gtsofg = listheaders.index("gtdb_type_species_of_genus")
+            gts = listheaders.index("gtdb_species_type_strain")
+            # We based gtsofg on gtdb_genus_type_species (based in GTDB) instead of
+            # gtdb_type_species_of_genus ( based on NCBI)
+            # gtsofg = listheaders.index("gtdb_type_species_of_genus")
+            gtsofg = listheaders.index("gtdb_genus_type_species")
             gtdb_tax = listheaders.index("gtdb_taxonomy")
             for line in metafile:
                 infos = line.rstrip().split('\t')
@@ -1456,11 +1546,15 @@ class WebsiteData(object):
                                     'type': infos[gtd],
                                     'comp': float(infos[gcomp]),
                                     'conta': float(infos[gconta]),
-                                    'type_spe': infos[gtsofg]}
+                                    'type_spe': infos[gtsofg],
+                                    'type_str': self.str2bool(infos[gts])}
                 if infos[gtsofg] == 't':
                     type_spe_list.append(infos[gtdb_tax].split(';')[6])
 
         return (result, type_spe_list)
+
+    def str2bool(self, v):
+        return v.lower() in ("yes", "true", "t", "1")
 
     def genomebygenomecompare(self, olddict, newdict, gtogfile):
         orderrank = ["domain", "phylum", "class",

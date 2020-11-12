@@ -130,6 +130,8 @@ if __name__ == '__main__':
     tree_files_parser.add_argument(
         'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     tree_files_parser.add_argument(
+        'canonical_gid_table', help='table indicates the canonical id and the NCBI accession.')
+    tree_files_parser.add_argument(
         'release_number', help='release number (ex. 86)')
     tree_files_parser.add_argument('output_dir', help="output directory")
     tree_files_parser.add_argument(
@@ -145,6 +147,8 @@ if __name__ == '__main__':
         'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
     sp_cluster_file_parser.add_argument(
         'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    sp_cluster_file_parser.add_argument(
+        'canonical_gid_table', help='table indicates the canonical id and the NCBI accession.')
     sp_cluster_file_parser.add_argument(
         'release_number', help='release number (ex. 86)')
     sp_cluster_file_parser.add_argument('output_dir', help="output directory")
@@ -216,11 +220,11 @@ if __name__ == '__main__':
     prot_file_parser.add_argument(
         '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     prot_file_parser.add_argument(
+        '--metadata_file', help='file indicating metadata of each genome')
+    prot_file_parser.add_argument(
         '--release_number', help='release number (e.g. 86)')
     prot_file_parser.add_argument(
-        '--genome_dirs', help='File listing the path to all NCBI genome files.')
-    prot_file_parser.add_argument(
-        '--uba_path', help='root path for files not present in NCBI (UBA).')
+        '--genome_dirs', help='Directory with all genes files.')
     prot_file_parser.add_argument('--output_dir', help="output directory")
     prot_file_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
@@ -236,11 +240,11 @@ if __name__ == '__main__':
     nuc_file_parser.add_argument(
         '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     nuc_file_parser.add_argument(
+        '--metadata_file', help='file indicating metadata of each genome')
+    nuc_file_parser.add_argument(
         '--release_number', help='release number (e.g. 86)')
     nuc_file_parser.add_argument(
-        '--genome_dirs', help='File listing the path to all NCBI genome files.')
-    nuc_file_parser.add_argument(
-        '--uba_path', help='root path for files not present in NCBI (UBA).')
+        '--genome_dirs', help='Directory with all genes files.')
     nuc_file_parser.add_argument('--output_dir', help="output directory")
     nuc_file_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
@@ -274,7 +278,13 @@ if __name__ == '__main__':
     gene_files_parser.add_argument(
         '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     gene_files_parser.add_argument(
+        '--genome_dirs', help='Genome directory files.')
+    gene_files_parser.add_argument(
         '--release_number', help='release number (e.g. 86)')
+    gene_files_parser.add_argument(
+        '--metadata_file', help='file indicating metadata of each genome')
+    gene_files_parser.add_argument(
+        '--only_reps', help='generates file only for representatives genomes.', action='store_true')
     gene_files_parser.add_argument('--output_dir', help="output directory")
     gene_files_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
@@ -585,6 +595,45 @@ if __name__ == '__main__':
     nomcheck_parser.add_argument(
         '--gtdb_taxonomy', help='GTDB Taxonomy file.', required=True)
     nomcheck_parser.add_argument(
+        '--rank_release_file', help='GTDB File listing all ranks and their release version.')
+    nomcheck_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # all Genomes function
+    all_faa_parser = subparsers.add_parser('all_genome_faa',
+                                           formatter_class=CustomHelpFormatter,
+                                           description='Generate the folder with all protein.faa folder.')
+    all_faa_parser.add_argument(
+        'bac120_taxonomy', help='File listing taxonomy for all bacterial genomes.')
+    all_faa_parser.add_argument(
+        'ar122_taxonomy', help='File listing taxonomy for all archaeal genomes.')
+    all_faa_parser.add_argument(
+        'genome_dirs', help='Genome directory files.')
+    all_faa_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    all_faa_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    all_faa_parser.add_argument(
+        'output_dir', help='Output directory')
+    all_faa_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    all_fna_parser = subparsers.add_parser('all_genome_fna',
+                                           formatter_class=CustomHelpFormatter,
+                                           description='Generate the folder with all protein.faa folder.')
+    all_fna_parser.add_argument(
+        'bac120_taxonomy', help='File listing taxonomy for all bacterial genomes.')
+    all_fna_parser.add_argument(
+        'ar122_taxonomy', help='File listing taxonomy for all archaeal genomes.')
+    all_fna_parser.add_argument(
+        'genome_dirs', help='Genome directory files.')
+    all_fna_parser.add_argument(
+        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+    all_fna_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    all_fna_parser.add_argument(
+        'output_dir', help='Output directory')
+    all_fna_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
     # get and check options
