@@ -121,10 +121,9 @@ class TaxonomyNCBI(object):
             name_classes.append(name_class)
 
             # if name_class == 'scientific name' or name_class == 'synonym':
-            d[tax_id] = self.NameRecord(name_txt)
+            d.setdefault(tax_id, []).append(self.NameRecord(name_txt))
 
-        for it in set(name_classes):
-            print(f'{it}')
+        print('TOTO', d.get('1538463'))
 
         return d
 
@@ -174,11 +173,13 @@ class TaxonomyNCBI(object):
 
         list_ranks = []
         for inc, rank_id in enumerate(set_full_ranks):
+            print(rank_id)
             print('{}/{}'.format(inc, len(set_full_ranks)), end='\r')
             if rank_id in name_records:
-                outf.write('{}\tNCBI\n'.format(
-                    name_records.get(rank_id).name_txt))
-                list_ranks.append(name_records.get(rank_id).name_txt)
+                for names in name_records.get(rank_id):
+                    for name in names:
+                        outf.write('{}\tNCBI\n'.format(name))
+                        list_ranks.append(name)
         outf.close()
         return list_ranks
 
@@ -201,12 +202,29 @@ class LitteratureParser(object):
         outf.close()
         return list_ranks
 
+    def parse_release_species(self, species_file):
+        results = {}
+        with open(species_file, 'r') as spf:
+            spf.readline()
+            for line in spf:
+                infos = re.split(';|\|', line.strip())
+                release = float(infos[0].replace("R", ""))
+                for i in range(1, 8):
+                    rkname = infos[i][3:]
+                    if rkname not in results or results.get(rkname) > release:
+                        results[rkname] = release
+        return results
+
     def run(self, ncbi_node_file, ncbi_name_file, lpsn_species_file,
-            bacdive_species_file, gtdb_taxonomy):
+            bacdive_species_file, gtdb_taxonomy, release_species_file=None):
         tn = TaxonomyNCBI(self.outfile)
         ncbi_ranks = tn.run(ncbi_node_file, ncbi_name_file)
         lpsn_ranks = self.parse_nom_file(lpsn_species_file, 'LPSN')
         bacdive_ranks = self.parse_nom_file(bacdive_species_file, 'DSMZ')
+        species_release_dict = {}
+        if release_species_file:
+            species_release_dict = self.parse_release_species(
+                release_species_file)
 
         all_ranks = ncbi_ranks + lpsn_ranks + bacdive_ranks
 
@@ -226,16 +244,20 @@ class LitteratureParser(object):
         gtdb_ranks = set(gtdb_ranks)
 
         count_rank = 0
+        print('Nocardia donostiensis', any(
+            'Nocardia donostiensis' in s for s in all_ranks))
+
         for rk in gtdb_ranks:
             count_rank += 1
             print('{}/{} of gtdb ranks'.format(count_rank, len(gtdb_ranks)), end='\r')
+            print
             if re.search("^[A-Za-z\s]+$", rk):
                 if any(rk in s for s in all_ranks):
                     gtdb_name_in_ncbi.write(
-                        '{}\t{}\n'.format(rk, dict_gtdbranks.get(rk)))
+                        '{}\t{}\t{}\n'.format(rk, dict_gtdbranks.get(rk), species_release_dict.get(rk, "N/A")))
                 else:
                     gtdb_name_notin_ncbi.write(
-                        '{}\t{}\n'.format(rk, dict_gtdbranks.get(rk)))
+                        '{}\t{}\t{}\n'.format(rk, dict_gtdbranks.get(rk), species_release_dict.get(rk, "N/A")))
 
         gtdb_name_notin_ncbi.close()
         gtdb_name_in_ncbi.close()

@@ -78,7 +78,8 @@ class OptionsParser():
         p.tree_files(options.metadata_file,
                      options.bac_tree,
                      options.ar_tree,
-                     options.user_gid_table)
+                     options.user_gid_table,
+                     options.canonical_gid_table)
 
         self.logger.info('Done.')
 
@@ -93,7 +94,8 @@ class OptionsParser():
         p = WebsiteData(options.release_number, options.output_dir)
         p.sp_cluster_file(options.metadata_file,
                           options.gtdb_sp_clusters_file,
-                          options.user_gid_table)
+                          options.user_gid_table,
+                          options.canonical_gid_table)
 
         self.logger.info('Done.')
 
@@ -170,7 +172,11 @@ class OptionsParser():
 
         w = WebsiteData(options.release_number, options.output_dir)
         w.gene_files(options.user_gid_table,
-                     options.taxonomy_file, options.cpus)
+                     options.taxonomy_file, options.genome_dirs, options.metadata_file, options.cpus, options.only_reps)
+        #======================================================================
+        # w.gene_files(options.user_gid_table,
+        #              options.taxonomy_file, options.genome_dirs, options.cpus)
+        #======================================================================
 
         self.logger.info('Done.')
 
@@ -178,11 +184,10 @@ class OptionsParser():
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
         check_file_exists(options.user_gid_table)
-        check_file_exists(options.genome_dirs)
-
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+        w.protein_files(options.user_gid_table,
+                        options.taxonomy_file, options.genome_dirs, options.metadata_file)
 
         self.logger.info('Done.')
 
@@ -190,10 +195,10 @@ class OptionsParser():
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
         check_file_exists(options.user_gid_table)
-        check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,
+                           options.genome_dirs, options.metadata_file)
 
         self.logger.info('Done.')
 
@@ -478,9 +483,20 @@ class OptionsParser():
               options.ncbi_name_file,
               options.lpsn_species_file,
               options.bacdive_species_file,
-              options.gtdb_taxonomy)
+              options.gtdb_taxonomy,
+              options.rank_release_file)
 
         self.logger.info('Done.')
+
+    def all_genome_faa(self, options):
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.copy_all_genes(options.bac120_taxonomy, options.ar122_taxonomy,
+                         options.user_gid_table, options.genome_dirs, '_protein.faa')
+
+    def all_genome_fna(self, options):
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.copy_all_genes(options.bac120_taxonomy, options.ar122_taxonomy,
+                         options.user_gid_table, options.genome_dirs, '_protein.fna')
 
     def parse_options(self, options):
         """Parse user options and call the correct pipeline(s)"""
@@ -541,6 +557,10 @@ class OptionsParser():
             self.top_taxa(options)
         elif options.subparser_name == 'nomenclatural_check':
             self.nomenclatural_check(options)
+        elif options.subparser_name == 'all_genome_faa':
+            self.all_genome_faa(options)
+        elif options.subparser_name == 'all_genome_fna':
+            self.all_genome_fna(options)
         else:
             self.logger.error('Unknown command: ' +
                               options.subparser_name + '\n')
