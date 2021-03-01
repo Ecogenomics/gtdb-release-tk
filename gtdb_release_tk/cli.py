@@ -32,13 +32,13 @@ def __debug(group):
                        help='create intermediate files for debugging purposes')
 
 
-def gtdb_sp_clusters_file(group):
-    group.add_argument('gtdb_sp_clusters_file', default=None,
+def __gtdb_sp_clusters_file(group):
+    group.add_argument('--gtdb_sp_clusters_file', default=None,
                        help='file indicating final GTDB species clusters')
 
 
-def __user_gid_table(group, positional=False):
-    group.add_argument(f'{"--" if positional else ""}user_gid_table', default=None,
+def __user_gid_table(group):
+    group.add_argument(f'--user_gid_table', default=None,
                        help='table indicate NCBI accession and UBA IDs for user genomes')
 
 
@@ -46,18 +46,18 @@ def __silent(group):
     group.add_argument('--silent', action="store_true", default=False, help='suppress output')
 
 
-def bac_tree(group):
-    group.add_argument('bac_tree', default=None,
+def __bac_tree(group):
+    group.add_argument('--bac_tree', default=None,
                        help='bacterial tree of representative genomes in Newick format')
 
 
-def ar_tree(group):
-    group.add_argument('ar_tree', default=None,
+def __ar_tree(group):
+    group.add_argument('--ar_tree', default=None,
                        help='archaeal tree of representative genomes in Newick format')
 
 
-def genome_path_file(group):
-    group.add_argument('genome_path_file', default=None, help='file indicating path to GTDB genomes')
+def __genome_path_file(group):
+    group.add_argument('--genome_path_file', default=None, help='file indicating path to GTDB genomes')
 
 
 def __min_16s_ar_len(group):
@@ -75,17 +75,16 @@ def __min_contig_len(group):
                        help='minimum contig length')
 
 
-def bac120_gene_dir(group):
+def __bac120_gene_dir(group):
     group.add_argument('bac120_gene_dir', help='directory with individual bacterial marker gene files')
 
 
-def ar122_gene_dir(group):
+def __ar122_gene_dir(group):
     group.add_argument('ar122_gene_dir', help='directory with individual archaeal marker gene files')
 
 
-def __taxonomy_file(group, positional=False, required=False):
-    group.add_argument(f'{"--" if positional else ""}taxonomy_file', required=required,
-                       help='tsv of gid and taxonomy')
+def __taxonomy_file(group, required=False):
+    group.add_argument(f'--taxonomy_file', required=required, help='tsv of gid and taxonomy')
 
 
 def __genome_dirs(group):
@@ -100,45 +99,45 @@ def __cpus(group):
     group.add_argument('--cpus', type=int, default=1, help='number of threads to use (default: 1)')
 
 
-def bac120_msa_file(group):
-    group.add_argument('bac120_msa_file', help='MSA for bacterial representative genomes')
+def __bac120_msa_file(group):
+    group.add_argument('--bac120_msa_file', help='MSA for bacterial representative genomes')
 
 
-def ar122_msa_file(group):
-    group.add_argument('ar122_msa_file', help='MSA for archaeal representative genomes')
+def __ar122_msa_file(group):
+    group.add_argument('--ar122_msa_file', help='MSA for archaeal representative genomes')
 
 
-def metadata_fields(group):
-    group.add_argument('metadata_fields', help='file indicating GTDB metadata fields to retain')
+def __metadata_fields(group):
+    group.add_argument('--metadata_fields', help='file indicating GTDB metadata fields to retain')
 
 
-def tree_file(group):
-    group.add_argument('tree_file', help='tree spanning representative genomes')
+def __tree_file(group):
+    group.add_argument('--tree_file', help='tree spanning representative genomes')
 
 
-def __metadata_file(group, positional=False, required=False):
-    group.add_argument(f'{"--" if positional else ""}metadata_file', required=required,
+def __metadata_file(group, required=False):
+    group.add_argument(f'--metadata_file', required=required,
                        help='file indicating metadata of each genome')
 
 
-def msa_file(group):
-    group.add_argument('msa_file', help='file with MSA of representative genomes')
+def __msa_file(group):
+    group.add_argument('--msa_file', help='file with MSA of representative genomes')
 
 
-def ssu_file(group):
-    group.add_argument('ssu_file', help='file with SSU genes for representative genomes')
+def __ssu_file(group):
+    group.add_argument('--ssu_file', help='file with SSU genes for representative genomes')
 
 
-def sp_clusters_file(group):
-    group.add_argument('sp_clusters_file', help='file indicating GTDB species clusters')
+def __sp_clusters_file(group):
+    group.add_argument('--sp_clusters_file', help='file indicating GTDB species clusters')
 
 
-def hq_genome_file(group):
-    group.add_argument('hq_genome_file', help='file indicating HQ MIMAG genomes')
+def __hq_genome_file(group):
+    group.add_argument('--hq_genome_file', help='file indicating HQ MIMAG genomes')
 
 
-def output_tree(group):
-    group.add_argument('output_tree', help='output tree with appended species labels')
+def __output_tree(group):
+    group.add_argument('--output_tree', help='output tree with appended species labels')
 
 
 def __reference_taxonomy_file(group):
@@ -149,8 +148,8 @@ def __new_taxonomy_file(group):
     group.add_argument('--new_taxonomy_file', help='New taxonomy file.')
 
 
-def __output_dir(group, positional=False, required=False):
-    group.add_argument(f'{"--" if positional else ""}output_dir', required=required,
+def __output_dir(group, required=False):
+    group.add_argument(f'--output_dir', required=required,
                        help='output directory')
 
 
@@ -169,17 +168,16 @@ def __top_change(group):
                        help='remove taxa that have a placeholder name -> no name mapping between the two taxonomies')
 
 
-def __release_number(group, positional=False, required=False):
-    group.add_argument(f'{"--" if positional else ""}release_number', required=required,
-                       help='Release number (ex. 86)')
+def __release_number(group, required=False):
+    group.add_argument(f'--release_number', required=required, help='Release number (ex. 86)')
 
 
-def bac120_metadata_file(group):
-    group.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes.')
+def __bac120_metadata_file(group):
+    group.add_argument('--bac120_metadata_file', help='metadata for bacterial GTDB genomes.')
 
 
-def ar122_metadata_file(group):
-    group.add_argument('ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+def __ar122_metadata_file(group):
+    group.add_argument('--ar122_metadata_file', help='metadata for archaeal GTDB genomes')
 
 
 def __all_genomes(group):
@@ -200,12 +198,12 @@ def __domain(group):
                        help='restrict plot to genomes from specified domain')
 
 
-def bac120_tree(group):
-    group.add_argument('bac120_tree', help='bacterial GTDB reference tree')
+def __bac120_tree(group):
+    group.add_argument('--bac120_tree', help='bacterial GTDB reference tree')
 
 
-def ar122_tree(group):
-    group.add_argument('ar122_tree', help='archaeal GTDB reference tree')
+def __ar122_tree(group):
+    group.add_argument('--ar122_tree', help='archaeal GTDB reference tree')
 
 
 def __genomes_per_taxon(group):
@@ -220,8 +218,8 @@ def __min_msa_perc(group):
     group.add_argument('--min_ssu_len', type=float, default=30, help='minimum percentage of amino acids in MSA')
 
 
-def ssu_fasta_file(group):
-    group.add_argument('ssu_fasta_file', help='FASTA file with SSU sequences for all GTDB genomes')
+def __ssu_fasta_file(group):
+    group.add_argument('--ssu_fasta_file', help='FASTA file with SSU sequences for all GTDB genomes')
 
 
 def __num_taxa(group):
@@ -258,11 +256,11 @@ def get_main_parser():
     # taxonomy_files  -> Generate GTDB taxonomy files
     with subparser(sub_parsers, 'taxonomy_files', 'Generate taxonomy files for GTDB website.') as parser:
         with arg_group(parser, 'positional arguments') as grp:
-            __metadata_file(grp, positional=True)
-            gtdb_sp_clusters_file(grp)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __gtdb_sp_clusters_file(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -271,12 +269,12 @@ def get_main_parser():
     # tree_files -> Generate tree files spanning representative genomes
     with subparser(sub_parsers, 'tree_files', 'Generate tree files spanning representative genomes.') as parser:
         with arg_group(parser, 'positional arguments') as grp:
-            __metadata_file(grp, positional=True)
-            bac_tree(grp)
-            ar_tree(grp)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __bac_tree(grp)
+            __ar_tree(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -285,11 +283,11 @@ def get_main_parser():
     #   sp_cluster_file -> Generate file indicating GTDB species clusters
     with subparser(sub_parsers, 'sp_cluster_file', 'Generate file indicating GTDB species clusters.') as parser:
         with arg_group(parser, 'positional arguments') as grp:
-            __metadata_file(grp, positional=True)
-            gtdb_sp_clusters_file(grp)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __gtdb_sp_clusters_file(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -298,10 +296,10 @@ def get_main_parser():
     #   hq_genome_file  -> Generate file indicating HQ MIMAG genomes
     with subparser(sub_parsers, 'hq_genome_file', 'Generate file indicating HQ genomes.') as parser:
         with arg_group(parser, 'positional arguments') as grp:
-            __metadata_file(grp, positional=True)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -310,12 +308,12 @@ def get_main_parser():
     #   ssu_files       -> Generate 16S rRNA FASTA files
     with subparser(sub_parsers, 'ssu_files', 'Generate 16S rRNA FASTA files for GTDB website.') as parser:
         with arg_group(parser, 'positional arguments') as grp:
-            __metadata_file(grp, positional=True)
-            gtdb_sp_clusters_file(grp)
-            __user_gid_table(grp, positional=True)
-            genome_path_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __gtdb_sp_clusters_file(grp)
+            __user_gid_table(grp)
+            __genome_path_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __min_16s_ar_len(grp)
             __min_16s_bac_len(grp)
             __min_contig_len(grp)
@@ -327,11 +325,11 @@ def get_main_parser():
     #   marker_files    -> Generate marker gene files
     with subparser(sub_parsers, 'marker_files', 'Generate marker gene file.') as parser:
         with arg_group(parser, 'positional arguments') as grp:
-            bac120_gene_dir(grp)
-            ar122_gene_dir(grp)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_gene_dir(grp)
+            __ar122_gene_dir(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -341,7 +339,7 @@ def get_main_parser():
     with subparser(sub_parsers, 'protein_files',
                    'Generate the archive containing all protein (AA) for representative genomes.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __taxonomy_file(grp, positional=True)
+            __taxonomy_file(grp)
             __user_gid_table(grp)
             __release_number(grp)
             __genome_dirs(grp)
@@ -357,7 +355,7 @@ def get_main_parser():
     with subparser(sub_parsers, 'nucleotide_files',
                    'Generate the archive containing all protein (nucl) for representative genomes.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __taxonomy_file(grp, positional=True)
+            __taxonomy_file(grp)
             __user_gid_table(grp)
             __release_number(grp)
             __genome_dirs(grp)
@@ -372,12 +370,12 @@ def get_main_parser():
     #   msa_files       -> Generate concatenated MSA files
     with subparser(sub_parsers, 'msa_files', 'Generate concatenated MSA files.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_msa_file(grp)
-            ar122_msa_file(grp)
-            __metadata_file(grp, positional=True)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_msa_file(grp)
+            __ar122_msa_file(grp)
+            __metadata_file(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -386,7 +384,7 @@ def get_main_parser():
     #   gene_files      -> Generate untrimmed ar122/bac120 gene files.
     with subparser(sub_parsers, 'gene_files', 'Generate concatenated untrimmed gene files.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __taxonomy_file(grp, positional=True)
+            __taxonomy_file(grp)
             __user_gid_table(grp)
             __release_number(grp)
             __output_dir(grp)
@@ -399,12 +397,12 @@ def get_main_parser():
     #   metadata_files  -> Generate GTDB metadata files
     with subparser(sub_parsers, 'metadata_files', 'Generate GTDB metadata files.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __metadata_file(grp, positional=True)
-            metadata_fields(grp)
-            __user_gid_table(grp, positional=True)
-            gtdb_sp_clusters_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __metadata_fields(grp)
+            __user_gid_table(grp)
+            __gtdb_sp_clusters_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -413,9 +411,9 @@ def get_main_parser():
     #   dict_file       -> Generate dictionary containing all GTDB taxa
     with subparser(sub_parsers, 'dict_file', 'Create dictionary with all GTDB taxa.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __taxonomy_file(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __taxonomy_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -424,13 +422,13 @@ def get_main_parser():
     #   arb_files       -> Generate ARB metadata file
     with subparser(sub_parsers, 'arb_files', 'Generate ARB metadata file.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __metadata_file(grp, positional=True)
-            metadata_fields(grp)
-            __user_gid_table(grp, positional=True)
-            bac120_msa_file(grp)
-            ar122_msa_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __metadata_file(grp)
+            __metadata_fields(grp)
+            __user_gid_table(grp)
+            __bac120_msa_file(grp)
+            __ar122_msa_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -439,13 +437,13 @@ def get_main_parser():
     #   validate        -> Perform validation checks on GTDB website files
     with subparser(sub_parsers, 'validate', 'Perform validation checks on GTDB website files') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            __taxonomy_file(grp, positional=True)
-            tree_file(grp)
-            __metadata_file(grp, positional=True)
-            msa_file(grp)
-            ssu_file(grp)
-            sp_clusters_file(grp)
-            hq_genome_file(grp)
+            __taxonomy_file(grp)
+            __tree_file(grp)
+            __metadata_file(grp)
+            __msa_file(grp)
+            __ssu_file(grp)
+            __sp_clusters_file(grp)
+            __hq_genome_file(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -454,9 +452,9 @@ def get_main_parser():
     #   add_sp_label    -> Generate tree with species labels
     with subparser(sub_parsers, 'add_sp_label', 'Generate tree with species labels.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            tree_file(grp)
-            __taxonomy_file(grp, positional=True)
-            output_tree(grp)
+            __tree_file(grp)
+            __taxonomy_file(grp)
+            __output_tree(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -496,14 +494,14 @@ def get_main_parser():
     #   reps_per_rank -> Select representative genomes at each taxonomic rank
     with subparser(sub_parsers, 'reps_per_rank', 'Select representative genomes at each taxonomic rank.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            bac120_msa_file(grp)
-            ar122_msa_file(grp)
-            ssu_fasta_file(grp)
-            __user_gid_table(grp, positional=True)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __bac120_msa_file(grp)
+            __ar122_msa_file(grp)
+            __ssu_fasta_file(grp)
+            __user_gid_table(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __genomes_per_taxon(grp)
             __min_ssu_len(grp)
             __min_msa_perc(grp)
@@ -516,10 +514,10 @@ def get_main_parser():
     #   genomic_stats         -> Histograms of common genomic statistics (e.g., genome size, coding density)
     with subparser(sub_parsers, 'genomic_stats', 'Plot of common genomic statistics.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __all_genomes(grp)
             __width(grp)
             __height(grp)
@@ -532,10 +530,10 @@ def get_main_parser():
     with subparser(sub_parsers, 'genome_quality',
                    'Scatter plot showing quality of GTDB representative genomes.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -545,10 +543,10 @@ def get_main_parser():
     with subparser(sub_parsers, 'genome_category_rank',
                    'Plot number of MAGs, SAGs, and isolates for each taxonomic rank.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -558,10 +556,10 @@ def get_main_parser():
     with subparser(sub_parsers, 'nomenclatural_rank',
                    'Plot nomenclatural status of species for each taxonomic rank.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __domain(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
@@ -571,10 +569,10 @@ def get_main_parser():
     #   ncbi_compare          -> Bar plot comparing GTDB and NCBI taxonomies
     with subparser(sub_parsers, 'ncbi_compare', 'Bar plot comparing GTDB and NCBI taxonomies.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __all_genomes(grp)
             __domain(grp)
         with arg_group(parser, 'optional arguments') as grp:
@@ -586,10 +584,10 @@ def get_main_parser():
     with subparser(sub_parsers, 'sp_rep_type',
                    'Pie chart indicating type information for the GTBD species representatives.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __domain(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
@@ -599,10 +597,10 @@ def get_main_parser():
     #   itol                  -> Generate tree and iTOL files for producing iTOL tree image
     with subparser(sub_parsers, 'itol', 'Generate tree and iTOL files for producing iTOL tree image.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_tree(grp)
-            ar122_tree(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_tree(grp)
+            __ar122_tree(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -613,10 +611,10 @@ def get_main_parser():
     #   taxa_count -> Create table with number of taxa at each taxonomic rank
     with subparser(sub_parsers, 'taxa_count', 'Create table with number of taxa at each taxonomic rank.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            bac120_metadata_file(grp)
-            ar122_metadata_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __bac120_metadata_file(grp)
+            __ar122_metadata_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)
             __debug(grp)
@@ -625,9 +623,9 @@ def get_main_parser():
     #   top_taxa   -> Create table with most abundant taxa at each taxonomic rank
     with subparser(sub_parsers, 'top_taxa', 'Create table with most abundant taxa at each taxonomic rank.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
-            gtdb_sp_clusters_file(grp)
-            __release_number(grp, positional=True)
-            __output_dir(grp, positional=True)
+            __gtdb_sp_clusters_file(grp)
+            __release_number(grp)
+            __output_dir(grp)
             __num_taxa(grp)
         with arg_group(parser, 'optional arguments') as grp:
             __silent(grp)

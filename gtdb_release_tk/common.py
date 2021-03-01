@@ -1,7 +1,9 @@
+import hashlib
 import os
 import sys
 from collections import defaultdict, namedtuple
-
+from typing import Optional
+from biolib.common import check_file_exists
 
 ENV_CATEGORIES = set(['derived from single cell',
                         'derived from metagenome', 
@@ -9,12 +11,10 @@ ENV_CATEGORIES = set(['derived from single cell',
                         'derived from environmental_sample'])
                         
                         
-def canonical_taxon_name(taxon):
+def canonical_taxon_name(taxon: str) -> str:
     """Get canonical version of taxon."""
-    
     if '_' in taxon[3:]:
         taxon = taxon[0:taxon.rfind('_')]
-        
     return taxon
     
 
@@ -211,3 +211,33 @@ def parse_taxonomy_file(path):
             gid, tax = line.strip().split('\t')
             out[gid.replace('RS_', '').replace('GB_', '')] = tax
     return out
+
+def assert_file_exists(path: str) -> None:
+    """Checks if a file exists, raises an exception if it doesn't."""
+    check_file_exists(path)
+
+
+def optional_int(string: str) -> Optional[int]:
+    try:
+        return int(string)
+    except ValueError:
+        return None
+
+
+def optional_float(string: str) -> Optional[float]:
+    try:
+        return float(string)
+    except ValueError:
+        return None
+
+
+def sha256(input_file: str) -> str:
+    block_size = 65536
+    hash_obj = hashlib.sha256()
+    with open(input_file, 'rb') as f:
+        buf = f.read(block_size)
+        while len(buf) > 0:
+            hash_obj.update(buf)
+            buf = f.read(block_size)
+    return hash_obj.hexdigest()
+

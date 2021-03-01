@@ -112,20 +112,7 @@ def main():
     # do what we came here to do
     try:
         parser = OptionsParser()
-        if (False):
-            # import pstats
-            # p = pstats.Stats('prof')
-            # p.sort_stats('cumulative').print_stats(10)
-            # p.sort_stats('time').print_stats(10)
-            import cProfile
-
-            cProfile.run('parser.parse_options(args)', 'prof')
-        elif False:
-            import pdb
-
-            pdb.run(parser.parse_options(args))
-        else:
-            parser.parse_options(args)
+        parser.parse_options(args)
     except SystemExit:
         print("\n  Controlled exit resulting from an unrecoverable error or warning.")
     except:

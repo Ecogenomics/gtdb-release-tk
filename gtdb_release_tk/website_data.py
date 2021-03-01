@@ -1439,9 +1439,10 @@ class WebsiteData(object):
                         tax_dict[drank][prank][crank][orank][frank][grank][srank] = []
                     tax_dict[drank][prank][crank][orank][frank][grank][srank].append(
                         genome)
-        with open('genome_taxonomy_r{}_count.json'.format(self.release_number), 'w') as outfile:
+        out_path = os.path.join(self.output_dir, 'genome_taxonomy_r{}_count.json'.format(self.release_number))
+        with open(out_path, 'w') as outfile:
             json.dump({"name": "Domain", "type": "root", "children": list(self.conv(
-                k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False)
+                k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False, sort_keys=True)
 
     def parse_metadata(self, metadatafile):
         result = {}

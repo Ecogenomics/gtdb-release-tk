@@ -27,6 +27,9 @@ import dendropy
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
 
+from gtdb_release_tk.files.metadata import MetadataFile
+from gtdb_release_tk.files.taxonomy import TaxonomyFile
+from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
@@ -44,7 +47,7 @@ from gtdb_release_tk.tables.taxa_count import TaxaCount
 from gtdb_release_tk.tables.top_taxa import TopTaxa
 
 
-class OptionsParser():
+class OptionsParser(object):
     def __init__(self):
         """Initialization"""
 
@@ -318,9 +321,15 @@ class OptionsParser():
     def json_tree_parser(self, options):
         """generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree"""
 
-        p = WebsiteData(options.release_number, options.output_dir)
-        p.json_tree_parser(options.taxonomy_file,
-                           options.metadata_file)
+        tf = TaxonomyFile.read(options.taxonomy_file)
+        mf = MetadataFile.read(options.metadata_file)
+        wtj = WebsiteTreeJsonFile.create(tf, mf)
+        path_out = os.path.join(options.output_dir, f'genome_taxonomy_r{options.release_number}_count.json')
+        wtj.write(path_out)
+
+        # p = WebsiteData(options.release_number, options.output_dir)
+        # p.json_tree_parser(options.taxonomy_file,
+        #                    options.metadata_file)
         self.logger.info('Done.')
 
     def genome_category_rank(self, options):
