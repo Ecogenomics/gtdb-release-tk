@@ -473,7 +473,7 @@ class OptionsParser():
     def nomenclatural_check(self, options):
         """List latin names present/absent from NCBI,LPSN,Bacdive."""
 
-        p = LitteratureParser(options.output_directory)
+        p = LitteratureParser(options.output_dir)
         p.run(options.ncbi_node_file,
               options.ncbi_name_file,
               options.lpsn_species_file,
