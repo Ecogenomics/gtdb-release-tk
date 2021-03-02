@@ -4,15 +4,15 @@ from typing import Dict
 from gtdb_release_tk.common import assert_file_exists, assert_dir_exists
 from gtdb_release_tk.files.metadata import MetadataFile
 from gtdb_release_tk.files.sp_clusters import SpClustersFile
-from gtdb_release_tk.models.taxonomy import Taxonomy
+from gtdb_release_tk.models.taxonomystring import TaxonomyString
 import os
 logger = logging.getLogger('timestamp')
 
 
 class TaxonomyFile(object):
 
-    def __init__(self, data: Dict[str, Taxonomy]):
-        self.data: Dict[str, Taxonomy] = data
+    def __init__(self, data: Dict[str, TaxonomyString]):
+        self.data: Dict[str, TaxonomyString] = data
 
     def __repr__(self):
         return f'{len(self.data):,} genomes'
@@ -37,7 +37,7 @@ class TaxonomyFile(object):
         with open(path, 'r') as f:
             for line in f.readlines():
                 gid, tax = line.rstrip().split('\t')
-                data[gid] = Taxonomy(tax)
+                data[gid] = TaxonomyString(tax)
         return cls(data)
 
     def write(self, path):

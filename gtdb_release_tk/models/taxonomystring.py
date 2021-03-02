@@ -6,7 +6,7 @@ from gtdb_release_tk.exceptions import InvalidTaxonomy
 re_tax_string = re.compile(r'(d__.*); ?(p__.*); ?(c__.*); ?(o__.*); ?(f__.*); ?(g__.*); ?(s__.*)')
 
 
-class Taxonomy(object):
+class TaxonomyString(object):
     __slots__ = ('d', 'p', 'c', 'o', 'f', 'g', 's')
 
     def __init__(self, tax_string: str):
@@ -30,7 +30,7 @@ class Taxonomy(object):
         return f'{self.d};{self.p};{self.c};{self.o};{self.f};{self.g};{self.s}'
 
     def __eq__(self, other):
-        return isinstance(other, Taxonomy) and str(self) == str(other)
+        return isinstance(other, TaxonomyString) and str(self) == str(other)
 
     def __hash__(self):
         return hash(str(self))
