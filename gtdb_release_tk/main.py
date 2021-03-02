@@ -77,14 +77,12 @@ class OptionsParser(object):
         check_file_exists(options.metadata_file)
         check_file_exists(options.bac_tree)
         check_file_exists(options.ar_tree)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.tree_files(options.metadata_file,
                      options.bac_tree,
-                     options.ar_tree,
-                     options.user_gid_table)
+                     options.ar_tree)
 
         self.logger.info('Done.')
 

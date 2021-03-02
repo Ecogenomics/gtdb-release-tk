@@ -20,38 +20,43 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from deepdiff import DeepDiff
 import json
 
 from gtdb_release_tk.common import sha256
 from gtdb_release_tk.files.taxonomy import ArcTaxonomyFile, BacTaxonomyFile
 from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
+from tests import maybe_gunzip
+
 
 DIR_TEST_DATA = os.path.join(os.getcwd(), 'data')
 
 
 class TestCLI(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.ar122_sp_labels_tree = os.path.join(DIR_TEST_DATA, 'ar122.sp_labels.tree')
+        cls.ar122_metadata_r95 = os.path.join(DIR_TEST_DATA, 'ar122_metadata_r95.tsv')
+        cls.ar122_r95_tree = os.path.join(DIR_TEST_DATA, 'ar122_r95.tree')
+        cls.ar122_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'ar122_taxonomy_r95.tsv')
+        cls.bac120_sp_labels_tree = os.path.join(DIR_TEST_DATA, 'bac120.sp_labels.tree')
+        cls.bac120_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'bac120_taxonomy_r95.tsv')
+        cls.bac120_r95_tree = os.path.join(DIR_TEST_DATA, 'bac120_r95.tree')
+        cls.both_metadata_r95 = os.path.join(DIR_TEST_DATA, 'both_metadata_r95.tsv')
+        cls.both_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'both_taxonomy_r95.tsv')
+        cls.genome_taxonomy_r95_count = os.path.join(DIR_TEST_DATA, 'genome_taxonomy_r95_count.json')
+        cls.sp_clusters_r95 = os.path.join(DIR_TEST_DATA, 'sp_clusters_r95.tsv')
+        cls.test_metadata = os.path.join(DIR_TEST_DATA, 'test_metadata.tsv')
+        cls.test_sp_clusters = os.path.join(DIR_TEST_DATA, 'test_sp_clusters.tsv')
+        cls.test_taxonomy = os.path.join(DIR_TEST_DATA, 'test_taxonomy.tsv')
+
+        [maybe_gunzip(v) for k, v in vars(cls).items() if isinstance(v, str) and os.path.isfile(v + '.gz')]
+
     def setUp(self):
         self.out_dir = tempfile.mkdtemp(prefix='gtdb_release_tk_tmp_')
-        self.test_metadata = os.path.join(DIR_TEST_DATA, 'test_metadata.tsv')
-        self.test_sp_clusters = os.path.join(DIR_TEST_DATA, 'test_sp_clusters.tsv')
-        self.test_taxonomy = os.path.join(DIR_TEST_DATA, 'test_taxonomy.tsv')
-
-        self.ar122_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'ar122_taxonomy_r95.tsv')
-        self.bac120_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'bac120_taxonomy_r95.tsv')
-        self.sp_clusters_r95 = os.path.join(DIR_TEST_DATA, 'sp_clusters_r95.tsv')
-        self.ar122_metadata_r95 = os.path.join(DIR_TEST_DATA, 'ar122_metadata_r95.tsv')
-        self.both_metadata_r95 = os.path.join(DIR_TEST_DATA, 'both_metadata_r95.tsv')
-        self.both_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'both_taxonomy_r95.tsv')
-
-        self.genome_taxonomy_r95_count = os.path.join(DIR_TEST_DATA, 'genome_taxonomy_r95_count.json')
-        pass
-
 
     def tearDown(self):
         shutil.rmtree(self.out_dir)
-        pass
 
     def test_taxonomy_files(self):
         args = ['python', '-m', 'gtdb_release_tk', 'taxonomy_files',
@@ -70,6 +75,17 @@ class TestCLI(unittest.TestCase):
         test_bac_tax = BacTaxonomyFile.read(os.path.join(self.out_dir, 'bac120_taxonomy_r95.tsv'))
         exp_bac_tax = BacTaxonomyFile.read(self.bac120_taxonomy_r95)
         self.assertEqual(test_bac_tax, exp_bac_tax)
+
+    def test_tree_files(self):
+        args = ['python', '-m', 'gtdb_release_tk', 'tree_files',
+                '--metadata_file', self.both_metadata_r95,
+                '--bac_tree', self.ar122_r95_tree,
+                '--ar_tree', self.bac120_r95_tree,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
 
     def test_json_tree_parser(self):
         args = ['python', '-m', 'gtdb_release_tk', 'json_tree_file',

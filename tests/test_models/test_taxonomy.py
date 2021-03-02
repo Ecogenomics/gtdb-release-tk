@@ -15,34 +15,37 @@
 #                                                                             #
 ###############################################################################
 
-import os
 import unittest
 
-from gtdb_release_tk.files.taxonomy import TaxonomyFile
-
-DIR_TEST_DATA = os.path.join(os.path.dirname(os.getcwd()), 'data')
-
-
-def load_tax_file(path):
-    out = dict()
-    with open(path) as f:
-        for line in f.readlines():
-            gid, tax = line.strip().split('\t')
-            out[gid] = tax
-    return out
+from gtdb_release_tk.exceptions import InvalidTaxonomy
+from gtdb_release_tk.models.taxonomy import Taxonomy
 
 
-class TestTaxonomyFile(unittest.TestCase):
+class TestTaxonomy(unittest.TestCase):
 
-    def setUp(self):
-        # Load the test taxonomy file
-        self.taxonomy_file = os.path.join(DIR_TEST_DATA, 'test_taxonomy.tsv')
-        self.test_tax = load_tax_file(self.taxonomy_file)
+    def test_taxonomy(self):
+        test = 'd__D;p__P;c__C;o__O;f__F;g__g;s__S'
+        ts = Taxonomy(test)
+        self.assertEqual(str(ts), test)
 
-    def tearDown(self):
-        pass
+    def test_taxonomy_equal(self):
+        test = 'd__D;p__P;c__C;o__O;f__F;g__g;s__S'
+        ts_1 = Taxonomy(test)
+        ts_2 = Taxonomy(test)
+        self.assertEqual(ts_1, ts_2)
 
-    def test_taxonomy_file(self):
-        tf = TaxonomyFile.read(self.taxonomy_file)
-        test = {k: str(v) for k, v in tf.data.items()}
-        self.assertDictEqual(test, self.test_tax)
+    def test_taxonomy_empty(self):
+        test = 'd__D;p__;c__C;o__O;f__F;g__g;s__S'
+        ts = Taxonomy(test)
+        self.assertTrue(ts.empty(ts.p))
+        self.assertFalse(ts.empty(ts.c))
+
+    def test_ranks(self):
+        ranks = ('d__D', 'p__P', 'c__C', 'o__O', 'f__F', 'g__G', 's__')
+        ts = Taxonomy('; '.join(ranks))
+        for test_rank, exp_rank in zip(ts.ranks, ranks):
+            self.assertEqual(test_rank, exp_rank)
+
+    def test_taxonomy_raises_InvalidTaxonomy(self):
+        test = 'd__D;p__;c__C;o__O;f__F;g__g;'
+        self.assertRaises(InvalidTaxonomy, Taxonomy, test)

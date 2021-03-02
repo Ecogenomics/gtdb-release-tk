@@ -271,7 +271,6 @@ def get_main_parser():
             __metadata_file(grp)
             __bac_tree(grp)
             __ar_tree(grp)
-            __user_gid_table(grp)
             __release_number(grp)
             __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:

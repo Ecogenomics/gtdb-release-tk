@@ -107,3 +107,6 @@ venv.bak/
 
 .DS_Store
 
+tests/data/*.tsv
+tests/data/*.json
+tests/data/*.tree

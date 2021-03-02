@@ -456,13 +456,12 @@ class WebsiteData(object):
     def tree_files(self,
                    metadata_file,
                    bac_tree,
-                   ar_tree,
-                   user_gid_table):
+                   ar_tree):
         """Generate tree files spanning representative genomes."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
+        # self.logger.info('Parsing user genome ID mapping table.')
+        # user_gids = parse_user_gid_table(user_gid_table)
 
         # ensure proper genome IDs for bacterial tree
         self.logger.info('Reading GTDB bacterial reference tree.')
@@ -476,7 +475,7 @@ class WebsiteData(object):
         for leaf in bac_tree.leaf_node_iter():
             gid = leaf.taxon.label
             assert(not gid.startswith('D-'))
-            leaf.taxon.label = user_gids.get(gid, gid)
+            leaf.taxon.label = gid
 
         bac_tree.write_to_path(self.output_dir / f'bac120_r{self.release_number}.tree',
                                schema='newick',
@@ -495,7 +494,7 @@ class WebsiteData(object):
         for leaf in ar_tree.leaf_node_iter():
             gid = leaf.taxon.label
             assert(not gid.startswith('D-'))
-            leaf.taxon.label = user_gids.get(gid, gid)
+            leaf.taxon.label = gid
 
         ar_tree.write_to_path(self.output_dir / f'ar122_r{self.release_number}.tree',
                               schema='newick',
@@ -504,7 +503,7 @@ class WebsiteData(object):
 
         # create trees with species assignments as terminal labels
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        gtdb_reps = parse_rep_genomes(metadata_file, user_gids)
+        gtdb_reps = parse_rep_genomes(metadata_file)
         self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
             sum([1 for t in gtdb_reps.values()]),
             sum([1 for t in gtdb_reps.values() if t[0] == 'd__Bacteria']),
