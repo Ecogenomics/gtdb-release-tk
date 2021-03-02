@@ -133,7 +133,7 @@ def parse_species_clusters(gtdb_sp_clusters_file):
     return sp_clusters
 
 
-def parse_gtdb_metadata(metadata_file, fields, user_gids):
+def parse_gtdb_metadata(metadata_file, fields):
     """Parse genome quality from GTDB metadata.
 
     Parameters
@@ -164,7 +164,6 @@ def parse_gtdb_metadata(metadata_file, fields, user_gids):
         for line in f:
             line_split = line.strip().split('\t')
             gid = line_split[genome_index]
-            gid = user_gids.get(gid, gid)
 
             values = []
             for i in indices:

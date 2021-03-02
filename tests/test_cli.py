@@ -87,6 +87,26 @@ class TestCLI(unittest.TestCase):
         p.communicate()
         self.assertEqual(p.returncode, 0)
 
+    def test_sp_cluster_file(self):
+        # TODO: Does this do anything?
+        args = ['python', '-m', 'gtdb_release_tk', 'sp_cluster_file',
+                '--metadata_file', self.both_metadata_r95,
+                '--gtdb_sp_clusters_file', self.sp_clusters_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
+
+    def test_hq_genome_file(self):
+        args = ['python', '-m', 'gtdb_release_tk', 'hq_genome_file',
+                '--metadata_file', self.both_metadata_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
+
     def test_json_tree_parser(self):
         args = ['python', '-m', 'gtdb_release_tk', 'json_tree_file',
                 '--release_number', '95',

@@ -283,17 +283,16 @@ class WebsiteData(object):
         self.gtdb_ssu_file(reps, sp_clusters, genome_paths)
 
     def sp_cluster_file(self, metadata_file,
-                        gtdb_sp_clusters_file,
-                        user_gid_table):
+                        gtdb_sp_clusters_file):
         """Generate file indicating GTDB species clusters."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
+        # self.logger.info('Parsing user genome ID mapping table.')
+        # user_gids = parse_user_gid_table(user_gid_table)
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        reps = parse_rep_genomes(metadata_file, user_gids)
+        reps = parse_rep_genomes(metadata_file)
         self.logger.info(' - identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
@@ -310,20 +309,19 @@ class WebsiteData(object):
         with open(gtdb_sp_clusters_file) as f:
             header = f.readline().strip().split('\t')
 
-            type_genome_index = header.index('Type genome')
-            ani_index = header.index('ANI radius')
+            type_genome_index = header.index('Representative genome')
+            ani_index = header.index('ANI circumscription radius')
             cluster_size_index = header.index('No. clustered genomes')
-            mean_ani_index = header.index('Mean ANI')
-            min_ani_index = header.index('Min ANI')
-            mean_af_index = header.index('Mean AF')
-            min_af_index = header.index('Min AF')
+            mean_ani_index = header.index('Mean intra-species ANI')
+            min_ani_index = header.index('Min intra-species ANI')
+            mean_af_index = header.index('Mean intra-species AF')
+            min_af_index = header.index('Min intra-species AF')
             clustered_genomes_index = header.index('Clustered genomes')
 
             for line in f:
                 line_split = line.strip().split('\t')
 
                 type_genome = line_split[type_genome_index]
-                type_genome = user_gids.get(type_genome, type_genome)
 
                 ani = line_split[ani_index]
                 cluster_size = int(line_split[cluster_size_index])
@@ -335,7 +333,7 @@ class WebsiteData(object):
                 clustered_genomes = set([type_genome])
                 if cluster_size > 0:
                     for cid in line_split[clustered_genomes_index].split(','):
-                        clustered_genomes.add(user_gids.get(cid, cid))
+                        clustered_genomes.add(cid)
 
                 fout.write('{}\t{}\t{}\t{}'.format(
                     type_genome,
@@ -353,17 +351,16 @@ class WebsiteData(object):
         fout.close()
 
     def hq_genome_file(self,
-                        metadata_file,
-                        user_gid_table):
+                        metadata_file):
         """Generate file indicating HQ genomes."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
+        # self.logger.info('Parsing user genome ID mapping table.')
+        # user_gids = parse_user_gid_table(user_gid_table)
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        reps = parse_rep_genomes(metadata_file, user_gids)
+        reps = parse_rep_genomes(metadata_file)
         self.logger.info(' - identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
@@ -380,8 +377,7 @@ class WebsiteData(object):
             'mimag_high_quality',
             'mimag_medium_quality',
             'mimag_low_quality',
-            'gtdb_taxonomy'],
-            user_gids)
+            'gtdb_taxonomy'])
 
         fout = open(self.output_dir /
                     'hq_mimag_genomes_r{}.tsv'.format(self.release_number), 'w')
