@@ -216,11 +216,14 @@ class OptionsParser(object):
     def dict_file(self, options):
         """Generate GTDB dictionary file."""
 
-        check_file_exists(options.taxonomy_file)
+        assert_file_exists(options.taxonomy_file)
         make_sure_path_exists(options.output_dir)
+
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.dict_file(options.taxonomy_file)
+
+
 
         self.logger.info('Done.')
 

@@ -248,7 +248,7 @@ def __gtdb_taxonomy(group, required=False):
 
 def get_main_parser():
     # Setup the main, and sub parsers.
-    main_parser = argparse.ArgumentParser(prog='gtdbtk', add_help=False, conflict_handler='resolve')
+    main_parser = argparse.ArgumentParser(prog='gtdb_release_tk', add_help=False, conflict_handler='resolve')
     sub_parsers = main_parser.add_subparsers(help="--", dest='subparser_name')
 
     # External files for GTDB website
@@ -306,7 +306,7 @@ def get_main_parser():
         with arg_group(parser, 'positional arguments') as grp:
             __metadata_file(grp)
             __gtdb_sp_clusters_file(grp)
-            __user_gid_table(grp)
+            # __user_gid_table(grp)
             __genome_path_file(grp)
             __release_number(grp)
             __output_dir(grp)
@@ -323,7 +323,7 @@ def get_main_parser():
         with arg_group(parser, 'positional arguments') as grp:
             __bac120_gene_dir(grp)
             __ar122_gene_dir(grp)
-            __user_gid_table(grp)
+            # __user_gid_table(grp)
             __release_number(grp)
             __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:

@@ -20,13 +20,9 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-import json
 
-from gtdb_release_tk.common import sha256
 from gtdb_release_tk.files.taxonomy import ArcTaxonomyFile, BacTaxonomyFile
-from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
 from tests import maybe_gunzip
-
 
 DIR_TEST_DATA = os.path.join(os.getcwd(), 'data')
 
@@ -107,6 +103,58 @@ class TestCLI(unittest.TestCase):
         p.communicate()
         self.assertEqual(p.returncode, 0)
 
+    def test_ssu_files(self):
+        # args = ['python', '-m', 'gtdb_release_tk', 'ssu_files',
+        #         '--metadata_file', self.both_metadata_r95,
+        #         '--gtdb_sp_clusters_file', self.sp_clusters_r95,
+        #         '--'
+        #         '--output_dir', self.out_dir]
+        # p = subprocess.Popen(args, encoding='utf-8')
+        # p.communicate()
+        # self.assertEqual(p.returncode, 0)
+        pass
+
+
+    def test_marker_files(self):
+        pass
+
+    def test_protein_files(self):
+        pass
+
+    def test_nucleotide_files(self):
+        pass
+
+    def test_msa_files(self):
+        pass
+
+    def test_gene_files(self):
+        pass
+
+    def test_metadata_files(self):
+        pass
+
+    def test_dict_file(self):
+        args = ['python', '-m', 'gtdb_release_tk', 'dict_file',
+                '--taxonomy_file', self.both_taxonomy_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
+
+
+    def test_arb_files(self):
+        pass
+
+    def test_validate(self):
+        pass
+
+    def test_add_sp_label(self):
+        pass
+
+    def test_tax_comp_files(self):
+        pass
+
     def test_json_tree_parser(self):
         args = ['python', '-m', 'gtdb_release_tk', 'json_tree_file',
                 '--release_number', '95',
@@ -116,3 +164,36 @@ class TestCLI(unittest.TestCase):
         p = subprocess.Popen(args, encoding='utf-8')
         p.communicate()
         self.assertEqual(p.returncode, 0)
+
+    def test_reps_per_rank(self):
+        pass
+
+    def test_genomic_stats(self):
+        pass
+
+    def test_genome_quality(self):
+        pass
+
+    def test_genome_category_rank(self):
+        pass
+
+    def test_nomenclatural_rank(self):
+        pass
+
+    def test_ncbi_compare(self):
+        pass
+
+    def test_sp_rep_type(self):
+        pass
+
+    def test_itol(self):
+        pass
+
+    def test_taxa_count(self):
+        pass
+
+    def test_top_taxa(self):
+        pass
+
+    def test_nomenclatural_check(self):
+        pass
