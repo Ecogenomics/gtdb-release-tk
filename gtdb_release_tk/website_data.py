@@ -56,17 +56,14 @@ class WebsiteData(object):
 
     def taxonomy_files(self,
                        metadata_file,
-                       gtdb_sp_clusters_file,
-                       user_gid_table):
+                       gtdb_sp_clusters_file):
         """Generate taxonomy files for GTDB website."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
 
         # get GTDB species clusters
         self.logger.info('Parsing all species clusters from GTDB metadata.')
-        sp_clusters = parse_species_clusters(gtdb_sp_clusters_file, user_gids)
+        sp_clusters = parse_species_clusters(gtdb_sp_clusters_file)
 
         genome_rep_id = {}
         for rep_id, gids in sp_clusters.items():
@@ -79,7 +76,7 @@ class WebsiteData(object):
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        reps = parse_rep_genomes(metadata_file, user_gids)
+        reps = parse_rep_genomes(metadata_file)
         self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
             sum([1 for t in reps.values()]),
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),

@@ -27,8 +27,10 @@ import dendropy
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
 
+from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
 from gtdb_release_tk.files.metadata import MetadataFile
-from gtdb_release_tk.files.taxonomy import TaxonomyFile
+from gtdb_release_tk.files.sp_clusters import SpClustersFile
+from gtdb_release_tk.files.taxonomy import TaxonomyFile, ArcTaxonomyFile, BacTaxonomyFile
 from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
@@ -55,16 +57,17 @@ class OptionsParser(object):
 
     def taxonomy_files(self, options):
         """Generate taxonomy files for GTDB website."""
+        assert_file_exists(options.metadata_file)
+        assert_file_exists(options.gtdb_sp_clusters_file)
+        assert_dir_exists(options.output_dir)
 
-        check_file_exists(options.metadata_file)
-        check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
-        make_sure_path_exists(options.output_dir)
+        metadata_file = MetadataFile.read(options.metadata_file)
+        sp_clusters_file = SpClustersFile.read(options.gtdb_sp_clusters_file)
 
-        p = WebsiteData(options.release_number, options.output_dir)
-        p.taxonomy_files(options.metadata_file,
-                         options.gtdb_sp_clusters_file,
-                         options.user_gid_table)
+        arc_path = os.path.join(options.output_dir, f'ar122_taxonomy_r{options.release_number}.tsv')
+        bac_path = os.path.join(options.output_dir, f'bac120_taxonomy_r{options.release_number}.tsv')
+        ArcTaxonomyFile.create(metadata_file, sp_clusters_file).write(arc_path)
+        BacTaxonomyFile.create(metadata_file, sp_clusters_file).write(bac_path)
 
         self.logger.info('Done.')
 
@@ -320,16 +323,12 @@ class OptionsParser(object):
 
     def json_tree_parser(self, options):
         """generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree"""
-
         tf = TaxonomyFile.read(options.taxonomy_file)
         mf = MetadataFile.read(options.metadata_file)
         wtj = WebsiteTreeJsonFile.create(tf, mf)
         path_out = os.path.join(options.output_dir, f'genome_taxonomy_r{options.release_number}_count.json')
         wtj.write(path_out)
 
-        # p = WebsiteData(options.release_number, options.output_dir)
-        # p.json_tree_parser(options.taxonomy_file,
-        #                    options.metadata_file)
         self.logger.info('Done.')
 
     def genome_category_rank(self, options):

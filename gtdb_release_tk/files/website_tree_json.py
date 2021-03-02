@@ -26,6 +26,12 @@ class WebsiteTreeJsonFile(object):
         self.data = data
 
     @classmethod
+    def read(cls, path):
+        with open(path) as f:
+            data = json.loads(f.read())
+        return cls(data)
+
+    @classmethod
     def create(cls, taxonomy_file: TaxonomyFile, metadata_file: MetadataFile):
         tax_dict = dict()
 
@@ -43,7 +49,7 @@ class WebsiteTreeJsonFile(object):
                                                     'type_spe': cur_meta.gtdb_type_species_of_genus}
 
             if cur_meta.gtdb_type_species_of_genus == 't':
-                type_spe_list.append(cur_meta.gtdb_taxonomy.split(';')[6])
+                type_spe_list.append(cur_meta.gtdb_taxonomy.s)
 
             # Create the tree
             if len(tax.d) > 3:
@@ -79,7 +85,7 @@ class WebsiteTreeJsonFile(object):
 
     def write(self, path):
         with open(path, 'w') as f:
-            json.dump(self.data, f, check_circular=False, sort_keys=True)
+            json.dump(self.data, f, check_circular=False)
 
     @staticmethod
     def conv(k, v, meta_information, type_spe_list):

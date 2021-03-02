@@ -258,7 +258,6 @@ def get_main_parser():
         with arg_group(parser, 'positional arguments') as grp:
             __metadata_file(grp)
             __gtdb_sp_clusters_file(grp)
-            __user_gid_table(grp)
             __release_number(grp)
             __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:

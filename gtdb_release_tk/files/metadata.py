@@ -2,6 +2,9 @@ from gtdb_release_tk.common import assert_file_exists, optional_int, optional_fl
 
 from typing import Dict
 
+from gtdb_release_tk.models.taxonomy import Taxonomy
+
+
 class MetadataFile(object):
 
     def __init__(self, path, header, rows):
@@ -24,7 +27,12 @@ class MetadataFile(object):
                 rows[cur_row.accession] = cur_row
         return cls(path, headers, rows)
 
-
+    def get_rep_tax(self):
+        out = dict()
+        for gid, row in self.rows.items():
+            if row.gtdb_representative.startswith('t'):
+                out[gid] = row.gtdb_taxonomy
+        return out
 
 class MetadataRow(object):
 
@@ -45,7 +53,7 @@ class MetadataRow(object):
         self.genome_size = optional_int(row[header['genome_size']])
         self.gtdb_genome_representative = row[header['gtdb_genome_representative']]
         self.gtdb_representative = row[header['gtdb_representative']]
-        self.gtdb_taxonomy = row[header['gtdb_taxonomy']]
+        self.gtdb_taxonomy = Taxonomy(row[header['gtdb_taxonomy']])
         self.gtdb_type_designation = row[header['gtdb_type_designation']]
         self.gtdb_type_designation_sources = row[header['gtdb_type_designation_sources']]
         self.gtdb_type_species_of_genus = row[header['gtdb_type_species_of_genus']]
