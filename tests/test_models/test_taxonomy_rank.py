@@ -24,7 +24,7 @@ class TestTaxonomyRank(unittest.TestCase):
 
     def test_taxonomy_rank(self):
         tr = TaxonomyRank('d__Archaea')
-        self.assertEqual(tr.full, 'd__Archaea')
+        self.assertEqual(tr.rank, 'd__Archaea')
         self.assertEqual(tr.name, 'Archaea')
         self.assertEqual(tr.type, RankEnum.DOMAIN)
         self.assertFalse(tr.is_empty())
@@ -32,7 +32,7 @@ class TestTaxonomyRank(unittest.TestCase):
 
     def test_taxonomy_rank_when_empty(self):
         tr = TaxonomyRank('g__')
-        self.assertEqual(tr.full, 'g__')
+        self.assertEqual(tr.rank, 'g__')
         self.assertIsNone(tr.name)
         self.assertTrue(tr.is_empty())
         self.assertEqual(str(tr), 'g__')

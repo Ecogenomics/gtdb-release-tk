@@ -38,16 +38,12 @@ class GTDBDictFile(object):
 
     @staticmethod
     def parse_rank(rank: TaxonomyRank) -> Tuple[str, str]:
-        taxa = list()
-        taxa.append(rank.name)  # e.g. Archaea
-        taxa.append(rank.full)  # e.g. d__Archaea
-        return rank.name, rank.full
+        return rank.name, rank.rank  # Archaea, d__Archaea
 
     @staticmethod
     def parse_rank_species(rank: TaxonomyRank) -> List[str]:
         taxa = list()
-        generic, specific = rank.name.split()
-        generic, specific = generic.strip(), specific.strip()
+        generic, specific = [x.strip() for x in rank.name.strip().split()]
         taxa.append(generic)
         taxa.append(specific)
         taxa.append(f'{RankEnum.SPECIES.value}{generic}')

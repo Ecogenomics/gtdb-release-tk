@@ -17,29 +17,29 @@
 
 import unittest
 
-from gtdb_release_tk.exceptions import InvalidTaxonomyString
+from gtdb_release_tk.files.gtdb_dict import GTDBDictFile
+from gtdb_release_tk.files.taxonomy import TaxonomyFile
+from gtdb_release_tk.models.taxonomy_rank import TaxonomyRank
 from gtdb_release_tk.models.taxonomy_string import TaxonomyString
 
 
-class TestTaxonomyString(unittest.TestCase):
+class TestMetadataFile(unittest.TestCase):
 
-    def test_taxonomy(self):
-        test = 'd__D;p__P;c__C;o__O;f__F;g__g;s__S'
-        ts = TaxonomyString(test)
-        self.assertEqual(str(ts), test)
+    def test_create(self):
+        tf_data = {'a': TaxonomyString('d__D;p__P;c__C;o__O;f__F;g__G;s__Foo bar')}
+        tf = TaxonomyFile(tf_data)
+        df = GTDBDictFile.create(tf)
+        expected = {'d__D', 'D', 'p__P', 'P', 'c__C', 'C', 'o__O', 'O', 'f__F',
+                    'F', 'g__G', 'G', 's__Foo', 'bar', 'F. bar', 'Foo', 's__F. bar',
+                    'Foo bar', 's__Foo bar'}
+        self.assertSetEqual(df.data, expected)
 
-    def test_taxonomy_equal(self):
-        test = 'd__D;p__P;c__C;o__O;f__F;g__g;s__S'
-        ts_1 = TaxonomyString(test)
-        ts_2 = TaxonomyString(test)
-        self.assertEqual(ts_1, ts_2)
+    def test_parse_rank(self):
+        tr = TaxonomyRank('d__Domain')
+        self.assertEqual(GTDBDictFile.parse_rank(tr), ('Domain', 'd__Domain'))
 
-    def test_ranks(self):
-        ranks = ('d__D', 'p__P', 'c__C', 'o__O', 'f__F', 'g__G', 's__')
-        ts = TaxonomyString('; '.join(ranks))
-        for test_rank, exp_rank in zip(ts.ranks, ranks):
-            self.assertEqual(test_rank.rank, exp_rank)
-
-    def test_taxonomy_raises_InvalidTaxonomy(self):
-        test = 'd__D;p__;c__C;o__O;f__F;g__g;'
-        self.assertRaises(InvalidTaxonomyString, TaxonomyString, test)
+    def test_parse_rank_species(self):
+        tr = TaxonomyRank('s__Foo bar')
+        test = set(GTDBDictFile.parse_rank_species(tr))
+        expected = {'s__Foo', 'bar', 'F. bar', 'Foo', 's__F. bar'}
+        self.assertSetEqual(test, expected)

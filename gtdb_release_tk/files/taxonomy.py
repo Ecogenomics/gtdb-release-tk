@@ -1,11 +1,11 @@
 import logging
 from typing import Dict
 
-from gtdb_release_tk.common import assert_file_exists, assert_dir_exists
+from gtdb_release_tk.common import assert_file_exists, summarise_file
 from gtdb_release_tk.files.metadata import MetadataFile
 from gtdb_release_tk.files.sp_clusters import SpClustersFile
 from gtdb_release_tk.models.taxonomy_string import TaxonomyString
-import os
+
 logger = logging.getLogger('timestamp')
 
 
@@ -29,7 +29,6 @@ class TaxonomyFile(object):
             out.append(f'{gid}\t{tax}')
         return '\n'.join(out)
 
-
     @classmethod
     def read(cls, path: str):
         assert_file_exists(path)
@@ -41,9 +40,11 @@ class TaxonomyFile(object):
         return cls(data)
 
     def write(self, path):
+        logger.info(f'Writing {len(self.data):,} taxonomies to disk.')
         with open(path, 'w') as f:
             for gid, tax in self.data.items():
                 f.write(f'{gid}\t{tax}\n')
+        logger.info(summarise_file(path))
 
     @classmethod
     def create(cls, domain: str, metadata_file: MetadataFile, sp_clusters_file: SpClustersFile):
@@ -60,8 +61,8 @@ class TaxonomyFile(object):
         reps = metadata_file.get_rep_tax()  # This just gets the species reps and their tax
         logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
             sum([1 for t in reps.values()]),
-            sum([1 for t in reps.values() if t.d == 'd__Bacteria']),
-            sum([1 for t in reps.values() if t.d == 'd__Archaea'])))
+            sum([1 for t in reps.values() if t.d.rank == 'd__Bacteria']),
+            sum([1 for t in reps.values() if t.d.rank == 'd__Archaea'])))
 
         # Create the data
         out = dict()
@@ -70,11 +71,10 @@ class TaxonomyFile(object):
 
             rep_id = genome_rep_id[gid]
             taxa = reps[rep_id]
-            assert (taxa.d in ('d__Bacteria', 'd__Archaea'))
+            assert (taxa.d.rank in ('d__Bacteria', 'd__Archaea'))
 
-            if taxa.d == domain:
+            if taxa.d.rank == domain:
                 out[gid] = taxa
-
         return cls(out)
 
 

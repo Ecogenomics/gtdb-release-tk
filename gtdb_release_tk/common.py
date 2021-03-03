@@ -256,4 +256,4 @@ def sizeof_fmt(num, suffix='B'):
 
 def summarise_file(path) -> str:
     """Returns the hash and size of a file"""
-    return f'{os.path.basename(path)} {sha256(path)} ({sizeof_fmt(os.path.getsize(path))})'
+    return f'{os.path.basename(path)} ({sizeof_fmt(os.path.getsize(path))}) {sha256(path)} '
