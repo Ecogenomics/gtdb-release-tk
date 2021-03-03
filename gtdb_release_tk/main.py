@@ -374,9 +374,11 @@ class OptionsParser(object):
         make_sure_path_exists(options.output_dir)
 
         p = SpeciesRepType(options.release_number, options.output_dir)
-        p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file,
-              options.domain)
+
+        bac_mf = MetadataFile.read(options.bac120_metadata_file)
+        arc_mf = MetadataFile.read(options.ar122_metadata_file)
+
+        p.run(bac_mf, arc_mf, options.domain)
 
         self.logger.info('Done.')
 

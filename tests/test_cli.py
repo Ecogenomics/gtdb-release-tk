@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 import unittest
 
+from gtdb_release_tk.common import sha256
 from gtdb_release_tk.files.taxonomy import ArcTaxonomyFile, BacTaxonomyFile
 from tests import maybe_gunzip
 
@@ -216,6 +217,13 @@ class TestCLI(unittest.TestCase):
         p = subprocess.Popen(args, encoding='utf-8')
         p.communicate()
         self.assertEqual(p.returncode, 0)
+
+        hashes = (('gtdb_r95_sp_rep_type.tsv', '5d166232f8f00adfbf4a2f1fd096c19a1aad6a9d40065493cbd1d092ce4895e5'),
+                  ('gtdb_r95_sp_rep_type.png', '4623d021977db20ebc67a45204e1ec95f2595f62da810ebc983d3cb28c93baf7'),
+                  ('gtdb_r95_sp_rep_type.svg', '3ff64648b87d027c0db83f41c4e1f988477766eeebdf8cdedeb7d9fcbd78b697'))
+        for f_name, true_hash in hashes:
+            test_hash = sha256(os.path.join(self.out_dir, f_name))
+            self.assertEqual(test_hash, true_hash)
 
     def test_itol(self):
         pass
