@@ -24,29 +24,22 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import os
-import sys
 import logging
-import argparse
-import ntpath
-import csv
-import random
-import operator
+import os
+from collections import defaultdict
 from pathlib import PurePath
-from collections import defaultdict, namedtuple
 
 from biolib.taxonomy import Taxonomy
-from biolib.seq_io import read_seq
 
 import gtdb_release_tk.HTML as HTML
-from gtdb_release_tk.common import canonical_taxon_name
+from gtdb_release_tk.common import canonical_taxon_name, summarise_file
 
-   
+
 class TaxaCount(object):
     """Create table with number of taxa at each taxonomic rank."""
 
     def __init__(self, release_number, output_dir):
-        
+
         self.release_number = release_number
         if output_dir:
             self.output_dir = PurePath(output_dir)
@@ -55,35 +48,35 @@ class TaxaCount(object):
 
     def run(self, bac120_metadata_file, ar120_metadata_file):
         """Create table with number of taxa at each taxonomic rank."""
-        
+
         bac_taxa = defaultdict(set)
         ar_taxa = defaultdict(set)
         for mf in [bac120_metadata_file, ar120_metadata_file]:
             with open(mf, encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
-                
+
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
                 gtdb_rep_index = header.index('gtdb_representative')
 
                 for line in f:
                     line_split = line.strip().split('\t')
-                    
+
                     gid = line_split[0]
-                    
+
                     gtdb_rep = line_split[gtdb_rep_index]
                     if gtdb_rep != 't':
                         continue
-                        
+
                     taxonomy = line_split[gtdb_taxonomy_index]
                     gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
                     for rank, taxon in enumerate(gtdb_taxa):
                         if rank == 0:
-                            continue # skip domain
-                            
+                            continue  # skip domain
+
                         if rank < 5:
                             # canonicalize names above genus
                             taxon = canonical_taxon_name(taxon)
-                            
+
                         if gtdb_taxa[0] == 'd__Bacteria':
                             bac_taxa[rank].add(taxon)
                         else:
@@ -99,17 +92,17 @@ class TaxaCount(object):
             row.append(f'{len(bac_taxa[idx]):,}')
             row.append(f'{len(ar_taxa[idx]):,}')
             row.append(f'{len(bac_taxa[idx]) + len(ar_taxa[idx]):,}')
-            
+
             table_data.append(row)
             print('\t'.join(row))
 
         out_prefix = f'gtdb_r{self.release_number}_taxa_count'
-        fout = open(self.output_dir / f'{out_prefix}.html','w')
-        htmlcode = HTML.table(table_data,
-                                table_class='taxa_count',
-                                col_styles=['font-size: small']*len(table_data[0]),
-                                col_align=['left'] + ['center']*(len(table_data[0])-1),
-                                cellpadding=6)
-        fout.write(htmlcode)
-        fout.close()
-      
+        path_html = os.path.join(self.output_dir, f'{out_prefix}.html')
+        with open(path_html, 'w') as fout:
+            htmlcode = HTML.table(table_data,
+                                  table_class='taxa_count',
+                                  col_styles=['font-size: small'] * len(table_data[0]),
+                                  col_align=['left'] + ['center'] * (len(table_data[0]) - 1),
+                                  cellpadding=6)
+            fout.write(htmlcode)
+        self.logger.info(summarise_file(path_html))

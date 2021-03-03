@@ -29,6 +29,7 @@ class TestTaxonomyRank(unittest.TestCase):
         self.assertEqual(tr.type, RankEnum.DOMAIN)
         self.assertFalse(tr.is_empty())
         self.assertEqual(str(tr), 'd__Archaea')
+        self.assertEqual(tr.rank, tr.canonical)
 
     def test_taxonomy_rank_when_empty(self):
         tr = TaxonomyRank('g__')
@@ -36,6 +37,7 @@ class TestTaxonomyRank(unittest.TestCase):
         self.assertIsNone(tr.name)
         self.assertTrue(tr.is_empty())
         self.assertEqual(str(tr), 'g__')
+        self.assertEqual(tr.canonical, 'g__')
 
     def test_taxonomy_rank_equal(self):
         tr1 = TaxonomyRank('d__Archaea')
@@ -43,3 +45,12 @@ class TestTaxonomyRank(unittest.TestCase):
         tr3 = TaxonomyRank('d__Bacteria')
         self.assertEqual(tr1, tr2)
         self.assertNotEqual(tr1, tr3)
+
+    def test_taxonomy_rank_canonical(self):
+        tr = TaxonomyRank('p__Firmicutes_B')
+        self.assertEqual(tr.rank, 'p__Firmicutes_B')
+        self.assertEqual(tr.name, 'Firmicutes_B')
+        self.assertEqual(tr.type, RankEnum.PHYLUM)
+        self.assertFalse(tr.is_empty())
+        self.assertEqual(str(tr), 'p__Firmicutes_B')
+        self.assertEqual(tr.canonical, 'p__Firmicutes')

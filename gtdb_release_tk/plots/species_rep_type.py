@@ -169,7 +169,7 @@ class SpeciesRepType(object):
                 if type_designation == 'type strain of species':
                     type_strain.add(gid)
 
-        self.logger.info(' ...identified {:,} GTDB species representatives.'.format(len(gtdb_taxonomy)))
+        self.logger.info(f' ...identified {len(gtdb_taxonomy):,} GTDB species representatives.')
 
         # determine genome types in each species cluster
         sp_genome_types = {}

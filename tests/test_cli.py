@@ -229,7 +229,17 @@ class TestCLI(unittest.TestCase):
         pass
 
     def test_taxa_count(self):
-        pass
+        args = ['python', '-m', 'gtdb_release_tk', 'taxa_count',
+                '--bac120_metadata_file', self.bac120_metadata_r95,
+                '--ar122_metadata_file', self.ar122_metadata_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
+        self.assertEqual(sha256(os.path.join(self.out_dir, 'gtdb_r95_taxa_count.html')),
+                         '65117b9332de49d2c1be02834168c8b194d4edac06ecdeaad4db7433936b06f4')
+
 
     def test_top_taxa(self):
         pass

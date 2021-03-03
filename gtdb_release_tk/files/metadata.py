@@ -1,11 +1,14 @@
-from gtdb_release_tk.common import assert_file_exists, optional_int, optional_float
-
+import logging
 from typing import Dict
 
+from gtdb_release_tk.common import assert_file_exists, optional_int, optional_float, summarise_file
 from gtdb_release_tk.models.taxonomy_string import TaxonomyString
+
+logger = logging.getLogger('timestamp')
 
 
 class MetadataFile(object):
+    __slots__ = ('path', 'header', 'rows')
 
     def __init__(self, path, header, rows):
         self.path: str = path
@@ -16,6 +19,8 @@ class MetadataFile(object):
     def read(cls, path):
         """Instantiates a new MetadataFile from disk."""
         assert_file_exists(path)
+        logger.info(f'Loading MetadataFile from disk: {path}')
+        logger.info(summarise_file(path))
         rows = dict()
         headers = dict()
         with open(path, 'r') as f:
@@ -25,6 +30,7 @@ class MetadataFile(object):
             for line in f.readlines():
                 cur_row = MetadataRow(headers, line.rstrip().split('\t'))
                 rows[cur_row.accession] = cur_row
+        logger.info('Finished loading file')
         return cls(path, headers, rows)
 
     def get_rep_tax(self):
@@ -34,7 +40,34 @@ class MetadataFile(object):
                 out[gid] = row.gtdb_taxonomy
         return out
 
+
 class MetadataRow(object):
+    __slots__ = ('accession', 'ambiguous_bases', 'checkm_completeness', 'checkm_contamination', 'checkm_marker_count',
+                 'checkm_marker_lineage', 'checkm_marker_set_count', 'checkm_strain_heterogeneity', 'coding_bases',
+                 'coding_density', 'contig_count', 'gc_count', 'gc_percentage', 'genome_size',
+                 'gtdb_genome_representative', 'gtdb_representative', 'gtdb_taxonomy', 'gtdb_type_designation',
+                 'gtdb_type_designation_sources', 'gtdb_type_species_of_genus', 'l50_contigs', 'l50_scaffolds',
+                 'longest_contig', 'longest_scaffold', 'lsu_23s_contig_len', 'lsu_23s_count', 'lsu_23s_length',
+                 'lsu_23s_query_id', 'lsu_5s_contig_len', 'lsu_5s_count', 'lsu_5s_length', 'lsu_5s_query_id',
+                 'lsu_silva_23s_blast_align_len', 'lsu_silva_23s_blast_bitscore', 'lsu_silva_23s_blast_evalue',
+                 'lsu_silva_23s_blast_perc_identity', 'lsu_silva_23s_blast_subject_id', 'lsu_silva_23s_taxonomy',
+                 'mean_contig_length', 'mean_scaffold_length', 'mimag_high_quality', 'mimag_low_quality',
+                 'mimag_medium_quality', 'n50_contigs', 'n50_scaffolds', 'ncbi_assembly_level', 'ncbi_assembly_name',
+                 'ncbi_assembly_type', 'ncbi_bioproject', 'ncbi_biosample', 'ncbi_contig_count', 'ncbi_contig_n50',
+                 'ncbi_country', 'ncbi_date', 'ncbi_genbank_assembly_accession', 'ncbi_genome_category',
+                 'ncbi_genome_representation', 'ncbi_isolate', 'ncbi_isolation_source', 'ncbi_lat_lon',
+                 'ncbi_molecule_count', 'ncbi_ncrna_count', 'ncbi_organism_name', 'ncbi_protein_count',
+                 'ncbi_refseq_category', 'ncbi_rrna_count', 'ncbi_scaffold_count', 'ncbi_scaffold_l50',
+                 'ncbi_scaffold_n50', 'ncbi_scaffold_n75', 'ncbi_scaffold_n90', 'ncbi_seq_rel_date',
+                 'ncbi_spanned_gaps', 'ncbi_species_taxid', 'ncbi_ssu_count', 'ncbi_strain_identifiers',
+                 'ncbi_submitter', 'ncbi_taxid', 'ncbi_taxonomy', 'ncbi_taxonomy_unfiltered', 'ncbi_total_gap_length',
+                 'ncbi_total_length', 'ncbi_translation_table', 'ncbi_trna_count', 'ncbi_type_material_designation',
+                 'ncbi_ungapped_length', 'ncbi_unspanned_gaps', 'ncbi_wgs_master', 'protein_count', 'scaffold_count',
+                 'ssu_contig_len', 'ssu_count', 'ssu_gg_blast_align_len', 'ssu_gg_blast_bitscore',
+                 'ssu_gg_blast_evalue', 'ssu_gg_blast_perc_identity', 'ssu_gg_blast_subject_id', 'ssu_gg_taxonomy',
+                 'ssu_length', 'ssu_query_id', 'ssu_silva_blast_align_len', 'ssu_silva_blast_bitscore',
+                 'ssu_silva_blast_evalue', 'ssu_silva_blast_perc_identity', 'ssu_silva_blast_subject_id',
+                 'ssu_silva_taxonomy', 'total_gap_length', 'trna_aa_count', 'trna_count', 'trna_selenocysteine_count')
 
     def __init__(self, header: Dict[str, int], row):
         self.accession = row[header['accession']]

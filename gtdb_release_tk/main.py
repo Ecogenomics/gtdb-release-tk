@@ -15,15 +15,11 @@
 #                                                                             #
 ###############################################################################
 
+import logging
 import os
 import sys
-import csv
-import re
-import logging
-from collections import defaultdict
 
 import dendropy
-
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
 
@@ -31,23 +27,21 @@ from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
 from gtdb_release_tk.files.gtdb_dict import GTDBDictFile
 from gtdb_release_tk.files.metadata import MetadataFile
 from gtdb_release_tk.files.sp_clusters import SpClustersFile
+from gtdb_release_tk.files.taxa_count import TaxaCountFile
 from gtdb_release_tk.files.taxonomy import TaxonomyFile, ArcTaxonomyFile, BacTaxonomyFile
 from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
-from gtdb_release_tk.website_data import WebsiteData
-from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
 from gtdb_release_tk.litterature import LitteratureParser
-
-
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
-from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
-from gtdb_release_tk.plots.genomic_stats import GenomicStats
 from gtdb_release_tk.plots.genome_quality import GenomeQuality
+from gtdb_release_tk.plots.genomic_stats import GenomicStats
 from gtdb_release_tk.plots.ncbi_compare import NCBI_Compare
+from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
 from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
-
+from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.tables.taxa_count import TaxaCount
 from gtdb_release_tk.tables.top_taxa import TopTaxa
+from gtdb_release_tk.website_data import WebsiteData
 
 
 class OptionsParser(object):
@@ -180,9 +174,8 @@ class OptionsParser(object):
         check_file_exists(options.user_gid_table)
         check_file_exists(options.genome_dirs)
 
-
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+        w.protein_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -193,7 +186,7 @@ class OptionsParser(object):
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+        w.nucleotide_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -267,34 +260,34 @@ class OptionsParser(object):
                    options.hq_genome_file)
 
         self.logger.info('Done.')
-        
+
     def add_sp_label(self, options):
         """Generate tree with species labels."""
 
         check_file_exists(options.taxonomy_file)
         check_file_exists(options.tree_file)
-        
+
         self.logger.info('Reading GTDB taxonomy.')
         gtdb_taxonomy = Taxonomy().read(options.taxonomy_file)
-        
+
         self.logger.info('Reading input tree.')
-        tree = dendropy.Tree.get_from_path(options.tree_file, 
-                                            schema='newick', 
-                                            rooting='force-rooted', 
-                                            preserve_underscores=True)
-                                            
+        tree = dendropy.Tree.get_from_path(options.tree_file,
+                                           schema='newick',
+                                           rooting='force-rooted',
+                                           preserve_underscores=True)
+
         self.logger.info('Appending species labels.')
         for node in tree.postorder_node_iter():
             if node.is_leaf():
                 gid = node.taxon.label
                 species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace('s__', '')
                 node.taxon.label += ' | {}'.format(species)
-                
+
         self.logger.info('Writing output tree.')
-        tree.write_to_path(options.output_tree, 
-                            schema='newick', 
-                            suppress_rooting=True, 
-                            unquoted_underscores=True)
+        tree.write_to_path(options.output_tree,
+                           schema='newick',
+                           suppress_rooting=True,
+                           unquoted_underscores=True)
 
         self.logger.info('Done.')
 
@@ -450,14 +443,15 @@ class OptionsParser(object):
 
     def taxa_count(self, options):
         """Create table with number of taxa at each taxonomic rank."""
-
-        check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar122_metadata_file)
+        assert_file_exists(options.bac120_metadata_file)
+        assert_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
-        p = TaxaCount(options.release_number, options.output_dir)
-        p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file)
+        bac_mf = MetadataFile.read(options.bac120_metadata_file)
+        arc_mf = MetadataFile.read(options.ar122_metadata_file)
+
+        tcf = TaxaCountFile.create(bac_mf, arc_mf)
+        tcf.write_html(options.output_dir, options.release_number)
 
         self.logger.info('Done.')
 
