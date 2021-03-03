@@ -52,31 +52,31 @@ class WebsiteTreeJsonFile(object):
                 type_spe_list.append(cur_meta.gtdb_taxonomy.s)
 
             # Create the tree
-            if len(tax.d) > 3:
-                if tax.d not in tax_dict:
-                    tax_dict[tax.d] = {}
+            if not tax.d.is_empty():
+                if tax.d.rank not in tax_dict:
+                    tax_dict[tax.d.rank] = {}
             else:
                 tax_dict.set_default('d__Undefined', {}).set_default(gid, {})
                 continue
-            if len(tax.p) > 3:
-                if tax.p not in tax_dict[tax.d]:
-                    tax_dict[tax.d][tax.p] = {}
-            if len(tax.c) > 3:
-                if tax.c not in tax_dict[tax.d][tax.p]:
-                    tax_dict[tax.d][tax.p][tax.c] = {}
-            if len(tax.o) > 3:
-                if tax.o not in tax_dict[tax.d][tax.p][tax.c]:
-                    tax_dict[tax.d][tax.p][tax.c][tax.o] = {}
-            if len(tax.f) > 3:
-                if tax.f not in tax_dict[tax.d][tax.p][tax.c][tax.o]:
-                    tax_dict[tax.d][tax.p][tax.c][tax.o][tax.f] = {}
-            if len(tax.g) > 3:
-                if tax.g not in tax_dict[tax.d][tax.p][tax.c][tax.o][tax.f]:
-                    tax_dict[tax.d][tax.p][tax.c][tax.o][tax.f][tax.g] = {}
-            if len(tax.s) > 3:
-                if tax.s not in tax_dict[tax.d][tax.p][tax.c][tax.o][tax.f][tax.g]:
-                    tax_dict[tax.d][tax.p][tax.c][tax.o][tax.f][tax.g][tax.s] = []
-                tax_dict[tax.d][tax.p][tax.c][tax.o][tax.f][tax.g][tax.s].append(gid)
+            if not tax.p.is_empty():
+                if tax.p.rank not in tax_dict[tax.d.rank]:
+                    tax_dict[tax.d.rank][tax.p.rank] = {}
+            if not tax.c.is_empty():
+                if tax.c.rank not in tax_dict[tax.d.rank][tax.p.rank]:
+                    tax_dict[tax.d.rank][tax.p.rank][tax.c.rank] = {}
+            if not tax.o.is_empty():
+                if tax.o.rank not in tax_dict[tax.d.rank][tax.p.rank][tax.c.rank]:
+                    tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank] = {}
+            if not tax.f.is_empty():
+                if tax.f.rank not in tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank]:
+                    tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank][tax.f.rank] = {}
+            if not tax.g.is_empty():
+                if tax.g.rank not in tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank][tax.f.rank]:
+                    tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank][tax.f.rank][tax.g.rank] = {}
+            if not tax.s.is_empty():
+                if tax.s.rank not in tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank][tax.f.rank][tax.g.rank]:
+                    tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank][tax.f.rank][tax.g.rank][tax.s.rank] = []
+                tax_dict[tax.d.rank][tax.p.rank][tax.c.rank][tax.o.rank][tax.f.rank][tax.g.rank][tax.s.rank].append(gid)
 
         to_dump = {"name": "Domain", "type": "root", "children": list(WebsiteTreeJsonFile.conv(
             k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}

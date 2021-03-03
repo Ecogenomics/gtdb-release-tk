@@ -330,7 +330,7 @@ class WebsiteData(object):
                 mean_af = line_split[mean_af_index]
                 min_af = line_split[min_af_index]
 
-                clustered_genomes = set([type_genome])
+                clustered_genomes = {type_genome}
                 if cluster_size > 0:
                     for cid in line_split[clustered_genomes_index].split(','):
                         clustered_genomes.add(cid)

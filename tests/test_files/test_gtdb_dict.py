@@ -23,7 +23,7 @@ from gtdb_release_tk.models.taxonomy_rank import TaxonomyRank
 from gtdb_release_tk.models.taxonomy_string import TaxonomyString
 
 
-class TestMetadataFile(unittest.TestCase):
+class TestGTDBDictFile(unittest.TestCase):
 
     def test_create(self):
         tf_data = {'a': TaxonomyString('d__D;p__P;c__C;o__O;f__F;g__G;s__Foo bar')}

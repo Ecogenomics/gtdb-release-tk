@@ -27,6 +27,9 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                     array as np_array)
 
+from gtdb_release_tk.common import summarise_file
+
+
 class NomenclaturalPerRankPlot(AbstractPlot):
     """Box and whisker plot."""
 
@@ -152,39 +155,38 @@ class NomenclaturalPerRank(object):
         # determine nomenclatural category for each taxa at each rank
         out_prefix = f'gtdb_r{self.release_number}_nomenclatural_per_rank'
         self.logger.info('Determining nomenclatural type of taxa.')
-        fout = open(self.output_dir / f'{out_prefix}.species.tsv', 'w')
+        path_tsv = os.path.join(self.output_dir, f'{out_prefix}.species.tsv')
+        with open(path_tsv, 'w') as fout:
+            plot_latinized = []
+            plot_placeholder = []
+            plot_labels = []
+            for rank_index in range(1, 7):
+                fout.write(Taxonomy.rank_labels[rank_index])
 
-        plot_latinized = []
-        plot_placeholder = []
-        plot_labels = []
-        for rank_index in range(1, 7):
-            fout.write(Taxonomy.rank_labels[rank_index])
-            
-            latinized = 0
-            placeholder = 0
-            for taxon in gtdb_taxa_at_rank[rank_index]:
-                if rank_index != 6:
-                    if self.latinized_taxon(taxon):
-                        latinized += 1
+                latinized = 0
+                placeholder = 0
+                for taxon in gtdb_taxa_at_rank[rank_index]:
+                    if rank_index != 6:
+                        if self.latinized_taxon(taxon):
+                            latinized += 1
+                        else:
+                            placeholder += 1
                     else:
-                        placeholder += 1
-                else:
-                    if self.latinized_species(taxon):
-                        latinized += 1
-                    else:
-                        placeholder += 1
+                        if self.latinized_species(taxon):
+                            latinized += 1
+                        else:
+                            placeholder += 1
 
-            total_taxa = latinized + placeholder
-            fout.write(f'\t{total_taxa}\t{latinized}\t{placeholder}\n')
+                total_taxa = latinized + placeholder
+                fout.write(f'\t{total_taxa}\t{latinized}\t{placeholder}\n')
 
-            plot_latinized.append(latinized*100.0/total_taxa)
-            plot_placeholder.append(placeholder*100.0/total_taxa)
-            plot_labels.append('{}\n{:,}'.format(
-                                Taxonomy.rank_labels[rank_index].capitalize(), 
-                                total_taxa))
-            
-        fout.close()
-        
+                plot_latinized.append(latinized*100.0/total_taxa)
+                plot_placeholder.append(placeholder*100.0/total_taxa)
+                plot_labels.append('{}\n{:,}'.format(
+                                    Taxonomy.rank_labels[rank_index].capitalize(),
+                                    total_taxa))
+        self.logger.info(summarise_file(path_tsv))
+
         # create plot
         self.logger.info('Creating plot.')
         options = AbstractPlot.Options(width=4, 
@@ -194,6 +196,8 @@ class NomenclaturalPerRank(object):
                                         dpi=600)
         plot = NomenclaturalPerRankPlot(options)
         plot.plot(plot_latinized, plot_placeholder, plot_labels)
-        
-        plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
-        plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
+
+        for ext in ('.png', '.svg'):
+            path = os.path.join(self.output_dir, f'{out_prefix}{ext}')
+            plot.save_plot(path, dpi=600)
+            self.logger.info(summarise_file(path))

@@ -36,6 +36,7 @@ class TestCLI(unittest.TestCase):
         cls.ar122_r95_tree = os.path.join(DIR_TEST_DATA, 'ar122_r95.tree')
         cls.ar122_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'ar122_taxonomy_r95.tsv')
         cls.bac120_sp_labels_tree = os.path.join(DIR_TEST_DATA, 'bac120.sp_labels.tree')
+        cls.bac120_metadata_r95 = os.path.join(DIR_TEST_DATA, 'bac120_metadata_r95.tsv')
         cls.bac120_taxonomy_r95 = os.path.join(DIR_TEST_DATA, 'bac120_taxonomy_r95.tsv')
         cls.bac120_r95_tree = os.path.join(DIR_TEST_DATA, 'bac120_r95.tree')
         cls.both_metadata_r95 = os.path.join(DIR_TEST_DATA, 'both_metadata_r95.tsv')
@@ -84,7 +85,7 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(p.returncode, 0)
 
     def test_sp_cluster_file(self):
-        # TODO: Does this do anything?
+        # TODO: Does this do anything now that the UBAs are gone?
         args = ['python', '-m', 'gtdb_release_tk', 'sp_cluster_file',
                 '--metadata_file', self.both_metadata_r95,
                 '--gtdb_sp_clusters_file', self.sp_clusters_r95,
@@ -172,19 +173,49 @@ class TestCLI(unittest.TestCase):
         pass
 
     def test_genome_quality(self):
-        pass
+        args = ['python', '-m', 'gtdb_release_tk', 'genome_quality',
+                '--bac120_metadata_file', self.bac120_metadata_r95,
+                '--ar122_metadata_file', self.ar122_metadata_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
 
     def test_genome_category_rank(self):
-        pass
+        args = ['python', '-m', 'gtdb_release_tk', 'genome_category_rank',
+                '--bac120_metadata_file', self.bac120_metadata_r95,
+                '--ar122_metadata_file', self.ar122_metadata_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
 
     def test_nomenclatural_rank(self):
-        pass
+        args = ['python', '-m', 'gtdb_release_tk', 'nomenclatural_rank',
+                '--bac120_metadata_file', self.bac120_metadata_r95,
+                '--ar122_metadata_file', self.ar122_metadata_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir,
+                '--domain', 'Both']
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
 
     def test_ncbi_compare(self):
         pass
 
     def test_sp_rep_type(self):
-        pass
+        args = ['python', '-m', 'gtdb_release_tk', 'sp_rep_type',
+                '--bac120_metadata_file', self.bac120_metadata_r95,
+                '--ar122_metadata_file', self.ar122_metadata_r95,
+                '--release_number', '95',
+                '--output_dir', self.out_dir,
+                '--domain', 'Both']
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
 
     def test_itol(self):
         pass
