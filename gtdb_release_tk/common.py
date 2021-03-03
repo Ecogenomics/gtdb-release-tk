@@ -2,7 +2,7 @@ import hashlib
 import os
 import sys
 from collections import namedtuple
-from typing import Optional
+from typing import Optional, Tuple
 
 ENV_CATEGORIES = set(['derived from single cell',
                       'derived from metagenome',
@@ -244,3 +244,16 @@ def sha256(input_file: str) -> str:
             hash_obj.update(buf)
             buf = f.read(block_size)
     return hash_obj.hexdigest()
+
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'):
+        if abs(num) < 1000:
+            return "%3.1f %s%s" % (num, unit, suffix)
+        num /= 1000
+    return "%.1f %s%s" % (num, 'Y', suffix)
+
+
+def summarise_file(path) -> str:
+    """Returns the hash and size of a file"""
+    return f'{os.path.basename(path)} {sha256(path)} ({sizeof_fmt(os.path.getsize(path))})'

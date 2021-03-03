@@ -28,6 +28,7 @@ from biolib.common import check_file_exists, make_sure_path_exists, check_dir_ex
 from biolib.taxonomy import Taxonomy
 
 from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
+from gtdb_release_tk.files.gtdb_dict import GTDBDictFile
 from gtdb_release_tk.files.metadata import MetadataFile
 from gtdb_release_tk.files.sp_clusters import SpClustersFile
 from gtdb_release_tk.files.taxonomy import TaxonomyFile, ArcTaxonomyFile, BacTaxonomyFile
@@ -215,15 +216,11 @@ class OptionsParser(object):
 
     def dict_file(self, options):
         """Generate GTDB dictionary file."""
-
         assert_file_exists(options.taxonomy_file)
         make_sure_path_exists(options.output_dir)
 
-
-        p = WebsiteData(options.release_number, options.output_dir)
-        p.dict_file(options.taxonomy_file)
-
-
+        tf = TaxonomyFile.read(options.taxonomy_file)
+        GTDBDictFile.create(tf).write(options.output_dir, options.release_number)
 
         self.logger.info('Done.')
 

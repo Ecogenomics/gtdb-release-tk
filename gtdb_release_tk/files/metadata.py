@@ -2,7 +2,7 @@ from gtdb_release_tk.common import assert_file_exists, optional_int, optional_fl
 
 from typing import Dict
 
-from gtdb_release_tk.models.taxonomystring import TaxonomyString
+from gtdb_release_tk.models.taxonomy_string import TaxonomyString
 
 
 class MetadataFile(object):

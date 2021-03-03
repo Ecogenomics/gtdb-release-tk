@@ -17,11 +17,11 @@
 
 import unittest
 
-from gtdb_release_tk.exceptions import InvalidTaxonomy
-from gtdb_release_tk.models.taxonomystring import TaxonomyString
+from gtdb_release_tk.exceptions import InvalidTaxonomyString
+from gtdb_release_tk.models.taxonomy_string import TaxonomyString
 
 
-class TestTaxonomy(unittest.TestCase):
+class TestTaxonomyString(unittest.TestCase):
 
     def test_taxonomy(self):
         test = 'd__D;p__P;c__C;o__O;f__F;g__g;s__S'
@@ -34,18 +34,12 @@ class TestTaxonomy(unittest.TestCase):
         ts_2 = TaxonomyString(test)
         self.assertEqual(ts_1, ts_2)
 
-    def test_taxonomy_empty(self):
-        test = 'd__D;p__;c__C;o__O;f__F;g__g;s__S'
-        ts = TaxonomyString(test)
-        self.assertTrue(ts.empty(ts.p))
-        self.assertFalse(ts.empty(ts.c))
-
     def test_ranks(self):
         ranks = ('d__D', 'p__P', 'c__C', 'o__O', 'f__F', 'g__G', 's__')
         ts = TaxonomyString('; '.join(ranks))
         for test_rank, exp_rank in zip(ts.ranks, ranks):
-            self.assertEqual(test_rank, exp_rank)
+            self.assertEqual(test_rank.full, exp_rank)
 
     def test_taxonomy_raises_InvalidTaxonomy(self):
         test = 'd__D;p__;c__C;o__O;f__F;g__g;'
-        self.assertRaises(InvalidTaxonomy, TaxonomyString, test)
+        self.assertRaises(InvalidTaxonomyString, TaxonomyString, test)

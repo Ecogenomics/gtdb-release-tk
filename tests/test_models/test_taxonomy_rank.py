@@ -15,23 +15,31 @@
 #                                                                             #
 ###############################################################################
 
+import unittest
 
-class GTDBReleaseTkException(Exception):
-    """Base exception for all GTDB Release Tk exceptions"""
-
-    def __init__(self, message=''):
-        Exception.__init__(self, message)
+from gtdb_release_tk.models.taxonomy_rank import TaxonomyRank, RankEnum
 
 
-class InvalidTaxonomyString(GTDBReleaseTkException):
-    """Thrown when a taxonomy string is not valid (i.e. 7 ranks)"""
+class TestTaxonomyRank(unittest.TestCase):
 
-    def __init__(self, message=''):
-        GTDBReleaseTkException.__init__(self, message)
+    def test_taxonomy_rank(self):
+        tr = TaxonomyRank('d__Archaea')
+        self.assertEqual(tr.full, 'd__Archaea')
+        self.assertEqual(tr.name, 'Archaea')
+        self.assertEqual(tr.type, RankEnum.DOMAIN)
+        self.assertFalse(tr.is_empty())
+        self.assertEqual(str(tr), 'd__Archaea')
 
+    def test_taxonomy_rank_when_empty(self):
+        tr = TaxonomyRank('g__')
+        self.assertEqual(tr.full, 'g__')
+        self.assertIsNone(tr.name)
+        self.assertTrue(tr.is_empty())
+        self.assertEqual(str(tr), 'g__')
 
-class InvalidTaxonomyRank(GTDBReleaseTkException):
-    """Thrown when a rank is not valid (i.e. x__ )"""
-
-    def __init__(self, message=''):
-        GTDBReleaseTkException.__init__(self, message)
+    def test_taxonomy_rank_equal(self):
+        tr1 = TaxonomyRank('d__Archaea')
+        tr2 = TaxonomyRank('d__Archaea')
+        tr3 = TaxonomyRank('d__Bacteria')
+        self.assertEqual(tr1, tr2)
+        self.assertNotEqual(tr1, tr3)

@@ -4,7 +4,7 @@ from typing import Dict
 from gtdb_release_tk.common import assert_file_exists, assert_dir_exists
 from gtdb_release_tk.files.metadata import MetadataFile
 from gtdb_release_tk.files.sp_clusters import SpClustersFile
-from gtdb_release_tk.models.taxonomystring import TaxonomyString
+from gtdb_release_tk.models.taxonomy_string import TaxonomyString
 import os
 logger = logging.getLogger('timestamp')
 
