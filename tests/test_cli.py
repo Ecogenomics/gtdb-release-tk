@@ -116,7 +116,6 @@ class TestCLI(unittest.TestCase):
         # self.assertEqual(p.returncode, 0)
         pass
 
-
     def test_marker_files(self):
         pass
 
@@ -143,7 +142,6 @@ class TestCLI(unittest.TestCase):
         p = subprocess.Popen(args, encoding='utf-8')
         p.communicate()
         self.assertEqual(p.returncode, 0)
-
 
     def test_arb_files(self):
         pass
@@ -240,9 +238,22 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(sha256(os.path.join(self.out_dir, 'gtdb_r95_taxa_count.html')),
                          '65117b9332de49d2c1be02834168c8b194d4edac06ecdeaad4db7433936b06f4')
 
-
     def test_top_taxa(self):
-        pass
+        args = ['python', '-m', 'gtdb_release_tk', 'top_taxa',
+                '--gtdb_sp_clusters_file', self.sp_clusters_r95,
+                '--num_taxa', '10',
+                '--release_number', '95',
+                '--output_dir', self.out_dir]
+        p = subprocess.Popen(args, encoding='utf-8')
+        p.communicate()
+        self.assertEqual(p.returncode, 0)
+        hashes = {'gtdb_r95_top_taxa.genomes.html': '34a2755c6b727529699147a634e6b44514c577a6dae5608065a27d6ec5fed75a',
+                  'gtdb_r95_top_taxa.genomes.tsv': 'bdf036258bec471bec2b49068dde8d2af751eb3f8a0a7d8dc93c2193211c9c6b',
+                  'gtdb_r95_top_taxa.species.html': '2d84d3c70b14b8b0533663efc63dd8680da2ba8a29fb7fd7f5124ef71b79b311',
+                  'gtdb_r95_top_taxa.species.tsv': '3ba37372ad9ceddf223c655db029cec977e65a1ed9c9e60dda7584c0ba9737f7'}
+        for f_name, true_hash in hashes.items():
+            test_hash = sha256(os.path.join(self.out_dir, f_name))
+            self.assertEqual(test_hash, true_hash)
 
     def test_nomenclatural_check(self):
         pass

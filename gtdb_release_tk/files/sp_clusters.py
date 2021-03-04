@@ -2,13 +2,15 @@
 from typing import Dict
 
 from gtdb_release_tk.common import optional_float, optional_int
+from gtdb_release_tk.models.taxonomy_rank import TaxonomyRank
+from gtdb_release_tk.models.taxonomy_string import TaxonomyString
 
 
 class SpClustersFile(object):
 
     def __init__(self, header, rows):
         self.header = header
-        self.rows = rows
+        self.rows: Dict[str, SpClustersRow] = rows
 
     @classmethod
     def read(cls, path):
@@ -31,11 +33,13 @@ class SpClustersFile(object):
                 out[gid] = rep_id
         return out
 
+
 class SpClustersRow(object):
 
     __slots__ = ('rep_genome', 'gtdb_species', 'gtdb_taxonomy', 'ani_radius',
                  'mean_intra_species_ani', 'min_intra_species_ani', 'mean_intra_species_af',
-                 'min_intra_species_af', 'no_clustered_genomes', 'clustered_genomes')
+                 'min_intra_species_af', 'no_clustered_genomes', 'clustered_genomes',
+                 'full_taxonomy')
 
     def __init__(self, header: Dict[str, int], row: list):
         self.rep_genome = row[header['Representative genome']]
@@ -48,6 +52,9 @@ class SpClustersRow(object):
         self.min_intra_species_af = optional_float(row[header['Min intra-species AF']])
         self.no_clustered_genomes = optional_int(row[header['No. clustered genomes']])
         self.clustered_genomes = set(row[header['Clustered genomes']].split(','))
+
+        # Only for ease of use, not to output.
+        self.full_taxonomy = TaxonomyString(f'{self.gtdb_taxonomy};{self.gtdb_species}')
 
         assert(len(self.clustered_genomes) == self.no_clustered_genomes)
 

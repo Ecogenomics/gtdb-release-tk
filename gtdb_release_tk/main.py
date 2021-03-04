@@ -40,7 +40,7 @@ from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
 from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
 from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.tables.taxa_count import TaxaCount
-from gtdb_release_tk.tables.top_taxa import TopTaxa
+from gtdb_release_tk.tables.top_taxa import TopTaxaFile
 from gtdb_release_tk.website_data import WebsiteData
 
 
@@ -461,9 +461,11 @@ class OptionsParser(object):
         check_file_exists(options.gtdb_sp_clusters_file)
         make_sure_path_exists(options.output_dir)
 
-        p = TopTaxa(options.release_number, options.output_dir)
-        p.run(options.gtdb_sp_clusters_file,
-              options.num_taxa)
+        spf = SpClustersFile.read(options.gtdb_sp_clusters_file)
+
+        ttf = TopTaxaFile.create(spf)
+        ttf.write_genomes(options.output_dir, options.release_number, options.num_taxa)
+        ttf.write_species(options.output_dir, options.release_number, options.num_taxa)
 
         self.logger.info('Done.')
 
