@@ -30,7 +30,8 @@ from biolib.taxonomy import Taxonomy
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
-from gtdb_release_tk.litterature import LitteratureParser
+from gtdb_release_tk.literature import LiteratureParser
+from gtdb_release_tk.synonyms import Synonyms
 
 
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
@@ -180,9 +181,8 @@ class OptionsParser():
         check_file_exists(options.user_gid_table)
         check_file_exists(options.genome_dirs)
 
-
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+        w.protein_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -193,7 +193,7 @@ class OptionsParser():
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,options.genome_dirs,options.uba_path)
+        w.nucleotide_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -268,34 +268,47 @@ class OptionsParser():
                    options.hq_genome_file)
 
         self.logger.info('Done.')
-        
+
     def add_sp_label(self, options):
         """Generate tree with species labels."""
 
         check_file_exists(options.taxonomy_file)
         check_file_exists(options.tree_file)
-        
+
         self.logger.info('Reading GTDB taxonomy.')
         gtdb_taxonomy = Taxonomy().read(options.taxonomy_file)
-        
+
         self.logger.info('Reading input tree.')
-        tree = dendropy.Tree.get_from_path(options.tree_file, 
-                                            schema='newick', 
-                                            rooting='force-rooted', 
-                                            preserve_underscores=True)
-                                            
+        tree = dendropy.Tree.get_from_path(options.tree_file,
+                                           schema='newick',
+                                           rooting='force-rooted',
+                                           preserve_underscores=True)
+
         self.logger.info('Appending species labels.')
         for node in tree.postorder_node_iter():
             if node.is_leaf():
                 gid = node.taxon.label
                 species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace('s__', '')
                 node.taxon.label += ' | {}'.format(species)
-                
+
         self.logger.info('Writing output tree.')
-        tree.write_to_path(options.output_tree, 
-                            schema='newick', 
-                            suppress_rooting=True, 
-                            unquoted_underscores=True)
+        tree.write_to_path(options.output_tree,
+                           schema='newick',
+                           suppress_rooting=True,
+                           unquoted_underscores=True)
+
+        self.logger.info('Done.')
+
+    def synonyms(self, options):
+        """Generate files indicating NCBI names considered synonyms under the GTDB taxonomy."""
+
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.lpsn_gss_metadata)
+        check_file_exists(options.untrustworthy_type_material)
+        make_sure_path_exists(options.output_dir)
+
+        synonyms = Synonyms(options.output_dir)
+        synonyms.run(options.metadata_file, options.lpsn_gss_metadata, options.untrustworthy_type_material)
 
         self.logger.info('Done.')
 
@@ -332,7 +345,9 @@ class OptionsParser():
 
         p = GenomeCategoryPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file)
+              options.ar122_metadata_file,
+              options.ar_only,
+              options.bac_only)
 
         self.logger.info('Done.')
 
@@ -473,7 +488,7 @@ class OptionsParser():
     def nomenclatural_check(self, options):
         """List latin names present/absent from NCBI,LPSN,Bacdive."""
 
-        p = LitteratureParser(options.output_directory)
+        p = LiteratureParser(options.output_directory)
         p.run(options.ncbi_node_file,
               options.ncbi_name_file,
               options.lpsn_species_file,
@@ -515,6 +530,8 @@ class OptionsParser():
             self.validate(options)
         elif options.subparser_name == 'add_sp_label':
             self.add_sp_label(options)
+        elif options.subparser_name == 'synonyms':
+            self.synonyms(options)
         elif options.subparser_name == 'genome_category_rank':
             self.genome_category_rank(options)
         elif options.subparser_name == 'nomenclatural_rank':

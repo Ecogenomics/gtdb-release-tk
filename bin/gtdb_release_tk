@@ -16,6 +16,10 @@
 #                                                                             #
 ###############################################################################
 
+from biolib.misc.custom_help_formatter import CustomHelpFormatter
+from biolib.logger import logger_setup
+from gtdb_release_tk import version
+from gtdb_release_tk.main import OptionsParser
 __author__ = "Donovan Parks"
 __copyright__ = "Copyright 2019"
 __credits__ = ["Donovan Parks"]
@@ -29,11 +33,6 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from gtdb_release_tk.main import OptionsParser
-from gtdb_release_tk import version
-from biolib.logger import logger_setup
-from biolib.misc.custom_help_formatter import CustomHelpFormatter
 
 
 def print_help():
@@ -59,6 +58,7 @@ def print_help():
       arb_files       -> Generate ARB metadata file
       validate        -> Perform validation checks on GTDB website files
       add_sp_label    -> Generate tree with species labels
+      synonyms        -> Generate files indicating NCBI names considered synonyms under the GTDB taxonomy
 
     Internal files for GTDB website:
       tax_comp_files  -> Generate comparison files between 2 taxonomy ordered by degree of polyphyly
@@ -81,7 +81,7 @@ def print_help():
       top_taxa   -> Create table with most abundant taxa at each taxonomic rank
 
     Meta-database:
-      nomenclatural_check  -> List of latin names present/absent from NCBI,LPSN,Bacdive.
+      nomenclatural_check  -> List of Latin names present/absent from NCBI, LPSN, BacDive.
 
 
   Use: gtdb_release_tk <command> -h for command specific help.
@@ -345,15 +345,27 @@ if __name__ == '__main__':
         'hq_genome_file', help='file indicating HQ MIMAG genomes')
     validate_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
-    
+
     # generate tree with species labels
     add_sp_label_parser = subparsers.add_parser('add_sp_label',
-                                        formatter_class=CustomHelpFormatter,
-                                        description='Generate tree with species labels.')
+                                                formatter_class=CustomHelpFormatter,
+                                                description='Generate tree with species labels.')
     add_sp_label_parser.add_argument('tree_file', help='tree spanning representative genomes')
     add_sp_label_parser.add_argument('taxonomy_file', help='file indicating taxonomy of each genome')
     add_sp_label_parser.add_argument('output_tree', help='output tree with appended species labels')
     add_sp_label_parser.add_argument('--silent', help="suppress output", action='store_true')
+
+    # generate tree with species labels
+    synonyms_parser = subparsers.add_parser('synonyms',
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Generate files indicating NCBI names considered synonyms under the GTDB taxonomy.')
+    synonyms_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
+    synonyms_parser.add_argument(
+        'lpsn_gss_metadata', help='file indicating LPSN GSS metadata (lpsn_gss_<date>.csv)')
+    synonyms_parser.add_argument('untrustworthy_type_material',
+                                 help="file indicating genomes considered untrustworthy as type material in the GTDB (u_resolve_types: untrustworthy_type_material.tsv")
+    synonyms_parser.add_argument('output_dir', help="output directory")
+    synonyms_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # generate correspondence between standardly named taxonomies ordered by
     # degree of polyphyly
@@ -439,6 +451,10 @@ if __name__ == '__main__':
         'release_number', help='release number (ex. 86)')
     genome_category_rank_parser.add_argument(
         'output_dir', help='output directory')
+    genome_category_rank_parser.add_argument(
+        '--ar_only', help="consider only archaeal genomes", action='store_true')
+    genome_category_rank_parser.add_argument(
+        '--bac_only', help="consider only bacterial genomes", action='store_true')
     genome_category_rank_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
@@ -627,7 +643,8 @@ if __name__ == '__main__':
         else:
             parser.parse_options(args)
     except SystemExit:
-        print("\n  Controlled exit resulting from an unrecoverable error or warning.")
+        print("\nControlled exit resulting from an unrecoverable error or warning.")
+        raise
     except:
         print("\nUnexpected error:", sys.exc_info()[0])
         raise

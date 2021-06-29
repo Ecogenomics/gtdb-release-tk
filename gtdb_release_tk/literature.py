@@ -17,7 +17,7 @@
 #                                                                             #
 ###############################################################################
 
-__prog_name__ = 'litterature.py'
+__prog_name__ = 'literature.py'
 __prog_desc__ = 'Parse NCBI taxonomy files to produce simplified summary files.'
 
 __author__ = 'Pierre Chaumeil'
@@ -96,7 +96,7 @@ class TaxonomyNCBI(object):
           Path to NCBI names.dmp file.
 
         Returns
-        ------- 
+        -------
         dict : d[tax_id] -> NameRecord
           Name record of nodes marked as 'scientific name'.
         """
@@ -183,7 +183,7 @@ class TaxonomyNCBI(object):
         return list_ranks
 
 
-class LitteratureParser(object):
+class LiteratureParser(object):
     def __init__(self, output_dir):
         self.outdir = output_dir
         make_sure_path_exists(self.outdir)
@@ -211,9 +211,9 @@ class LitteratureParser(object):
         all_ranks = ncbi_ranks + lpsn_ranks + bacdive_ranks
 
         gtdb_name_in_ncbi = open(os.path.join(
-            self.outdir, 'gtdb_name_in_litterature.txt'), 'w')
+            self.outdir, 'gtdb_name_in_literature.txt'), 'w')
         gtdb_name_notin_ncbi = open(os.path.join(
-            self.outdir, 'gtdb_name_not_in_litterature.txt'), 'w')
+            self.outdir, 'gtdb_name_not_in_literature.txt'), 'w')
 
         dict_gtdbranks = {}
         with open(gtdb_taxonomy) as gtdbtax:
