@@ -80,6 +80,9 @@ def print_help():
       taxa_count -> Create table with number of taxa at each taxonomic rank
       top_taxa   -> Create table with most abundant taxa at each taxonomic rank
 
+    Other:
+      pd -> Phylogenetic diversity of isolate vs. environmental species clusters
+
     Meta-database:
       nomenclatural_check  -> List of Latin names present/absent from NCBI, LPSN, BacDive.
 
@@ -350,22 +353,28 @@ if __name__ == '__main__':
     add_sp_label_parser = subparsers.add_parser('add_sp_label',
                                                 formatter_class=CustomHelpFormatter,
                                                 description='Generate tree with species labels.')
-    add_sp_label_parser.add_argument('tree_file', help='tree spanning representative genomes')
-    add_sp_label_parser.add_argument('taxonomy_file', help='file indicating taxonomy of each genome')
-    add_sp_label_parser.add_argument('output_tree', help='output tree with appended species labels')
-    add_sp_label_parser.add_argument('--silent', help="suppress output", action='store_true')
+    add_sp_label_parser.add_argument(
+        'tree_file', help='tree spanning representative genomes')
+    add_sp_label_parser.add_argument(
+        'taxonomy_file', help='file indicating taxonomy of each genome')
+    add_sp_label_parser.add_argument(
+        'output_tree', help='output tree with appended species labels')
+    add_sp_label_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # generate tree with species labels
     synonyms_parser = subparsers.add_parser('synonyms',
                                             formatter_class=CustomHelpFormatter,
                                             description='Generate files indicating NCBI names considered synonyms under the GTDB taxonomy.')
-    synonyms_parser.add_argument('metadata_file', help='file indicating metadata of each genome')
+    synonyms_parser.add_argument(
+        'metadata_file', help='file indicating metadata of each genome')
     synonyms_parser.add_argument(
         'lpsn_gss_metadata', help='file indicating LPSN GSS metadata (lpsn_gss_<date>.csv)')
     synonyms_parser.add_argument('untrustworthy_type_material',
                                  help="file indicating genomes considered untrustworthy as type material in the GTDB (u_resolve_types: untrustworthy_type_material.tsv")
     synonyms_parser.add_argument('output_dir', help="output directory")
-    synonyms_parser.add_argument('--silent', help="suppress output", action='store_true')
+    synonyms_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
 
     # generate correspondence between standardly named taxonomies ordered by
     # degree of polyphyly
@@ -585,6 +594,21 @@ if __name__ == '__main__':
     top_taxa_parser.add_argument(
         '--num_taxa', help='number of taxa to report', type=int, default=10)
     top_taxa_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # determine phylogenetic diversity statistics for species clusters
+    pd_parser = subparsers.add_parser('pd',
+                                      formatter_class=CustomHelpFormatter,
+                                      description='Phylogenetic diversity of isolate vs. environmental species clusters.')
+    pd_parser.add_argument('bac120_metadata_file',
+                           help='metadata for bacterial GTDB genomes')
+    pd_parser.add_argument('ar122_metadata_file',
+                           help='metadata for archaeal GTDB genomes')
+    pd_parser.add_argument('bac120_tree',
+                           help='bacterial GTDB reference tree')
+    pd_parser.add_argument('ar122_tree',
+                           help='archaeal GTDB reference tree')
+    pd_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
     # Nomenclatural check

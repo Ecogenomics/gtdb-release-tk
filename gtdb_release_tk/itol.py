@@ -24,14 +24,7 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import os
-import sys
 import logging
-import argparse
-import ntpath
-import csv
-import random
-import operator
 from pathlib import PurePath
 from collections import defaultdict, namedtuple
 

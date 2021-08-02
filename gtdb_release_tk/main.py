@@ -32,7 +32,7 @@ from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
 from gtdb_release_tk.literature import LiteratureParser
 from gtdb_release_tk.synonyms import Synonyms
-
+from gtdb_release_tk.pd import PhylogeneticDiversity
 
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
 from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
@@ -182,7 +182,8 @@ class OptionsParser():
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
+        w.protein_files(options.user_gid_table, options.taxonomy_file,
+                        options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -193,7 +194,8 @@ class OptionsParser():
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
+        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,
+                           options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -288,7 +290,8 @@ class OptionsParser():
         for node in tree.postorder_node_iter():
             if node.is_leaf():
                 gid = node.taxon.label
-                species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace('s__', '')
+                species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace(
+                    's__', '')
                 node.taxon.label += ' | {}'.format(species)
 
         self.logger.info('Writing output tree.')
@@ -308,7 +311,8 @@ class OptionsParser():
         make_sure_path_exists(options.output_dir)
 
         synonyms = Synonyms(options.output_dir)
-        synonyms.run(options.metadata_file, options.lpsn_gss_metadata, options.untrustworthy_type_material)
+        synonyms.run(options.metadata_file, options.lpsn_gss_metadata,
+                     options.untrustworthy_type_material)
 
         self.logger.info('Done.')
 
@@ -485,6 +489,22 @@ class OptionsParser():
 
         self.logger.info('Done.')
 
+    def pd(self, options):
+        """Phylogenetic diversity of isolate vs. environmental species clusters."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
+        check_file_exists(options.bac120_tree)
+        check_file_exists(options.ar122_tree)
+
+        pd = PhylogeneticDiversity()
+        pd.run(options.bac120_metadata_file,
+               options.ar122_metadata_file,
+               options.bac120_tree,
+               options.ar122_tree)
+
+        self.logger.info('Done.')
+
     def nomenclatural_check(self, options):
         """List latin names present/absent from NCBI,LPSN,Bacdive."""
 
@@ -556,6 +576,8 @@ class OptionsParser():
             self.taxa_count(options)
         elif options.subparser_name == 'top_taxa':
             self.top_taxa(options)
+        elif options.subparser_name == 'pd':
+            self.pd(options)
         elif options.subparser_name == 'nomenclatural_check':
             self.nomenclatural_check(options)
         else:

@@ -1,12 +1,11 @@
-import os
 import sys
 from collections import defaultdict, namedtuple
 
 
 ENV_CATEGORIES = set(['derived from single cell',
-                        'derived from metagenome',
-                        'derived from environmental sample',
-                        'derived from environmental_sample'])
+                      'derived from metagenome',
+                      'derived from environmental sample',
+                      'derived from environmental_sample'])
 
 
 def canonical_taxon_name(taxon):
@@ -30,7 +29,6 @@ def sp_cluster_type_category(gids, genome_category):
         else:
             print('Unrecognized genome category: {genome_category[gid]}')
             sys.exit(-1)
-
 
     if len(sp_genome_types) == 2:
         category = 'BOTH'
@@ -86,7 +84,8 @@ def parse_rep_genomes(gtdb_metadata_file, user_gids):
                 continue
 
             gid = user_gids.get(gid, gid)
-            gtdb_taxa = [t.strip() for t in line_split[gtdb_taxonomy_index].split(';')]
+            gtdb_taxa = [t.strip()
+                         for t in line_split[gtdb_taxonomy_index].split(';')]
             reps[gid] = gtdb_taxa
 
     return reps
@@ -108,7 +107,7 @@ def parse_genomic_path_file(genome_path_file, user_gids):
     return genome_paths
 
 
-def parse_species_clusters(gtdb_sp_clusters_file, user_gids):
+def parse_species_clusters(gtdb_sp_clusters_file, user_gids={}):
     """Parse GTDB species clusters."""
 
     sp_clusters = {}
@@ -190,6 +189,44 @@ def parse_gtdb_metadata(metadata_file, fields, user_gids):
 
     return m
 
+
+def parse_gtdb_sp_clusters(metadata_file):
+    """Parse GTDB species clusters from metadata file."""
+
+    sp_clusters = defaultdict(set)
+    with open(metadata_file, encoding='utf-8') as f:
+        header = f.readline().strip().split('\t')
+
+        gtdb_rep_index = header.index('gtdb_genome_representative')
+
+        for line in f:
+            line_split = line.strip().split('\t')
+
+            gid = line_split[0]
+            gtdb_rid = line_split[gtdb_rep_index]
+            sp_clusters[gtdb_rid].add(gid)
+
+    return sp_clusters
+
+
+def parse_genome_category(metadata_file):
+    """Parse NCBI genome category for each genome."""
+
+    genome_category = {}
+    with open(metadata_file, encoding='utf-8') as f:
+        header = f.readline().strip().split('\t')
+
+        genome_category_index = header.index('ncbi_genome_category')
+
+        for line in f:
+            line_split = line.strip().split('\t')
+
+            gid = line_split[0]
+            genome_category[gid] = line_split[genome_category_index]
+
+    return genome_category
+
+
 def parse_tophit_file(path):
     out = dict()
     with open(path, 'r') as fh:
@@ -203,6 +240,7 @@ def parse_tophit_file(path):
                     out[fam_id] = list()
                 out[fam_id].append((gid, e_val, bitscore))
     return out
+
 
 def parse_taxonomy_file(path):
     out = dict()
