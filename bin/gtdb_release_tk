@@ -77,8 +77,9 @@ def print_help():
       itol                  -> Generate tree and iTOL files for producing iTOL tree image
 
     Tables:
-      taxa_count -> Create table with number of taxa at each taxonomic rank
-      top_taxa   -> Create table with most abundant taxa at each taxonomic rank
+      taxa_count  -> Create table with number of taxa at each taxonomic rank
+      top_taxa    -> Create table with most abundant taxa at each taxonomic rank
+      latin_count -> Create table indicating percentage of Latin names at each taxonomic rank
 
     Other:
       pd -> Phylogenetic diversity of isolate vs. environmental species clusters
@@ -594,6 +595,20 @@ if __name__ == '__main__':
     top_taxa_parser.add_argument(
         '--num_taxa', help='number of taxa to report', type=int, default=10)
     top_taxa_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # create table indicating percentage of Latin names at each taxonomic rank
+    latin_count_parser = subparsers.add_parser('latin_count',
+                                               formatter_class=CustomHelpFormatter,
+                                               description='Create table indicating percentage of Latin names at each taxonomic rank.')
+    latin_count_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    latin_count_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    latin_count_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    latin_count_parser.add_argument('output_dir', help='output directory')
+    latin_count_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
     # determine phylogenetic diversity statistics for species clusters

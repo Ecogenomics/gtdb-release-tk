@@ -83,7 +83,7 @@ def canonical_taxon(taxon):
 
     Strips final alphabetic suffix from taxon names. Note,
     the canonical name of a species in this context will be:
-    s__Alpha_A Beta_B -> s__Alpha_A Beta
+    s__Alpha_A beta_B -> s__Alpha_A beta
 
     That is, any suffix on the generic name is not removed. If this
     should be removed, used the method canonical_species().
@@ -141,7 +141,8 @@ def generic_name(species_name):
     try:
         generic, _specific = species_name.split()
     except:
-        logging.getLogger('timestamp').error(f'Invalid species name: {species_name}')
+        logging.getLogger('timestamp').error(
+            f'Invalid species name: {species_name}')
         sys.exit(-1)
 
     return generic.replace('s__', '')
@@ -197,7 +198,7 @@ def is_placeholder_taxon(taxon):
 def is_alphanumeric_taxon(taxon):
     """Check if taxon name is an alphanumeric placeholder.
 
-    Example: g__9cdg1, f__UBA123, not not g__Prochlorococcus_A
+    Example: g__9cdg1, f__UBA123, not g__Prochlorococcus_A
     """
 
     return is_placeholder_taxon(taxon) and taxon_suffix(taxon) is None

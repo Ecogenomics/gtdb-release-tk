@@ -8,15 +8,6 @@ ENV_CATEGORIES = set(['derived from single cell',
                       'derived from environmental_sample'])
 
 
-def canonical_taxon_name(taxon):
-    """Get canonical version of taxon."""
-
-    if '_' in taxon[3:]:
-        taxon = taxon[0:taxon.rfind('_')]
-
-    return taxon
-
-
 def sp_cluster_type_category(gids, genome_category):
     """Determine genome types in each species cluster."""
 

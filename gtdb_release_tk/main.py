@@ -43,6 +43,7 @@ from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
 
 from gtdb_release_tk.tables.taxa_count import TaxaCount
 from gtdb_release_tk.tables.top_taxa import TopTaxa
+from gtdb_release_tk.tables.latin_count import LatinCount
 
 
 class OptionsParser():
@@ -489,6 +490,19 @@ class OptionsParser():
 
         self.logger.info('Done.')
 
+    def latin_count(self, options):
+        """Create table indicating percentage of Latin names at each taxonomic rank."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = LatinCount(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+              options.ar122_metadata_file)
+
+        self.logger.info('Done.')
+
     def pd(self, options):
         """Phylogenetic diversity of isolate vs. environmental species clusters."""
 
@@ -576,6 +590,8 @@ class OptionsParser():
             self.taxa_count(options)
         elif options.subparser_name == 'top_taxa':
             self.top_taxa(options)
+        elif options.subparser_name == 'latin_count':
+            self.latin_count(options)
         elif options.subparser_name == 'pd':
             self.pd(options)
         elif options.subparser_name == 'nomenclatural_check':

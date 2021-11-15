@@ -24,19 +24,9 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import os
-import sys
 import logging
-import argparse
-import ntpath
-import csv
-import random
-import operator
 from pathlib import PurePath
-from collections import defaultdict, namedtuple
-
-from biolib.taxonomy import Taxonomy
-from biolib.seq_io import read_seq
+from collections import defaultdict
 
 import gtdb_release_tk.HTML as HTML
    
