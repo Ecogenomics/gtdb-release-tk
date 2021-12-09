@@ -26,7 +26,7 @@ import glob
 from biolib.common import make_sure_path_exists
 from tqdm import tqdm
 import sys
-from collections import Counter
+from collections import Counter, deque
 from collections import defaultdict
 
 from pathlib import Path, PurePath
@@ -442,7 +442,7 @@ class WebsiteData(object):
                     metadata[gid].gtdb_taxonomy,
                     gid in reps))
                 fout.write('\n')
-                
+
                 if not metadata[gid].mimag_high_quality:
                     self.logger.warning('This genome should be considered high quality, but the mimag_high_quality flag was set to False: {}'.format(gid))
 
@@ -1336,7 +1336,7 @@ class WebsiteData(object):
                     dict_tmp = self.add_type_species(it, type_spe_list)
         return d
 
-    def conv(self, k, v, meta_information, type_spe_list):
+    def conv(self, k, v, meta_information, type_spe_list, shorten=True):
         dict_rank = {"name": k,
                      "type": "d",
                      "children": list({"name": x,
@@ -1351,13 +1351,13 @@ class WebsiteData(object):
                                                                                                                "type": "g",
                                                                                                                "children": list({"name": s,
                                                                                                                                  "type": "s",
-                                                                                                                                 "children": list(self.process_genome(gen, meta_information) for gen in self.sorted_genome(v[x][z][o][f][g][s], meta_information))} for s in self.sort_ranks(v[x][z][o][f][g].keys()))} for g in self.sort_ranks(v[x][z][o][f].keys()))} for f in self.sort_ranks(v[x][z][o].keys()))} for o in self.sort_ranks(v[x][z].keys()))} for z in self.sort_ranks(v[x].keys()))} for x in self.sort_ranks(v.keys()))}
+                                                                                                                                 "children": list(self.process_genome(gen, meta_information) for gen in self.sorted_genome(v[x][z][o][f][g][s], meta_information, shorten))} for s in self.sort_ranks(v[x][z][o][f][g].keys()))} for g in self.sort_ranks(v[x][z][o][f].keys()))} for f in self.sort_ranks(v[x][z][o].keys()))} for o in self.sort_ranks(v[x][z].keys()))} for z in self.sort_ranks(v[x].keys()))} for x in self.sort_ranks(v.keys()))}
         cleaned_dict = self.clean_empty_children(dict_rank)
         cleaned_dict = self.count_children(cleaned_dict)
         cleaned_dict = self.add_type_species(cleaned_dict, type_spe_list)
         return cleaned_dict
 
-    def sorted_genome(self, list_genomes, meta_information):
+    def sorted_genome(self, list_genomes, meta_information, shorten=True):
         list_representatives = [
             gen for gen in list_genomes if meta_information.get(gen).get('rep') == 't']
         list_type_species = [gen for gen in list_genomes if meta_information.get(gen).get(
@@ -1370,7 +1370,7 @@ class WebsiteData(object):
         list_quality = sorted(dict_quality, key=dict_quality.get)
         full_list = list_representatives + list_type_species + \
             list_type_subspecies + list_quality
-        if len(full_list) > 100:
+        if shorten and len(full_list) > 100:
             shorten_list = full_list[0:100]
             remaining_genomes = len(full_list) - len(shorten_list)
             shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
@@ -1404,7 +1404,7 @@ class WebsiteData(object):
             result_genome["rep"] = True
         return result_genome
 
-    def json_tree_parser(self, taxonomy_file, metadata_file):
+    def json_tree_parser(self, taxonomy_file, metadata_file, table):
         meta_information, type_spe_list = self.parse_metadata(metadata_file)
         tax_dict = {}
         with open(taxonomy_file, 'r') as f:
@@ -1439,9 +1439,50 @@ class WebsiteData(object):
                         tax_dict[drank][prank][crank][orank][frank][grank][srank] = []
                     tax_dict[drank][prank][crank][orank][frank][grank][srank].append(
                         genome)
-        with open('genome_taxonomy_r{}_count.json'.format(self.release_number), 'w') as outfile:
+        path_json = 'genome_taxonomy_r{}_count.json'.format(self.release_number)
+        with open(path_json, 'w') as outfile:
             json.dump({"name": "Domain", "type": "root", "children": list(self.conv(
-                k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False)
+                k, tax_dict[k], meta_information, type_spe_list, shorten=table) for k in sorted(tax_dict.keys()))},
+                      outfile, check_circular=False)
+        self.json_web_file_to_table(path_json)
+
+    def json_web_file_to_table(self, path_json):
+        """Convert the JSON website file into two tables for the website database."""
+        with open(path_json, 'r') as f:
+            content = json.load(f)
+
+        q = deque(content['children'])
+
+        i = 1
+        id_to_taxon = dict()
+        with open(f'genome_taxonomy_r{self.release_number}_count_base.tsv', 'w') as fd:
+            with open(f'genome_taxonomy_r{self.release_number}_count_children.tsv', 'w') as fdc:
+                while len(q) > 0:
+                    item = q.popleft()
+
+                    if item['name'] not in id_to_taxon:
+                        id_to_taxon[item['name']] = i
+                        i += 1
+
+                    cols = [
+                        id_to_taxon[item["name"]],
+                        item['name'],
+                        item['countgen'],
+                        item['type'],
+                        item.get('rep', ''),
+                        item.get('type_material', '')
+                    ]
+                    fd.write('\t'.join(map(str, cols)) + '\n')
+
+                    # Add the child mapping
+                    for order_id, child in enumerate(item.get('children', list())):
+
+                        if child['name'] not in id_to_taxon:
+                            id_to_taxon[child['name']] = i
+                            i += 1
+
+                        fdc.write(f'{id_to_taxon[item["name"]]}\t{id_to_taxon[child["name"]]}\t{order_id}\n')
+                        q.append(child)
 
     def parse_metadata(self, metadatafile):
         result = {}

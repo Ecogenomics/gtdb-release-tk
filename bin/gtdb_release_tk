@@ -413,6 +413,8 @@ if __name__ == '__main__':
         '--release_number', required=True, help='release number (ex. 86)')
     json_tree_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
+    json_tree_parser.add_argument(
+        '--table', help='format as table', action='store_true', default=False)
 
     # plot of common genomic statistics
     genomic_stats_parser = subparsers.add_parser('genomic_stats',
