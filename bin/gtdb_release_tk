@@ -106,9 +106,9 @@ if __name__ == '__main__':
     taxonomy_files_parser.add_argument(
         'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
     taxonomy_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    taxonomy_files_parser.add_argument(
         'release_number', help='release number (ex. 86)')
+    taxonomy_files_parser.add_argument(
+        '--only_reps',action='store_true', help='only process representatives genomes.')
     taxonomy_files_parser.add_argument('output_dir', help='output directory')
     taxonomy_files_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
@@ -123,8 +123,6 @@ if __name__ == '__main__':
         'bac_tree', help='bacterial tree of representative genomes in Newick format')
     tree_files_parser.add_argument(
         'ar_tree', help='archaeal tree of representative genomes in Newick format')
-    tree_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     tree_files_parser.add_argument(
         'canonical_gid_table', help='table indicates the canonical id and the NCBI accession.')
     tree_files_parser.add_argument(
@@ -142,8 +140,6 @@ if __name__ == '__main__':
     sp_cluster_file_parser.add_argument(
         'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
     sp_cluster_file_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    sp_cluster_file_parser.add_argument(
         'canonical_gid_table', help='table indicates the canonical id and the NCBI accession.')
     sp_cluster_file_parser.add_argument(
         'release_number', help='release number (ex. 86)')
@@ -158,8 +154,6 @@ if __name__ == '__main__':
     hq_genome_file_parser.add_argument(
         'metadata_file', help='file indicating metadata of each genome')
     hq_genome_file_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    hq_genome_file_parser.add_argument(
         'release_number', help='release number (ex. 86)')
     hq_genome_file_parser.add_argument('output_dir', help="output directory")
     hq_genome_file_parser.add_argument(
@@ -173,8 +167,6 @@ if __name__ == '__main__':
         'metadata_file', help='file indicating metadata of each genome')
     ssu_files_parser.add_argument(
         'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
-    ssu_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     ssu_files_parser.add_argument(
         'genome_path_file', help='file indicating path to GTDB genomes')
     ssu_files_parser.add_argument(
@@ -198,8 +190,6 @@ if __name__ == '__main__':
     marker_files_parser.add_argument(
         'ar122_gene_dir', help='directory with individual archaeal marker gene files')
     marker_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    marker_files_parser.add_argument(
         'release_number', help='release number (ex. 86)')
     marker_files_parser.add_argument('output_dir', help="output directory")
     marker_files_parser.add_argument(
@@ -211,8 +201,6 @@ if __name__ == '__main__':
                                              description='Generate the archive containing all protein (AA) for representative genomes.')
     prot_file_parser.add_argument(
         '--taxonomy_file', help='tsv of gid and taxonomy')
-    prot_file_parser.add_argument(
-        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     prot_file_parser.add_argument(
         '--metadata_file', help='file indicating metadata of each genome')
     prot_file_parser.add_argument(
@@ -231,8 +219,6 @@ if __name__ == '__main__':
                                             description='Generate the archive containing all protein (nucl) for representative genomes.')
     nuc_file_parser.add_argument(
         '--taxonomy_file', help='tsv of gid and taxonomy')
-    nuc_file_parser.add_argument(
-        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     nuc_file_parser.add_argument(
         '--metadata_file', help='file indicating metadata of each genome')
     nuc_file_parser.add_argument(
@@ -254,9 +240,9 @@ if __name__ == '__main__':
     msa_files_parser.add_argument(
         'ar122_msa_file', help='MSA for archaeal representative genomes')
     msa_files_parser.add_argument(
-        'metadata_file', help='file indicating metadata of each genome')
+        'canonical_gid_table', help='table indicates the canonical id and the NCBI accession.')
     msa_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
+        'metadata_file', help='file indicating metadata of each genome')
     msa_files_parser.add_argument(
         'release_number', help='release number (ex. 86)')
     msa_files_parser.add_argument('output_dir', help="output directory")
@@ -269,8 +255,6 @@ if __name__ == '__main__':
                                               description='Generate concatenated untrimmed gene files.')
     gene_files_parser.add_argument(
         '--taxonomy_file', help='tsv of gid and taxonomy')
-    gene_files_parser.add_argument(
-        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     gene_files_parser.add_argument(
         '--genome_dirs', help='Genome directory files.')
     gene_files_parser.add_argument(
@@ -293,8 +277,6 @@ if __name__ == '__main__':
         'metadata_file', help='file indicating metadata of each genome')
     metadata_files_parser.add_argument(
         'metadata_fields', help='file indicating GTDB metadata fields to retain')
-    metadata_files_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
     metadata_files_parser.add_argument(
         'gtdb_sp_clusters_file', help='file indicating final GTDB species clusters')
     metadata_files_parser.add_argument(
@@ -375,8 +357,6 @@ if __name__ == '__main__':
     tax_comp_parser.add_argument(
         '--new_taxonomy_file', help='New taxonomy file.')
     tax_comp_parser.add_argument('--output_dir', help="output directory")
-    tax_comp_parser.add_argument(
-        '--user_gid_table', help="table indicate NCBI accession and UBA IDs for user genomes")
     tax_comp_parser.add_argument(
         '--changes_only', help="only report that differ between the two taxonomies", action='store_true')
     tax_comp_parser.add_argument(
@@ -584,22 +564,31 @@ if __name__ == '__main__':
     # Nomenclatural check
     nomcheck_parser = subparsers.add_parser('nomenclatural_check',
                                             formatter_class=CustomHelpFormatter,
-                                            description='List of latin names present/absent from NCBI,LPSN,Bacdive.')
+                                            description='List of latin names present/absent from NCBI and LPSN.')
     nomcheck_parser.add_argument(
         '--ncbi_node_file', help='NCBI node.dmp file.', required=True)
     nomcheck_parser.add_argument(
         '--ncbi_name_file', help='NCBI name.dmp file.', required=True)
     nomcheck_parser.add_argument(
-        '--lpsn_species_file', help='LPSN species file.', required=True)
-    nomcheck_parser.add_argument(
-        '--bacdive_species_file', help='DSMZ species file.', required=True)
+        '--lpsn_metadata_file', help='LPSN species file.', required=True)
     nomcheck_parser.add_argument(
         '--output_directory', help='Output directory.', required=True)
     nomcheck_parser.add_argument(
         '--gtdb_taxonomy', help='GTDB Taxonomy file.', required=True)
     nomcheck_parser.add_argument(
-        '--rank_release_file', help='GTDB File listing all ranks and their release version.')
+        '--rank_release_file', help='GTDB File listing all ranks and their release version ( generated from list_allranks_allreleases.')
     nomcheck_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    # Nomenclatural check
+    list_all_rk_rel_parser = subparsers.add_parser('list_allranks_allreleases',
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Generates a file listing all ranks and their release version')
+    list_all_rk_rel_parser.add_argument(
+        '--taxonomy_batchfile', help='TSV file listing the taxonomy file and the version', required=True)
+    list_all_rk_rel_parser.add_argument(
+        '--output_file', help='Output directory')
+    list_all_rk_rel_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
     # all Genomes function

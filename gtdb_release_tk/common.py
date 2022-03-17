@@ -76,7 +76,7 @@ def parse_canonical_gid_table(canonical_gid_table):
     return canonical_gids
 
 
-def parse_rep_genomes(gtdb_metadata_file, user_gids):
+def parse_rep_genomes(gtdb_metadata_file):
     """Parse species representative genomes and their GTDB taxonomy."""
 
     reps = {}
@@ -94,7 +94,6 @@ def parse_rep_genomes(gtdb_metadata_file, user_gids):
             if gtdb_rep.lower().startswith('f'):
                 continue
 
-            gid = user_gids.get(gid, gid)
             gtdb_taxa = [t.strip()
                          for t in line_split[gtdb_taxonomy_index].split(';')]
             reps[gid] = gtdb_taxa
@@ -102,7 +101,7 @@ def parse_rep_genomes(gtdb_metadata_file, user_gids):
     return reps
 
 
-def parse_genomic_path_file(genome_path_file, user_gids):
+def parse_genomic_path_file(genome_path_file):
     """Parse path to data directory for each genome."""
 
     genome_paths = {}
@@ -111,14 +110,12 @@ def parse_genomic_path_file(genome_path_file, user_gids):
             line_split = line.strip().split('\t')
 
             gid = line_split[0]
-            gid = user_gids.get(gid, gid)
-
             genome_paths[gid] = line_split[1]
 
     return genome_paths
 
 
-def parse_species_clusters(gtdb_sp_clusters_file, user_gids):
+def parse_species_clusters(gtdb_sp_clusters_file):
     """Parse GTDB species clusters."""
 
     sp_clusters = {}
@@ -128,7 +125,7 @@ def parse_species_clusters(gtdb_sp_clusters_file, user_gids):
         if 'Type genome' in header:
             type_genome_index = header.index('Type genome')
         else:
-            type_genome_index = header.index('Representative')
+            type_genome_index = header.index('Representative genome')
         cluster_size_index = header.index('No. clustered genomes')
         clustered_genomes_index = header.index('Clustered genomes')
 
@@ -136,19 +133,17 @@ def parse_species_clusters(gtdb_sp_clusters_file, user_gids):
             line_split = line.strip().split('\t')
 
             rid = line_split[type_genome_index]
-            rid = user_gids.get(rid, rid)
             sp_clusters[rid] = set([rid])
 
             cluster_size = int(line_split[cluster_size_index])
             if cluster_size > 0:
                 for cid in line_split[clustered_genomes_index].split(','):
-                    cid = user_gids.get(cid, cid)
                     sp_clusters[rid].add(cid)
 
     return sp_clusters
 
 
-def parse_gtdb_metadata(metadata_file, fields, user_gids):
+def parse_gtdb_metadata(metadata_file, fields):
     """Parse genome quality from GTDB metadata.
 
     Parameters
@@ -179,7 +174,6 @@ def parse_gtdb_metadata(metadata_file, fields, user_gids):
         for line in f:
             line_split = line.strip().split('\t')
             gid = line_split[genome_index]
-            gid = user_gids.get(gid, gid)
 
             values = []
             for i in indices:

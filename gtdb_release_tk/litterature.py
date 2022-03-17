@@ -194,11 +194,17 @@ class LitteratureParser(object):
         outf = open(self.outfile, 'a')
         list_ranks = []
         with open(lpsn_file) as lf:
-            lf.readline()
+            headers = lf.readline().strip().split('\t')
+            name_idx= headers.index('Name')
+            synonyms_idx = headers.index('Synonyms')
             for line in lf:
-                spename = line.strip().split('\t')[0].replace('s__', '')
+                infos = line.strip().split('\t')
+                spename = infos[name_idx].strip()
+                synonyms = [x for x in infos[synonyms_idx].strip().split(',')]
                 list_ranks.append(spename)
-                outf.write(f'{spename}\t{source}\n')
+                if len(synonyms)>0:
+                    list_ranks.extend(synonyms)
+                outf.write(f'{spename}\t{source}\t{",".join(synonyms)}\n')
         outf.close()
         return list_ranks
 
@@ -215,18 +221,16 @@ class LitteratureParser(object):
                         results[rkname] = release
         return results
 
-    def run(self, ncbi_node_file, ncbi_name_file, lpsn_species_file,
-            bacdive_species_file, gtdb_taxonomy, release_species_file=None):
+    def run(self, ncbi_node_file, ncbi_name_file, lpsn_metadata_file,gtdb_taxonomy, release_species_file=None):
         tn = TaxonomyNCBI(self.outfile)
         ncbi_ranks = tn.run(ncbi_node_file, ncbi_name_file)
-        lpsn_ranks = self.parse_nom_file(lpsn_species_file, 'LPSN')
-        bacdive_ranks = self.parse_nom_file(bacdive_species_file, 'DSMZ')
+        lpsn_ranks = self.parse_nom_file(lpsn_metadata_file, 'LPSN')
         species_release_dict = {}
         if release_species_file:
             species_release_dict = self.parse_release_species(
                 release_species_file)
 
-        all_ranks = ncbi_ranks + lpsn_ranks + bacdive_ranks
+        all_ranks = ncbi_ranks + lpsn_ranks
 
         gtdb_name_in_ncbi = open(os.path.join(
             self.outdir, 'gtdb_name_in_litterature.txt'), 'w')
