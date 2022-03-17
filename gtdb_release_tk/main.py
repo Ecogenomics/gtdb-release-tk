@@ -55,13 +55,12 @@ class OptionsParser():
 
         check_file_exists(options.metadata_file)
         check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.taxonomy_files(options.metadata_file,
                          options.gtdb_sp_clusters_file,
-                         options.user_gid_table)
+                         options.only_reps)
 
         self.logger.info('Done.')
 
@@ -71,14 +70,12 @@ class OptionsParser():
         check_file_exists(options.metadata_file)
         check_file_exists(options.bac_tree)
         check_file_exists(options.ar_tree)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.tree_files(options.metadata_file,
                      options.bac_tree,
                      options.ar_tree,
-                     options.user_gid_table,
                      options.canonical_gid_table)
 
         self.logger.info('Done.')
@@ -88,13 +85,11 @@ class OptionsParser():
 
         check_file_exists(options.metadata_file)
         check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.sp_cluster_file(options.metadata_file,
                           options.gtdb_sp_clusters_file,
-                          options.user_gid_table,
                           options.canonical_gid_table)
 
         self.logger.info('Done.')
@@ -103,13 +98,10 @@ class OptionsParser():
         """Generate file indicating HQ genomes."""
 
         check_file_exists(options.metadata_file)
-        if options.user_gid_table.lower() != 'none':
-            check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
-        p.hq_genome_file(options.metadata_file,
-                         options.user_gid_table)
+        p.hq_genome_file(options.metadata_file)
 
         self.logger.info('Done.')
 
@@ -118,14 +110,12 @@ class OptionsParser():
 
         check_file_exists(options.metadata_file)
         check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
         check_file_exists(options.genome_path_file)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.ssu_files(options.metadata_file,
                     options.gtdb_sp_clusters_file,
-                    options.user_gid_table,
                     options.genome_path_file,
                     options.min_16S_ar_len,
                     options.min_16S_bac_len,
@@ -138,13 +128,11 @@ class OptionsParser():
 
         check_dir_exists(options.bac120_gene_dir)
         check_dir_exists(options.ar122_gene_dir)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.marker_files(options.bac120_gene_dir,
-                       options.ar122_gene_dir,
-                       options.user_gid_table)
+                       options.ar122_gene_dir)
 
         self.logger.info('Done.')
 
@@ -154,25 +142,21 @@ class OptionsParser():
         check_file_exists(options.bac120_msa_file)
         check_file_exists(options.ar122_msa_file)
         check_file_exists(options.metadata_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.msa_files(options.bac120_msa_file,
                     options.ar122_msa_file,
-                    options.metadata_file,
-                    options.user_gid_table)
+                    options.metadata_file,options.canonical_gid_table)
 
         self.logger.info('Done.')
 
     def gene_files(self, options):
         """Generate untrimmed gene files for bac120/ar122"""
         make_sure_path_exists(options.output_dir)
-        check_file_exists(options.user_gid_table)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.gene_files(options.user_gid_table,
-                     options.taxonomy_file, options.genome_dirs, options.metadata_file, options.cpus, options.only_reps)
+        w.gene_files(options.taxonomy_file, options.genome_dirs, options.metadata_file, options.cpus, options.only_reps)
         #======================================================================
         # w.gene_files(options.user_gid_table,
         #              options.taxonomy_file, options.genome_dirs, options.cpus)
@@ -183,21 +167,18 @@ class OptionsParser():
     def protein_files(self, options):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
-        check_file_exists(options.user_gid_table)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table,
-                        options.taxonomy_file, options.genome_dirs, options.metadata_file)
+        w.protein_files(options.taxonomy_file, options.genome_dirs, options.metadata_file)
 
         self.logger.info('Done.')
 
     def nucleotide_files(self, options):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
-        check_file_exists(options.user_gid_table)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,
+        w.nucleotide_files(options.taxonomy_file,
                            options.genome_dirs, options.metadata_file)
 
         self.logger.info('Done.')
@@ -208,14 +189,12 @@ class OptionsParser():
         check_file_exists(options.metadata_file)
         check_file_exists(options.metadata_fields)
         check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.metadata_files(options.metadata_file,
                          options.metadata_fields,
-                         options.gtdb_sp_clusters_file,
-                         options.user_gid_table)
+                         options.gtdb_sp_clusters_file)
 
         self.logger.info('Done.')
 
@@ -313,7 +292,6 @@ class OptionsParser():
         p = WebsiteData('', options.output_dir)
         p.tax_comp_files(options.reference_taxonomy_file,
                          options.new_taxonomy_file,
-                         options.user_gid_table,
                          options.changes_only,
                          options.filter_placeholder_name,
                          options.top_change)
@@ -481,8 +459,7 @@ class OptionsParser():
         p = LitteratureParser(options.output_directory)
         p.run(options.ncbi_node_file,
               options.ncbi_name_file,
-              options.lpsn_species_file,
-              options.bacdive_species_file,
+              options.lpsn_metadata_file,
               options.gtdb_taxonomy,
               options.rank_release_file)
 
