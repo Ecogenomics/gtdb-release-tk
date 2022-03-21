@@ -26,7 +26,7 @@ import glob
 from biolib.common import make_sure_path_exists, canonical_gid
 from tqdm import tqdm
 import sys
-from collections import Counter
+from collections import Counter, deque
 from collections import defaultdict
 
 from pathlib import Path, PurePath
@@ -1382,9 +1382,9 @@ class WebsiteData(object):
 
     def sorted_genome(self, list_genomes, meta_information):
         print(list_genomes)
-        for g in list_genomes:
-            print(g)
-            print(meta_information.get(g).get('rep'))
+        # for g in list_genomes:
+        #     print(g)
+        #     print(meta_information.get(g).get('rep'))
         list_representatives = [
             gen for gen in list_genomes if meta_information.get(gen).get('rep') == 't']
         list_type_species = [gen for gen in list_genomes if meta_information.get(gen).get(
@@ -1394,11 +1394,11 @@ class WebsiteData(object):
             'conta') for gen in list_genomes if gen not in list_representatives + list_type_species}
         list_quality = sorted(dict_quality, key=dict_quality.get)
         full_list = list_representatives + list_type_species + list_quality
-        if len(full_list) > 100:
-            shorten_list = full_list[0:100]
-            remaining_genomes = len(full_list) - len(shorten_list)
-            shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
-            return shorten_list
+        # if len(full_list) > 100:
+        #     shorten_list = full_list[0:100]
+        #     remaining_genomes = len(full_list) - len(shorten_list)
+        #     shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
+        #     return shorten_list
         return full_list
 
     def is_valid_name(self, rank_name):
@@ -1463,9 +1463,104 @@ class WebsiteData(object):
                         tax_dict[drank][prank][crank][orank][frank][grank][srank] = []
                     tax_dict[drank][prank][crank][orank][frank][grank][srank].append(
                         genome)
-        with open('genome_taxonomy_r{}_count.json'.format(self.release_number), 'w') as outfile:
+        out_path = os.path.join(self.output_dir, f'genome_taxonomy_r{self.release_number}_count.json')
+        with open(out_path, 'w') as outfile:
             json.dump({"name": "Domain", "type": "root", "children": list(self.conv(
                 k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False)
+        return out_path
+
+    def json_tree_reformatter(self, json_path: str):
+
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        class _GtdbTreeRow:
+            __slots__ = ('id', 'taxon', 'total', 'type', 'is_rep', 'type_material')
+            def __init__(self, row_id: int, taxon: str, total: int, row_type: str,
+                         is_rep: bool, type_mat: str):
+                self.id: int = row_id
+                self.taxon: str = taxon
+                self.total: int = total
+                self.type: str = row_type
+                self.is_rep: bool = is_rep
+                self.type_material: str = type_mat
+
+        class _GtdbChildRow:
+            __slots__ = ('parent_id', 'child_id', 'order_id')
+            def __init__(self, parent_id: int, child_id: int, order_id: int):
+                self.parent_id: int = parent_id
+                self.child_id: int = child_id
+                self.order_id: int = order_id
+
+        d_taxon_to_row = dict()
+        links = list()
+
+        # Create a root node
+        root_node = _GtdbTreeRow(row_id=0,
+                                 taxon='root',
+                                 total=0,
+                                 row_type='root',
+                                 is_rep='',
+                                 type_mat='')
+        d_taxon_to_row[root_node.taxon] = root_node
+
+        queue = deque([(root_node.taxon, x, i) for i, x in enumerate(data['children'])])
+        while len(queue) > 0:
+            parent_taxon, cur_node, order_id = queue.popleft()
+
+            # This is handled on the front end
+            if 'extra_genomes' in cur_node:
+                continue
+
+            # Get the parent
+            parent_obj = d_taxon_to_row[parent_taxon]
+
+            # Create and save the current object
+            row_obj = _GtdbTreeRow(row_id=len(d_taxon_to_row),
+                                   taxon=cur_node['name'],
+                                   total=cur_node['countgen'],
+                                   row_type=cur_node['type'],
+                                   is_rep=cur_node.get('rep'),
+                                   type_mat=cur_node.get('type_material'))
+            d_taxon_to_row[row_obj.taxon] = row_obj
+
+            # Create a link to the parent
+            child_obj = _GtdbChildRow(parent_id=parent_obj.id,
+                                      child_id=row_obj.id,
+                                      order_id=order_id)
+            links.append(child_obj)
+
+            # Add the descendants and link to parent node
+            for i, child in enumerate(cur_node.get('children', [])):
+                queue.append((row_obj.taxon, child, i))
+
+        # Output it to self.output_dir
+        path_gtdb_tree = os.path.join(self.output_dir, 'gtdb_tree.tsv')
+        with open(path_gtdb_tree, 'w') as f:
+            f.write('\t'.join(['id', 'taxon', 'total', 'type', 'is_rep', 'type_material']) + '\n')
+            for row_obj in d_taxon_to_row.values():
+                f.write(str(row_obj.id) + '\t')
+                f.write(row_obj.taxon + '\t')
+                f.write(str(row_obj.total) + '\t')
+                f.write(row_obj.type + '\t')
+                f.write(str(row_obj.is_rep) if row_obj.is_rep else '')
+                f.write('\t')
+                f.write(str(row_obj.type_material) if row_obj.type_material else '')
+                f.write('\n')
+        print(f'Wrote gtdb_tree.tsv import script to: {path_gtdb_tree}')
+
+        path_gtdb_tree_children = os.path.join(self.output_dir, 'gtdb_tree_children.tsv')
+        with open(path_gtdb_tree_children, 'w') as f:
+            f.write('\t'.join(['parent_id', 'child_id', 'order_id']) + '\n')
+            for child_obj in links:
+                f.write(str(child_obj.parent_id) + '\t')
+                f.write(str(child_obj.child_id) + '\t')
+                f.write(str(child_obj.order_id) + '\n')
+
+        print(f'Wrote gtdb_tree_children.tsv import script to: {path_gtdb_tree_children}')
+        return
+
+
 
     def parse_metadata(self, metadatafile):
         result = {}
@@ -1473,6 +1568,7 @@ class WebsiteData(object):
         with open(metadatafile) as metafile:
             header = metafile.readline()
             listheaders = header.rstrip().split('\t')
+            acc = listheaders.index('accession') if 'accession' in listheaders else 0
             gr = listheaders.index('gtdb_representative')
             gtd = listheaders.index("gtdb_type_designation")
             gcomp = listheaders.index("checkm_completeness")
@@ -1485,7 +1581,7 @@ class WebsiteData(object):
             gtdb_tax = listheaders.index("gtdb_taxonomy")
             for line in metafile:
                 infos = line.rstrip().split('\t')
-                result[infos[0]] = {'rep': infos[gr],
+                result[infos[acc]] = {'rep': infos[gr],
                                     'type': infos[gtd],
                                     'comp': float(infos[gcomp]),
                                     'conta': float(infos[gconta]),

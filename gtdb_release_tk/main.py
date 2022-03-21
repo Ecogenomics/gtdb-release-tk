@@ -302,8 +302,9 @@ class OptionsParser():
         """generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree"""
 
         p = WebsiteData(options.release_number, options.output_dir)
-        p.json_tree_parser(options.taxonomy_file,
-                           options.metadata_file)
+        json_path = p.json_tree_parser(options.taxonomy_file,
+                                       options.metadata_file)
+        p.json_tree_reformatter(json_path)
         self.logger.info('Done.')
 
     def genome_category_rank(self, options):
