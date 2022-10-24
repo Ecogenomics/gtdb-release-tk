@@ -401,14 +401,12 @@ class OptionsParser():
 
     def itol(self, options):
         """Generate tree and iTOL files for producing iTOL tree image."""
-
-        check_file_exists(options.bac120_tree)
-        check_file_exists(options.ar122_tree)
+        check_file_exists(options.tree_file)
+        check_file_exists(options.metadata_file)
         make_sure_path_exists(options.output_dir)
 
-        p = iTOL(options.release_number, options.output_dir)
-        p.run(options.bac120_tree,
-              options.ar122_tree)
+        p = iTOL(options.output_dir)
+        p.run(options.tree_file, options.metadata_file)
 
         self.logger.info('Done.')
 

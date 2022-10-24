@@ -21,5 +21,6 @@ setup(
     url='https://github.com/Ecogenomics/gtdb-release-tk',
     license='GPL3',
     description='The GTDB Release Toolkit provides functionality for updating the GTDB to the next release and generating data files for the GTDB website.',
-    install_requires=['biolib>=0.1.0', 'dendropy', 'unidecode', 'requests', 'matplotlib', 'numpy', 'tqdm'],
+    install_requires=['biolib>=0.1.0', 'dendropy', 'unidecode', 'requests', 'matplotlib',
+                      'numpy', 'tqdm', 'pandas', 'seaborn', 'gtdblib>=1.1.0,<1.2.0'],
 )

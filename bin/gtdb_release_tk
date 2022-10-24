@@ -528,18 +528,15 @@ if __name__ == '__main__':
     sp_rep_type_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
-    # pie chart indicating type information for the GTBD species
+    # pie chart indicating type information for the GTDB species
     # representatives
     itol_parser = subparsers.add_parser('itol',
                                         formatter_class=CustomHelpFormatter,
                                         description='Generate tree and iTOL files for producing iTOL tree image.')
-    itol_parser.add_argument(
-        'bac120_tree', help='bacterial GTDB reference tree')
-    itol_parser.add_argument('ar122_tree', help='archaeal GTDB reference tree')
-    itol_parser.add_argument('release_number', help='release number (ex. 86)')
+    itol_parser.add_argument('tree_file', help='GTDB reference tree')
+    itol_parser.add_argument('metadata_file', help='GTDB metadata file')
     itol_parser.add_argument('output_dir', help='output directory')
-    itol_parser.add_argument(
-        '--silent', help="suppress output", action='store_true')
+    itol_parser.add_argument('--silent', help="suppress output", action='store_true')
 
     # select representative genomes at each taxonomic rank
     reps_per_rank_parser = subparsers.add_parser('reps_per_rank',
