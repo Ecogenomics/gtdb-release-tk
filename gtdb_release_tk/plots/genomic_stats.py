@@ -162,7 +162,7 @@ class GenomicStats(object):
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
                 ncbi_taxonomy_index = header.index('ncbi_taxonomy')
                 gtdb_rep_index = header.index('gtdb_representative')
-                gtdb_type_index = header.index('gtdb_type_designation')
+                gtdb_type_index = header.index('gtdb_type_designation_ncbi_taxa')
                     
                 for line in f:
                     line_split = line.strip().split('\t')

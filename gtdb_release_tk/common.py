@@ -1,3 +1,4 @@
+import gzip
 import os
 import sys
 from collections import defaultdict, namedtuple
@@ -197,7 +198,12 @@ def parse_gtdb_metadata(metadata_file, fields):
 
 def parse_tophit_file(path):
     out = dict()
-    with open(path, 'r') as fh:
+
+    open_file = open
+    if path.endswith('.gz'):
+        open_file = gzip.open
+
+    with open_file(path, 'rt') as fh:
         fh.readline()
         for line in fh.readlines():
             gid, hits = line.strip().split('\t')

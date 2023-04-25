@@ -105,6 +105,29 @@ class OptionsParser():
 
         self.logger.info('Done.')
 
+    def qc_file(self, options):
+        """Generate file indicating genomes failing QC."""
+
+        check_file_exists(options.qc_failed_file)
+        check_file_exists(options.canonical_gid_table)
+        make_sure_path_exists(options.output_dir)
+
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.qc_file(options.qc_failed_file,options.canonical_gid_table)
+
+        self.logger.info('Done.')
+
+    def lpsn_urls(self, options):
+        """Generate file indicating genomes failing QC."""
+
+        check_file_exists(options.lpsn_species_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = WebsiteData(options.release_number, options.output_dir)
+        p.lpsn_urls(options.lpsn_species_file)
+
+        self.logger.info('Done.')
+
     def ssu_files(self, options):
         """Generate 16S rRNA FASTA files for GTDB website."""
 
@@ -302,9 +325,8 @@ class OptionsParser():
         """generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree"""
 
         p = WebsiteData(options.release_number, options.output_dir)
-        json_path = p.json_tree_parser(options.taxonomy_file,
-                                       options.metadata_file)
-        p.json_tree_reformatter(json_path)
+        p.json_tree_parser(options.taxonomy_file,
+                           options.metadata_file)
         self.logger.info('Done.')
 
     def genome_category_rank(self, options):
@@ -413,7 +435,6 @@ class OptionsParser():
         check_file_exists(options.bac120_msa_file)
         check_file_exists(options.ar122_msa_file)
         check_file_exists(options.ssu_fasta_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = RepsPerRank(options.release_number, options.output_dir)
@@ -422,7 +443,6 @@ class OptionsParser():
               options.bac120_msa_file,
               options.ar122_msa_file,
               options.ssu_fasta_file,
-              options.user_gid_table,
               options.genomes_per_taxon,
               options.min_ssu_len,
               options.min_msa_perc)
@@ -493,6 +513,10 @@ class OptionsParser():
             self.marker_files(options)
         elif options.subparser_name == 'msa_files':
             self.msa_files(options)
+        elif options.subparser_name == 'qc_file':
+            self.qc_file(options)
+        elif options.subparser_name == 'lpsn_urls':
+            self.lpsn_urls(options)
         elif options.subparser_name == 'gene_files':
             self.gene_files(options)
         elif options.subparser_name == 'protein_files':

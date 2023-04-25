@@ -205,8 +205,7 @@ class RepsPerRank(object):
                         genomes_in_rank, 
                         metadata,
                         ssu_length, min_ssu_len,
-                        ar122_msa_per, bac120_msa_per, min_msa_perc,
-                        rev_user_gids):
+                        ar122_msa_per, bac120_msa_per, min_msa_perc):
         """Sample genomes from taxa."""
         
         rank_label = Taxonomy.rank_labels[rank_to_sample]
@@ -289,7 +288,7 @@ class RepsPerRank(object):
                     desc = 'GTDB representative genome'
                 
                 fout.write('{}\t{}\t{}\t{}\t{:.2f}\t{:.2f}\t{:.2f}\t{}\n'.format(
-                                rev_user_gids.get(gid, gid),
+                                gid,
                                 taxon, 
                                 ';'.join(metadata[gid].gtdb_taxonomy),
                                 metadata[gid].ncbi_taxonomy, 
@@ -302,7 +301,7 @@ class RepsPerRank(object):
                 fout_missing.write('{}\n'.format(taxon))
                 for gid in genome_ids:
                     fout_missing.write('\t{}\t{}\n'.format(
-                                        rev_user_gids.get(gid, gid), 
+                                        gid,
                                         filtered_desc[gid]))
                 no_taxon_rep.add(taxon)
                 
@@ -323,19 +322,11 @@ class RepsPerRank(object):
                 bac120_msa_file,
                 ar122_msa_file,
                 ssu_fasta_file,
-                user_gid_table,
                 genomes_per_taxon,
                 min_ssu_len,
                 min_msa_perc):
         """Select representative genomes at each taxonomic rank."""
-        
-        # create reverse lookup table for User genome IDs
-        user_gids = parse_user_gid_table(user_gid_table)
-        rev_user_gids = {}
-        for user_id, target_id in user_gids.items():
-            if target_id.startswith('UBA'):
-                rev_user_gids[target_id] = user_id
-        
+
         # get genome metadata
         self.logger.info('Reading GTDB metadata.')
         metadata = self.read_metadata(bac120_metadata_file, ar120_metadata_file)
@@ -365,5 +356,4 @@ class RepsPerRank(object):
                                         genomes_in_rank, 
                                         metadata,
                                         ssu_length, min_ssu_len,
-                                        ar122_msa_per, bac120_msa_per, min_msa_perc,
-                                        rev_user_gids)
+                                        ar122_msa_per, bac120_msa_per, min_msa_perc)

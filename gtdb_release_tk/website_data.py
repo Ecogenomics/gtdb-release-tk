@@ -26,7 +26,7 @@ import glob
 from biolib.common import make_sure_path_exists, canonical_gid
 from tqdm import tqdm
 import sys
-from collections import Counter, deque
+from collections import Counter
 from collections import defaultdict
 
 from pathlib import Path, PurePath
@@ -39,7 +39,7 @@ from gtdb_release_tk.common import (parse_user_gid_table, parse_canonical_gid_ta
                                     parse_genomic_path_file,
                                     parse_species_clusters,
                                     parse_gtdb_metadata, parse_tophit_file, parse_taxonomy_file)
-from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN, BAC120_MARKERS, AR122_MARKERS
+from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN, BAC120_MARKERS, AR53_MARKERS
 
 
 class WebsiteData(object):
@@ -84,12 +84,12 @@ class WebsiteData(object):
         # create archaeal and bacterial taxonomy files
         if only_reps:
             fout_ar = open(
-                self.output_dir / 'ar122_taxonomy_r{}_reps.tsv'.format(self.release_number), 'w')
+                self.output_dir / 'ar53_taxonomy_r{}_reps.tsv'.format(self.release_number), 'w')
             fout_bac = open(
                 self.output_dir / 'bac120_taxonomy_r{}_reps.tsv'.format(self.release_number), 'w')
         else:
             fout_ar = open(
-                self.output_dir / 'ar122_taxonomy_r{}.tsv'.format(self.release_number), 'w')
+                self.output_dir / 'ar53_taxonomy_r{}.tsv'.format(self.release_number), 'w')
             fout_bac = open(
                 self.output_dir / 'bac120_taxonomy_r{}.tsv'.format(self.release_number), 'w')
 
@@ -119,7 +119,7 @@ class WebsiteData(object):
         self.logger.info(
             'Identifying SSU sequence for each representative genome.')
         fout_ar = open(self.output_dir /
-                       'ar122_ssu_reps_r{}.fna'.format(self.release_number), 'w')
+                       'ar53_ssu_reps_r{}.fna'.format(self.release_number), 'w')
         fout_bac = open(self.output_dir /
                         'bac120_ssu_reps_r{}.fna'.format(self.release_number), 'w')
 
@@ -127,7 +127,7 @@ class WebsiteData(object):
         failed_contig_len = 0
         failed_max_ssu_len = 0
         valid_ssu_seqs = 0
-        for gid, taxa in reps.items():
+        for gid, taxa in tqdm(reps.items()):
             if taxa[0] == 'd__Archaea':
                 fout = fout_ar
                 min_gene_len = min_16S_ar_len
@@ -213,9 +213,20 @@ class WebsiteData(object):
             for cid in cids:
                 gid_rep[cid] = rid
 
-        for gids in sp_clusters.values():
-            for gid in gids:
+        # initialising progress bar objects
+        high_loop = tqdm(range(1), bar_format='{desc:<5.5}{percentage:3.0f}%|{bar:100}{r_bar}')
+        low_loop = tqdm(range(1), bar_format='{desc:<5.5}{percentage:3.0f}%|{bar:100}{r_bar}')
 
+        high_loop.refresh()
+        high_loop.reset(total=len(sp_clusters))
+
+        for gids in sp_clusters.values():
+            high_loop.update()
+
+            low_loop.refresh()
+            low_loop.reset(total=len(gids))
+            for gid in gids:
+                low_loop.update()
                 genome_path = Path(genome_paths[gid])
                 ssu_dir = genome_path / SSU_DIR
                 if not ssu_dir.exists():
@@ -331,7 +342,6 @@ class WebsiteData(object):
 
                 type_genome = line_split[type_genome_index]
                 type_genome = canonical_gids.get(type_genome, type_genome)
-                print(type_genome)
 
                 ani = line_split[ani_index]
                 cluster_size = int(line_split[cluster_size_index])
@@ -462,6 +472,38 @@ class WebsiteData(object):
             len(species),
             rep_count))
 
+    def qc_file(self,qc_failed_file,canonical_gid_table):
+        # parse canonical ID mapping table
+        self.logger.info('Parsing canonical ID mapping table.')
+        canonical_gids = parse_canonical_gid_table(canonical_gid_table)
+
+        # write out file with GTDB species clusters
+        fout = open(self.output_dir /
+                    'qc_failed_r{}.tsv'.format(self.release_number), 'w')
+
+        with open(qc_failed_file) as fin:
+            header = fin.readline()
+            fout.write(header)
+            for line in fin:
+                infos = line.strip().split('\t')
+                if infos[0] in canonical_gids:
+                    infos[0] = canonical_gids.get(infos[0])
+                fout.write('\t'.join(infos)+'\n')
+
+    def lpsn_urls(self,lpsn_species_file):
+        species_dict = {}
+
+        with open(lpsn_species_file, 'r') as slf:
+            for line in slf:
+                _letter, raw_spename, url = line.strip().split("\t")
+                spename = raw_spename.replace('"', '').replace('Candidatus ', '')
+                species_dict['s__' + spename] = url
+
+        with open(os.path.join(self.output_dir,'species_urls_{}.json'.format(self.release_number)), 'w') as file:
+            file.write(json.dumps(species_dict))
+
+
+
     def tree_files(self,
                    metadata_file,
                    bac_tree,
@@ -508,7 +550,7 @@ class WebsiteData(object):
             gid = canonical_gids.get(gid, gid)
             leaf.taxon.label = gid
 
-        ar_tree.write_to_path(self.output_dir / f'ar122_r{self.release_number}.tree',
+        ar_tree.write_to_path(self.output_dir / f'ar53_r{self.release_number}.tree',
                               schema='newick',
                               suppress_rooting=True,
                               unquoted_underscores=True)
@@ -523,7 +565,7 @@ class WebsiteData(object):
 
         self.logger.info('Creating trees with species labels.')
         for domain_tree, output_tree in [(bac_tree, f'bac120_r{self.release_number}.sp_labels.tree'),
-                                         (ar_tree, f'ar122_r{self.release_number}.sp_labels.tree')]:
+                                         (ar_tree, f'ar53_r{self.release_number}.sp_labels.tree')]:
             for leaf in domain_tree.leaf_node_iter():
                 gid = leaf.taxon.label
                 gtdb_sp = gtdb_reps[gid][6]
@@ -535,7 +577,7 @@ class WebsiteData(object):
                                       unquoted_underscores=True)
 
     def marker_files(self, bac120_gene_dir,
-                     ar122_gene_dir):
+                     ar53_gene_dir):
         """Generate marker gene file."""
 
 
@@ -543,13 +585,13 @@ class WebsiteData(object):
         self.logger.info('Copying and renaming marker info files.')
         shutil.copyfile(PurePath(bac120_gene_dir) / 'bac120_markers_info.tsv',
                         self.output_dir / f'bac120_msa_marker_info_r{self.release_number}.tsv')
-        shutil.copyfile(PurePath(ar122_gene_dir) / 'ar122_markers_info.tsv',
-                        self.output_dir / f'ar122_msa_marker_info_r{self.release_number}.tsv')
+        shutil.copyfile(PurePath(ar53_gene_dir) / 'ar53_markers_info.tsv',
+                        self.output_dir / f'ar53_msa_marker_info_r{self.release_number}.tsv')
 
         # compress individual marker gene alignments
         self.logger.info(
             'Creating compressed files containing all marker gene MSAs.')
-        for msa_dir, prefix in [(ar122_gene_dir, 'ar122'), (bac120_gene_dir, 'bac120')]:
+        for msa_dir, prefix in [(ar53_gene_dir, 'ar53'), (bac120_gene_dir, 'bac120')]:
             self.logger.info(f'Reading {msa_dir}.')
             msa_file = self.output_dir / f'{prefix}_msa_marker_genes_r{self.release_number}.tar.gz'
 
@@ -575,7 +617,7 @@ class WebsiteData(object):
             os.system(cmd)
 
     def msa_files(self, bac120_msa_file,
-                  ar122_msa_file,
+                  ar53_msa_file,
                   metadata_file,canonical_gid_table):
         """Generate concatenated MSA files."""
 
@@ -592,7 +634,7 @@ class WebsiteData(object):
 
         # create MSA files for representative genomes with modified genome IDs
         self.logger.info('Creating MSA files.')
-        for msa_file, prefix in [(ar122_msa_file, 'ar122'), (bac120_msa_file, 'bac120')]:
+        for msa_file, prefix in [(ar53_msa_file, 'ar53'), (bac120_msa_file, 'bac120')]:
             out_file = f'{prefix}_msa_r{self.release_number}.faa'
             fout = open(self.output_dir / out_file, 'w')
             count = 0
@@ -614,14 +656,15 @@ class WebsiteData(object):
             if job is None:
                 break
             gid, domain, dir_base = job
+            gid_no_header = gid.replace('RS_', '').replace('GB_', '')
 
             dir_prodigal = os.path.join(dir_base, 'prodigal')
             try:
-                path_pfam_th = glob.glob(f'{dir_prodigal}/*_pfam_tophit.tsv')[0]
+                path_pfam_th = os.path.join(f'{dir_prodigal}',f'{gid_no_header}_pfam_lite_tophit.tsv.gz')
             except IndexError as error:
                 print(dir_prodigal)
-                print(glob.glob(f'{dir_prodigal}/*_pfam_tophit.tsv'))
-            path_tigr_th = glob.glob(f'{dir_prodigal}/*_tigrfam_tophit.tsv')[0]
+                print(os.path.join(f'{dir_prodigal}',f'{gid_no_header}_pfam_lite_tophit.tsv.gz'))
+            path_tigr_th = os.path.join(f'{dir_prodigal}',f'{gid_no_header}_tigrfam_lite_tophit.tsv.gz')
 
             th_pfam = parse_tophit_file(path_pfam_th)
             th_tigr = parse_tophit_file(path_tigr_th)
@@ -629,22 +672,23 @@ class WebsiteData(object):
 
             # Determine which marker set to use
             if domain == 'd__Archaea':
-                marker_set = AR122_MARKERS
+                marker_set = AR53_MARKERS
             elif domain == 'd__Bacteria':
                 marker_set = BAC120_MARKERS
             else:
                 raise Exception('Unknown domain.')
 
             # Load the NT and AA files
-            path_fna = glob.glob(f'{dir_prodigal}/*_protein.fna')[0]
-            path_faa = glob.glob(f'{dir_prodigal}/*_protein.faa')[0]
+            path_fna = os.path.join(f'{dir_prodigal}',f'{gid_no_header}_protein.fna.gz')
+            path_faa = os.path.join(f'{dir_prodigal}',f'{gid_no_header}_protein.faa.gz')
 
             fna = seq_io.read_fasta(path_fna)
             faa = seq_io.read_fasta(path_faa)
 
             # Extract the sequences for each marker
+            set_thall = set(th_all.keys())
             for marker in marker_set:
-                if marker in th_all:
+                if marker in set_thall:
 
                     sorted_hits = sorted(
                         th_all[marker], key=lambda x: (-x[2], x[1]))
@@ -739,7 +783,10 @@ class WebsiteData(object):
 
                 # Gracefully terminate the program.
                 if p_worker.exitcode != 0:
-                    raise Exception('Worker returned non-zero exit code.')
+                    # print error message
+                    self.logger.error("Error in worker process.")
+                    raise Exception("Error in worker process.")
+
 
             # Stop the writer thread.
             q_writer.put(None)
@@ -776,8 +823,8 @@ class WebsiteData(object):
             cur_result = q_results.get()
 
         # Write the output to disk
-        for out_dict, domain, ext in [(arc_fna, 'ar122', 'fna'),
-                                      (arc_faa, 'ar122', 'faa'),
+        for out_dict, domain, ext in [(arc_fna, 'ar53', 'fna'),
+                                      (arc_faa, 'ar53', 'faa'),
                                       (bac_fna, 'bac120', 'fna'),
                                       (bac_faa, 'bac120', 'faa')]:
             cur_root = os.path.join(self.output_dir, f'{domain}_{self.release_number}_individual_genes', ext)
@@ -810,26 +857,25 @@ class WebsiteData(object):
 
         # Parse the genomic path
         self.logger.info(
-            'Parsing genome directory files ( including UBA paths).')
+            'Parsing genome directory files.')
         genome_dirs = parse_genomic_path_file(genome_dirs_file)
 
-        print(reps)
+        # keep only the representative genomes in user_tax
+        user_tax = {k: v for k, v in user_tax.items() if k in reps}
 
-        for gid, taxonomy in user_tax.items():
-            print(gid)
+
+        for gid, taxonomy in tqdm(user_tax.items()):
             if gid in reps:
                 path_of_interest = os.path.join(
                     genome_dirs.get(gid), 'prodigal')
-                print(path_of_interest)
-                protein_files = glob.glob(f'{path_of_interest}/*_protein.faa')
-                print(protein_files)
+                protein_files = glob.glob(f'{path_of_interest}/*_protein.faa.gz')
                 for protein_file in protein_files:
                     if taxonomy.startswith('d__Archaea'):
                         domain = 'archaea'
                     else:
                         domain = 'bacteria'
                     shutil.copy(protein_file, os.path.join(
-                        self.output_dir, domain, gid + '_protein.faa'))
+                        self.output_dir, domain, gid + '_protein.faa.gz'))
 
     def nucleotide_files(self, raw_taxonomy, genome_dirs_file, metadata_file):
 
@@ -850,18 +896,21 @@ class WebsiteData(object):
             'Parsing genome directory files ( including UBA paths).')
         genome_dirs = parse_genomic_path_file(genome_dirs_file)
 
-        for gid, taxonomy in user_tax.items():
+        # keep only the representative genomes in user_tax
+        user_tax = {k: v for k, v in user_tax.items() if k in reps}
+
+        for gid, taxonomy in tqdm(user_tax.items()):
             if gid in reps:
                 path_of_interest = os.path.join(
                     genome_dirs.get(gid), 'prodigal')
-                protein_files = glob.glob(f'{path_of_interest}/*_protein.fna')
+                protein_files = glob.glob(f'{path_of_interest}/*_protein.fna.gz')
                 for protein_file in protein_files:
                     if taxonomy.startswith('d__Archaea'):
                         domain = 'archaea'
                     else:
                         domain = 'bacteria'
                     shutil.copy(protein_file, os.path.join(
-                        self.output_dir, domain, gid + '_protein.fna'))
+                        self.output_dir, domain, gid + '_protein.fna.gz'))
 
     def metadata_files(self, metadata_file,
                        metadata_fields,
@@ -900,7 +949,7 @@ class WebsiteData(object):
         self.logger.info('Creating domain-specific metadata fields.')
         fout_bac = open(self.output_dir / f'bac120_metadata_r{self.release_number}.tsv', 'w',
                         encoding='utf-8')
-        fout_ar = open(self.output_dir / f'ar122_metadata_r{self.release_number}.tsv', 'w',
+        fout_ar = open(self.output_dir / f'ar53_metadata_r{self.release_number}.tsv', 'w',
                        encoding='utf-8')
 
         fields_sorted = sorted(fields)
@@ -950,7 +999,7 @@ class WebsiteData(object):
 
         self.logger.info(f'Wrote metadata for {count:,} genomes.')
 
-    def copy_all_genes(self, bac120_taxonomy, ar122_taxonomy, user_gid_table, genome_dirs_file, extension):
+    def copy_all_genes(self, bac120_taxonomy, ar53_taxonomy, user_gid_table, genome_dirs_file, extension):
         # parse user genome ID mapping table
         self.logger.info('Parsing user genome ID mapping table.')
         user_gids = parse_user_gid_table(user_gid_table)
@@ -960,7 +1009,7 @@ class WebsiteData(object):
             'Parsing genome directory files ( including UBA paths).')
         genome_dirs = parse_genomic_path_file(genome_dirs_file, user_gids)
 
-        for domain, taxonomy_file in [('archaea', ar122_taxonomy), ('bacteria', bac120_taxonomy)]:
+        for domain, taxonomy_file in [('archaea', ar53_taxonomy), ('bacteria', bac120_taxonomy)]:
             count = 0
             with open(taxonomy_file, 'r') as tf:
 
@@ -1021,7 +1070,7 @@ class WebsiteData(object):
                   metadata_fields,
                   user_gid_table,
                   bac120_msa_file,
-                  ar122_msa_file):
+                  ar53_msa_file):
         """Generate ARB metadata files."""
 
         # parse user genome ID mapping table
@@ -1063,12 +1112,12 @@ class WebsiteData(object):
 
         # read MSA files
         seqs = {}
-        for seq_file in [bac120_msa_file, ar122_msa_file]:
+        for seq_file in [bac120_msa_file, ar53_msa_file]:
             for seq_id, seq in seq_io.read_seq(bac120_msa_file):
                 seqs[seq_id] = seq
 
         # write out ARB metadata file for each domain
-        for prefix, msa_file in [('bac120', bac120_msa_file), ('ar122', ar122_msa_file)]:
+        for prefix, msa_file in [('bac120', bac120_msa_file), ('ar53', ar53_msa_file)]:
             # read MSA files
             seqs = seq_io.read(msa_file)
 
@@ -1382,9 +1431,9 @@ class WebsiteData(object):
 
     def sorted_genome(self, list_genomes, meta_information):
         print(list_genomes)
-        # for g in list_genomes:
-        #     print(g)
-        #     print(meta_information.get(g).get('rep'))
+        for g in list_genomes:
+            print(g)
+            print(meta_information.get(g).get('rep'))
         list_representatives = [
             gen for gen in list_genomes if meta_information.get(gen).get('rep') == 't']
         list_type_species = [gen for gen in list_genomes if meta_information.get(gen).get(
@@ -1394,11 +1443,11 @@ class WebsiteData(object):
             'conta') for gen in list_genomes if gen not in list_representatives + list_type_species}
         list_quality = sorted(dict_quality, key=dict_quality.get)
         full_list = list_representatives + list_type_species + list_quality
-        # if len(full_list) > 100:
-        #     shorten_list = full_list[0:100]
-        #     remaining_genomes = len(full_list) - len(shorten_list)
-        #     shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
-        #     return shorten_list
+        if len(full_list) > 100:
+            shorten_list = full_list[0:100]
+            remaining_genomes = len(full_list) - len(shorten_list)
+            shorten_list.append(f'+ {remaining_genomes:,} additional genomes.')
+            return shorten_list
         return full_list
 
     def is_valid_name(self, rank_name):
@@ -1463,104 +1512,9 @@ class WebsiteData(object):
                         tax_dict[drank][prank][crank][orank][frank][grank][srank] = []
                     tax_dict[drank][prank][crank][orank][frank][grank][srank].append(
                         genome)
-        out_path = os.path.join(self.output_dir, f'genome_taxonomy_r{self.release_number}_count.json')
-        with open(out_path, 'w') as outfile:
+        with open('genome_taxonomy_r{}_count.json'.format(self.release_number), 'w') as outfile:
             json.dump({"name": "Domain", "type": "root", "children": list(self.conv(
                 k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False)
-        return out_path
-
-    def json_tree_reformatter(self, json_path: str):
-
-        with open(json_path, 'r') as f:
-            data = json.load(f)
-
-        class _GtdbTreeRow:
-            __slots__ = ('id', 'taxon', 'total', 'type', 'is_rep', 'type_material')
-            def __init__(self, row_id: int, taxon: str, total: int, row_type: str,
-                         is_rep: bool, type_mat: str):
-                self.id: int = row_id
-                self.taxon: str = taxon
-                self.total: int = total
-                self.type: str = row_type
-                self.is_rep: bool = is_rep
-                self.type_material: str = type_mat
-
-        class _GtdbChildRow:
-            __slots__ = ('parent_id', 'child_id', 'order_id')
-            def __init__(self, parent_id: int, child_id: int, order_id: int):
-                self.parent_id: int = parent_id
-                self.child_id: int = child_id
-                self.order_id: int = order_id
-
-        d_taxon_to_row = dict()
-        links = list()
-
-        # Create a root node
-        root_node = _GtdbTreeRow(row_id=0,
-                                 taxon='root',
-                                 total=0,
-                                 row_type='root',
-                                 is_rep='',
-                                 type_mat='')
-        d_taxon_to_row[root_node.taxon] = root_node
-
-        queue = deque([(root_node.taxon, x, i) for i, x in enumerate(data['children'])])
-        while len(queue) > 0:
-            parent_taxon, cur_node, order_id = queue.popleft()
-
-            # This is handled on the front end
-            if 'extra_genomes' in cur_node:
-                continue
-
-            # Get the parent
-            parent_obj = d_taxon_to_row[parent_taxon]
-
-            # Create and save the current object
-            row_obj = _GtdbTreeRow(row_id=len(d_taxon_to_row),
-                                   taxon=cur_node['name'],
-                                   total=cur_node['countgen'],
-                                   row_type=cur_node['type'],
-                                   is_rep=cur_node.get('rep'),
-                                   type_mat=cur_node.get('type_material'))
-            d_taxon_to_row[row_obj.taxon] = row_obj
-
-            # Create a link to the parent
-            child_obj = _GtdbChildRow(parent_id=parent_obj.id,
-                                      child_id=row_obj.id,
-                                      order_id=order_id)
-            links.append(child_obj)
-
-            # Add the descendants and link to parent node
-            for i, child in enumerate(cur_node.get('children', [])):
-                queue.append((row_obj.taxon, child, i))
-
-        # Output it to self.output_dir
-        path_gtdb_tree = os.path.join(self.output_dir, 'gtdb_tree.tsv')
-        with open(path_gtdb_tree, 'w') as f:
-            f.write('\t'.join(['id', 'taxon', 'total', 'type', 'is_rep', 'type_material']) + '\n')
-            for row_obj in d_taxon_to_row.values():
-                f.write(str(row_obj.id) + '\t')
-                f.write(row_obj.taxon + '\t')
-                f.write(str(row_obj.total) + '\t')
-                f.write(row_obj.type + '\t')
-                f.write(str(row_obj.is_rep) if row_obj.is_rep else '')
-                f.write('\t')
-                f.write(str(row_obj.type_material) if row_obj.type_material else '')
-                f.write('\n')
-        print(f'Wrote gtdb_tree.tsv import script to: {path_gtdb_tree}')
-
-        path_gtdb_tree_children = os.path.join(self.output_dir, 'gtdb_tree_children.tsv')
-        with open(path_gtdb_tree_children, 'w') as f:
-            f.write('\t'.join(['parent_id', 'child_id', 'order_id']) + '\n')
-            for child_obj in links:
-                f.write(str(child_obj.parent_id) + '\t')
-                f.write(str(child_obj.child_id) + '\t')
-                f.write(str(child_obj.order_id) + '\n')
-
-        print(f'Wrote gtdb_tree_children.tsv import script to: {path_gtdb_tree_children}')
-        return
-
-
 
     def parse_metadata(self, metadatafile):
         result = {}
@@ -1568,9 +1522,8 @@ class WebsiteData(object):
         with open(metadatafile) as metafile:
             header = metafile.readline()
             listheaders = header.rstrip().split('\t')
-            acc = listheaders.index('accession') if 'accession' in listheaders else 0
             gr = listheaders.index('gtdb_representative')
-            gtd = listheaders.index("gtdb_type_designation")
+            gtd = listheaders.index("gtdb_type_designation_ncbi_taxa")
             gcomp = listheaders.index("checkm_completeness")
             gconta = listheaders.index("checkm_contamination")
             gts = listheaders.index("gtdb_species_type_strain")
@@ -1581,7 +1534,7 @@ class WebsiteData(object):
             gtdb_tax = listheaders.index("gtdb_taxonomy")
             for line in metafile:
                 infos = line.rstrip().split('\t')
-                result[infos[acc]] = {'rep': infos[gr],
+                result[infos[0]] = {'rep': infos[gr],
                                     'type': infos[gtd],
                                     'comp': float(infos[gcomp]),
                                     'conta': float(infos[gconta]),
