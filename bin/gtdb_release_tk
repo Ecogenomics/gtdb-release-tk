@@ -16,10 +16,6 @@
 #                                                                             #
 ###############################################################################
 
-from biolib.misc.custom_help_formatter import CustomHelpFormatter
-from biolib.logger import logger_setup
-from gtdb_release_tk import version
-from gtdb_release_tk.main import OptionsParser
 __author__ = "Donovan Parks"
 __copyright__ = "Copyright 2019"
 __credits__ = ["Donovan Parks"]
@@ -28,9 +24,16 @@ __maintainer__ = "Donovan Parks"
 __email__ = "donovan.parks@gmail.com"
 __status__ = "Development"
 
-import argparse
 import os
 import sys
+import argparse
+
+
+from biolib.misc.custom_help_formatter import CustomHelpFormatter
+from biolib.logger import logger_setup
+
+from gtdb_release_tk import version
+from gtdb_release_tk.main import OptionsParser
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -545,17 +548,15 @@ if __name__ == '__main__':
     reps_per_rank_parser.add_argument(
         'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
     reps_per_rank_parser.add_argument(
-        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+        'ar53_metadata_file', help='metadata for archaeal GTDB genomes')
     reps_per_rank_parser.add_argument(
         'bac120_msa_file', help='filtered MSA for bacterial representative genomes')
     reps_per_rank_parser.add_argument(
-        'ar122_msa_file', help='filtered MSA for archaeal representative genomes')
+        'ar53_msa_file', help='filtered MSA for archaeal representative genomes')
     reps_per_rank_parser.add_argument(
         'ssu_fasta_file', help='FASTA file with SSU sequences for all GTDB genomes')
     reps_per_rank_parser.add_argument(
-        'user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    reps_per_rank_parser.add_argument(
-        'release_number', help='release number (ex. 86)')
+        'release_number', help='release number (ex. 214)')
     reps_per_rank_parser.add_argument('output_dir', help='output directory')
     reps_per_rank_parser.add_argument(
         '--genomes_per_taxon', help='genomes to sample from each taxon', type=int, default=1)

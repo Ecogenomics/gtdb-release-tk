@@ -443,20 +443,18 @@ class OptionsParser():
         """Select representative genomes at each taxonomic rank."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar122_metadata_file)
+        check_file_exists(options.ar53_metadata_file)
         check_file_exists(options.bac120_msa_file)
-        check_file_exists(options.ar122_msa_file)
+        check_file_exists(options.ar53_msa_file)
         check_file_exists(options.ssu_fasta_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = RepsPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file,
+              options.ar53_metadata_file,
               options.bac120_msa_file,
-              options.ar122_msa_file,
+              options.ar53_msa_file,
               options.ssu_fasta_file,
-              options.user_gid_table,
               options.genomes_per_taxon,
               options.min_ssu_len,
               options.min_msa_perc)
