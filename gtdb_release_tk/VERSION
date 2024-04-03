@@ -1,3 +1,12 @@
+0.0.8
+- updated method for selecting representative genomes at each taxonomic rank
+
+0.0.7
+- added Latin count table
+
+0.0.6
+- added synonym method
+
 0.0.5
 - added method to add species labels to leaf nodes
 

@@ -49,6 +49,9 @@ def sp_cluster_type_category(gids, genome_category):
 def parse_user_gid_table(user_gid_table):
     """Parse user genome ID table."""
 
+    if user_gid_table.lower() == 'none':
+        return {}
+
     user_gids = {}
     with open(user_gid_table) as f:
         for line in f:
@@ -56,8 +59,6 @@ def parse_user_gid_table(user_gid_table):
 
             if len(line_split) == 3:
                 user_gids[line_split[0]] = line_split[2]
-                # Temporary fix for migration from UBA to GCA R95
-                user_gids[line_split[1]] = line_split[2]
             elif len(line_split) == 2:
                 user_gids[line_split[0]] = line_split[1]
             else:
@@ -101,8 +102,8 @@ def parse_rep_genomes(gtdb_metadata_file):
             reps[gid] = gtdb_taxa
 
     return reps
-
-
+    
+    
 def parse_genomic_path_file(genome_path_file):
     """Parse path to data directory for each genome."""
 
@@ -195,6 +196,44 @@ def parse_gtdb_metadata(metadata_file, fields):
             m[gid] = gtdb_metadata._make(values)
 
     return m
+
+
+
+def parse_gtdb_sp_clusters(metadata_file):
+    """Parse GTDB species clusters from metadata file."""
+
+    sp_clusters = defaultdict(set)
+    with open(metadata_file, encoding='utf-8') as f:
+        header = f.readline().strip().split('\t')
+
+        gtdb_rep_index = header.index('gtdb_genome_representative')
+
+        for line in f:
+            line_split = line.strip().split('\t')
+
+            gid = line_split[0]
+            gtdb_rid = line_split[gtdb_rep_index]
+            sp_clusters[gtdb_rid].add(gid)
+
+    return sp_clusters
+
+
+def parse_genome_category(metadata_file):
+    """Parse NCBI genome category for each genome."""
+
+    genome_category = {}
+    with open(metadata_file, encoding='utf-8') as f:
+        header = f.readline().strip().split('\t')
+
+        genome_category_index = header.index('ncbi_genome_category')
+
+        for line in f:
+            line_split = line.strip().split('\t')
+
+            gid = line_split[0]
+            genome_category[gid] = line_split[genome_category_index]
+
+    return genome_category
 
 
 def parse_tophit_file(path):

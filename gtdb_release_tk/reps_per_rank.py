@@ -25,20 +25,14 @@ __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
 import os
-import sys
 import logging
-import argparse
-import ntpath
-import csv
-import random
 import operator
+import gzip
 from pathlib import PurePath
 from collections import defaultdict, namedtuple
 
 from biolib.taxonomy import Taxonomy
 from biolib.seq_io import read_seq
-
-from gtdb_release_tk.common import parse_user_gid_table
 
    
 class RepsPerRank(object):
@@ -90,7 +84,11 @@ class RepsPerRank(object):
 
         metadata = {}
         for mf in [bac120_metadata_file, ar120_metadata_file]:
-            with open(mf, encoding='utf-8') as f:
+            maybe_gzip_open = open
+            if mf.endswith('.gz'):
+                maybe_gzip_open = gzip.open
+
+            with maybe_gzip_open(mf, mode = 'rt', encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
 
                 genome_index = header.index('accession')
@@ -99,7 +97,7 @@ class RepsPerRank(object):
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
                 ncbi_taxonomy_index = header.index('ncbi_taxonomy')
                 gtdb_rep_index = header.index('gtdb_representative')
-                gtdb_type_index = header.index('gtdb_type_designation')
+                gtdb_type_index = header.index('gtdb_type_designation_ncbi_taxa')
                     
                 for line in f:
                     line_split = line.strip().split('\t')
@@ -318,9 +316,9 @@ class RepsPerRank(object):
         
     def run(self, 
                 bac120_metadata_file,
-                ar120_metadata_file,
+                ar53_metadata_file,
                 bac120_msa_file,
-                ar122_msa_file,
+                ar53_msa_file,
                 ssu_fasta_file,
                 genomes_per_taxon,
                 min_ssu_len,
@@ -329,11 +327,11 @@ class RepsPerRank(object):
 
         # get genome metadata
         self.logger.info('Reading GTDB metadata.')
-        metadata = self.read_metadata(bac120_metadata_file, ar120_metadata_file)
+        metadata = self.read_metadata(bac120_metadata_file, ar53_metadata_file)
         
         # get percentage of amino acids in MSAs
         self.logger.info('Determining percentage of amino acids in MSAs.')
-        ar122_msa_per = self.read_msa_file(ar122_msa_file)
+        ar122_msa_per = self.read_msa_file(ar53_msa_file)
         bac120_msa_per = self.read_msa_file(bac120_msa_file)
 
         # get length of SSU sequences
