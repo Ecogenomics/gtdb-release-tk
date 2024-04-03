@@ -7,7 +7,8 @@ from biolib.common import canonical_gid
 
 ENV_CATEGORIES = set(['derived from single cell',
                       'derived from metagenome',
-                      'derived from environmental_sample'])
+                      'derived from environmental_sample',
+                      'derived from environmental sample'])
 
 
 def canonical_taxon_name(taxon):
@@ -29,7 +30,7 @@ def sp_cluster_type_category(gids, genome_category):
         elif genome_category[gid] == 'none':
             sp_genome_types.add('ISOLATE')
         else:
-            print('Unrecognized genome category: {genome_category[gid]}')
+            print(f'Unrecognized genome category: {genome_category[gid]}')
             sys.exit(-1)
 
     if len(sp_genome_types) == 2:
@@ -213,6 +214,7 @@ def parse_tophit_file(path):
                 if fam_id not in out:
                     out[fam_id] = list()
                 out[fam_id].append((gid, e_val, bitscore))
+
     return out
 
 

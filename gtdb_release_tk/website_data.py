@@ -657,8 +657,8 @@ class WebsiteData(object):
                 break
             gid, domain, dir_base = job
             gid_no_header = gid.replace('RS_', '').replace('GB_', '')
-
             dir_prodigal = os.path.join(dir_base, 'prodigal')
+
             try:
                 path_pfam_th = os.path.join(f'{dir_prodigal}',f'{gid_no_header}_pfam_lite_tophit.tsv.gz')
             except IndexError as error:
@@ -669,6 +669,7 @@ class WebsiteData(object):
             th_pfam = parse_tophit_file(path_pfam_th)
             th_tigr = parse_tophit_file(path_tigr_th)
             th_all = {**th_pfam, **th_tigr}
+
 
             # Determine which marker set to use
             if domain == 'd__Archaea':
@@ -696,6 +697,7 @@ class WebsiteData(object):
 
                     # Multihit check if seqs are the same, if not blanks
                     if len(th_all[marker]) > 1:
+
                         multi_seqs = {faa[x[0]] for x in th_all[marker]}
 
                         # Multiple hits with different genes - don't keep it
@@ -753,12 +755,13 @@ class WebsiteData(object):
         iterations = 0
         for gid, dir_base in user_tax.items():
             domain = dir_base.split(';')[0]
-            if only_reps and gid in reps:
-                q_worker.put((gid, domain, genome_dirs.get(gid)))
-                iterations += 1
-            elif not only_reps:
-                q_worker.put((gid, domain, genome_dirs.get(gid)))
-                iterations += 1
+            if gid in genome_dirs:
+                if only_reps and gid in reps:
+                    q_worker.put((gid, domain, genome_dirs.get(gid)))
+                    iterations += 1
+                elif not only_reps:
+                    q_worker.put((gid, domain, genome_dirs.get(gid)))
+                    iterations += 1
         [q_worker.put(None) for _ in range(cpus)]
 
 
@@ -800,6 +803,7 @@ class WebsiteData(object):
 
         # Parse the results
         arc_fna, arc_faa, bac_fna, bac_faa = dict(), dict(), dict(), dict()
+        print("Length of q_results: ", q_results.qsize())
         q_results.put(None)
         cur_result = q_results.get()
         while cur_result is not None:

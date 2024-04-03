@@ -162,7 +162,7 @@ class SpeciesRepType(object):
                 header = f.readline().strip().split('\t')
                 
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
-                gtdb_type_index = header.index('gtdb_type_designation')
+                gtdb_type_index = header.index('gtdb_type_designation_ncbi_taxa')
                 gtdb_rep_index = header.index('gtdb_representative')
                 gtdb_genome_rep_index = header.index('gtdb_genome_representative')
                 genome_category_index = header.index('ncbi_genome_category')
