@@ -127,7 +127,7 @@ class WebsiteData(object):
         failed_contig_len = 0
         failed_max_ssu_len = 0
         valid_ssu_seqs = 0
-        for gid, taxa in tqdm(reps.items()):
+        for gid, taxa in tqdm(reps.items(),ncols=100,desc='Genomes'):
             if taxa[0] == 'd__Archaea':
                 fout = fout_ar
                 min_gene_len = min_16S_ar_len
@@ -868,7 +868,7 @@ class WebsiteData(object):
         user_tax = {k: v for k, v in user_tax.items() if k in reps}
 
 
-        for gid, taxonomy in tqdm(user_tax.items()):
+        for gid, taxonomy in tqdm(user_tax.items(),ncols=100):
             if gid in reps:
                 path_of_interest = os.path.join(
                     genome_dirs.get(gid), 'prodigal')
@@ -903,7 +903,7 @@ class WebsiteData(object):
         # keep only the representative genomes in user_tax
         user_tax = {k: v for k, v in user_tax.items() if k in reps}
 
-        for gid, taxonomy in tqdm(user_tax.items()):
+        for gid, taxonomy in tqdm(user_tax.items(),ncols=100):
             if gid in reps:
                 path_of_interest = os.path.join(
                     genome_dirs.get(gid), 'prodigal')
