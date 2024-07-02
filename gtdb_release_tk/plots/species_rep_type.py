@@ -20,13 +20,9 @@ import logging
 from pathlib import PurePath
 from collections import defaultdict
 
-from biolib.taxonomy import Taxonomy
 from biolib.plots.abstract_plot import AbstractPlot
-
-from numpy import (arange as np_arange,
-                    array as np_array)
                     
-from gtdb_release_tk.common import ENV_CATEGORIES
+from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
 
 
 class SpeciesRepTypePlot(AbstractPlot):
@@ -52,13 +48,13 @@ class SpeciesRepTypePlot(AbstractPlot):
         colors = []
         for c in [type_strain_categories, latinized_categories, placeholder_categories]:
             sizes.append(c.get('ISOLATE', 0))
-            colors.append('#fdae6b')
+            colors.append(COLOR_BLIND_PALETTE.orange)
             
             sizes.append(c.get('MAG', 0))
-            colors.append('#b3de69')
+            colors.append(COLOR_BLIND_PALETTE.blue)
             
             sizes.append(c.get('SAG', 0))
-            colors.append('#80b1d3')
+            colors.append(COLOR_BLIND_PALETTE.grey)
             
 
         wedgeprops = {'linewidth': 1, 
@@ -161,7 +157,7 @@ class SpeciesRepType(object):
                 header = f.readline().strip().split('\t')
                 
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
-                gtdb_type_index = header.index('gtdb_type_designation')
+                gtdb_type_index = header.index('gtdb_type_designation_ncbi_taxa')
                 gtdb_rep_index = header.index('gtdb_representative')
                 gtdb_genome_rep_index = header.index('gtdb_genome_representative')
                 genome_category_index = header.index('ncbi_genome_category')

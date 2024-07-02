@@ -15,17 +15,17 @@
 #                                                                             #
 ###############################################################################
 
-import os
-import sys
 import logging
 from pathlib import PurePath
-from collections import defaultdict
 
 from biolib.taxonomy import Taxonomy
 from biolib.plots.abstract_plot import AbstractPlot
 
 from numpy import (arange as np_arange,
                     array as np_array)
+
+from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+
 
 class NCBI_ComparePlot(AbstractPlot):
     """Box and whisker plot."""
@@ -48,9 +48,9 @@ class NCBI_ComparePlot(AbstractPlot):
         passive = np_array(passive)
         active = np_array(active)
 
-        p1 = axis.bar(ind, unchanged, width, color='#80b1d3')
-        p2 = axis.bar(ind, passive, width, bottom=unchanged, color='#fdae6b')
-        p3 = axis.bar(ind, active, width, bottom=unchanged+passive, color='#b3de69')
+        p1 = axis.bar(ind, unchanged, width, color=COLOR_BLIND_PALETTE.grey)
+        p2 = axis.bar(ind, passive, width, bottom=unchanged, color=COLOR_BLIND_PALETTE.orange)
+        p3 = axis.bar(ind, active, width, bottom=unchanged+passive, color=COLOR_BLIND_PALETTE.blue)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))

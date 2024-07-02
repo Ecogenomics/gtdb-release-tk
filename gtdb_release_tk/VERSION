@@ -1,3 +1,6 @@
+0.0.9
+- updated to color blind safe palette for GTDB stat figures
+
 0.0.8
 - updated method for selecting representative genomes at each taxonomic rank
 

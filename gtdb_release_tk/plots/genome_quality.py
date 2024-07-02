@@ -24,24 +24,17 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import os
-import sys
+
 import logging
-import argparse
-import ntpath
-import csv
-import random
-import operator
 from pathlib import PurePath
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 
 from biolib.plots.abstract_plot import AbstractPlot
-
-from numpy import sum as np_sum
-                    
+                   
 from matplotlib.ticker import NullFormatter
-from matplotlib import collections
 import matplotlib.lines as mlines
+
+from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
 
 
 class GenomeQualityPlot(AbstractPlot):
@@ -96,23 +89,20 @@ class GenomeQualityPlot(AbstractPlot):
         p_x = []
         p_y = []
         p_c = []
-        colors = [(237/255.0,102/255.0,93/255.0),
-                (166/255.0,206/255.0,227/255.0),
-                (127/255.0,127/255.0,127/255.0)]
-        
+
         for cur_comp, cur_cont, category in zip(comp, cont, mimag_category):
             if category == 'hq':
                 hq_x.append(cur_comp)
                 hq_y.append(cur_cont)
-                hq_c.append(colors[0])
+                hq_c.append(COLOR_BLIND_PALETTE.orange)
             elif category == 'mq':
                 mq_x.append(cur_comp)
                 mq_y.append(cur_cont)
-                mq_c.append(colors[1])
+                mq_c.append(COLOR_BLIND_PALETTE.blue)
             elif category == 'lq':
                 p_x.append(cur_comp)
                 p_y.append(cur_cont)
-                p_c.append(colors[2])
+                p_c.append(COLOR_BLIND_PALETTE.grey)
             else:
                 assert(False)
 
@@ -172,10 +162,10 @@ class GenomeQualityPlot(AbstractPlot):
     
         # plot top histogram
         axes_top_histogram.xaxis.set_major_formatter(NullFormatter())
-        pdf, bins, patches = axes_top_histogram.hist(x, 
+        pdf, _bins, _patches = axes_top_histogram.hist(x, 
                                                     bins=num_bins, 
                                                     weights=weights,
-                                                    color=colors[::-1],
+                                                    color=[COLOR_BLIND_PALETTE.grey, COLOR_BLIND_PALETTE.orange, COLOR_BLIND_PALETTE.blue],
                                                     edgecolor=(0.2,0.2,0.2),
                                                     lw=0.5, 
                                                     histtype='bar',
@@ -195,11 +185,11 @@ class GenomeQualityPlot(AbstractPlot):
         # plot right histogram
         y = [p_y, mq_y, hq_y]
         axes_right_histogram.yaxis.set_major_formatter(NullFormatter())
-        pdf, bins, patches = axes_right_histogram.hist(y, 
+        pdf, _bins, _patches = axes_right_histogram.hist(y, 
                                                         bins=num_bins, 
                                                         orientation='horizontal',
                                                         weights=weights,
-                                                        color=colors[::-1],
+                                                        color=[COLOR_BLIND_PALETTE.grey, COLOR_BLIND_PALETTE.orange, COLOR_BLIND_PALETTE.blue],
                                                         edgecolor=(0.2,0.2,0.2),
                                                         lw=0.5, 
                                                         histtype='bar',
