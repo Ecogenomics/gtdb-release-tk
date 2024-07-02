@@ -25,6 +25,8 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                    array as np_array)
 
+from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+
 
 class NomenclaturalPerRankPlot(AbstractPlot):
     """Box and whisker plot."""
@@ -46,9 +48,9 @@ class NomenclaturalPerRankPlot(AbstractPlot):
         plot_latinized = np_array(plot_latinized)
         plot_placeholder = np_array(plot_placeholder)
 
-        p1 = axis.bar(ind, plot_latinized, width, color='#80b1d3')
+        p1 = axis.bar(ind, plot_latinized, width, color=COLOR_BLIND_PALETTE.orange)
         p2 = axis.bar(ind, plot_placeholder, width,
-                      bottom=plot_latinized, color='#fdae6b')
+                      bottom=plot_latinized, color=COLOR_BLIND_PALETTE.blue)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))

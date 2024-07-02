@@ -31,6 +31,7 @@ from matplotlib import gridspec
 from gtdb_release_tk.common import (ENV_CATEGORIES,
                                     sp_cluster_type_category)
 from gtdb_release_tk.taxon_utils import canonical_taxon
+from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
 
 
 class GenomeCateogryPerRankPlot(AbstractPlot):
@@ -58,9 +59,9 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
         isolate = np_array(isolate)
         env = np_array(env)
 
-        p1 = axis.bar(ind, both, width, color='#80b1d3')
-        p2 = axis.bar(ind, isolate, width, bottom=both, color='#fdae6b')
-        p3 = axis.bar(ind, env, width, bottom=both+isolate, color='#b3de69')
+        p1 = axis.bar(ind, both, width, color=COLOR_BLIND_PALETTE.grey)
+        p2 = axis.bar(ind, isolate, width, bottom=both, color=COLOR_BLIND_PALETTE.orange)
+        p3 = axis.bar(ind, env, width, bottom=both+isolate, color=COLOR_BLIND_PALETTE.blue)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))
@@ -141,7 +142,8 @@ class GenomeCategoryPerRank(object):
                     gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
                     gtdb_taxonomy[gid] = gtdb_taxa
 
-                    sp_clusters[gtdb_taxa[6]].add(gid)
+                    sp = gtdb_taxa[6]
+                    sp_clusters[sp].add(gid)
 
                     genome_category[gid] = line_split[genome_category_index]
 
@@ -154,7 +156,7 @@ class GenomeCategoryPerRank(object):
         for sp, gids in sp_clusters.items():
             sp_genome_types[sp] = sp_cluster_type_category(
                 gids, genome_category)
-
+            
         # get species in each taxa
         sp_in_taxa = defaultdict(lambda: defaultdict(set))
         for taxa in gtdb_taxonomy.values():
