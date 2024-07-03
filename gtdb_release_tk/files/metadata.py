@@ -87,8 +87,8 @@ class MetadataRow(object):
         self.gtdb_genome_representative = row[header['gtdb_genome_representative']]
         self.gtdb_representative = row[header['gtdb_representative']]
         self.gtdb_taxonomy = TaxonomyString(row[header['gtdb_taxonomy']])
-        self.gtdb_type_designation = row[header['gtdb_type_designation']]
-        self.gtdb_type_designation_sources = row[header['gtdb_type_designation_sources']]
+        self.gtdb_type_designation = row[header['gtdb_type_designation_ncbi_taxa']]
+        self.gtdb_type_designation_sources = row[header['gtdb_type_designation_ncbi_taxa_sources']]
         self.gtdb_type_species_of_genus = row[header['gtdb_type_species_of_genus']]
         self.l50_contigs = row[header['l50_contigs']]
         self.l50_scaffolds = optional_int(row[header['l50_scaffolds']])

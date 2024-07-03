@@ -28,7 +28,6 @@ import os
 import sys
 import argparse
 
-
 from biolib.misc.custom_help_formatter import CustomHelpFormatter
 from biolib.logger import logger_setup
 

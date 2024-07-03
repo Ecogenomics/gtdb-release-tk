@@ -24,15 +24,11 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import logging
-<<<<<<< HEAD
+
 import os
+import logging
 from collections import defaultdict
 from typing import Dict, Tuple, FrozenSet
-=======
-from pathlib import PurePath
-from collections import defaultdict
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
 
 import gtdb_release_tk.HTML as HTML
 from gtdb_release_tk.common import summarise_file

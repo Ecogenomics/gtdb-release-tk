@@ -21,12 +21,11 @@ import logging
 from collections import defaultdict
 from pathlib import PurePath
 
-from biolib.plots.abstract_plot import AbstractPlot
-
 from gtdb_release_tk.common import summarise_file
-from gtdb_release_tk.files.metadata import MetadataFile
-                    
+from gtdb_release_tk.files.metadata import MetadataFile                    
 from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
+
+from biolib.plots.abstract_plot import AbstractPlot
 
 
 class SpeciesRepTypePlot(AbstractPlot):
@@ -34,6 +33,7 @@ class SpeciesRepTypePlot(AbstractPlot):
 
     def __init__(self, options):
         """Initialize."""
+        
         AbstractPlot.__init__(self, options)
 
     def plot(self, type_strain_categories,
@@ -149,7 +149,7 @@ class SpeciesRepType(object):
                 bac120_metadata_file: MetadataFile, 
                 ar120_metadata_file: MetadataFile,
                 domain: str,
-                palette: Palette):
+                palette: Palette = DEFAULT_PALETTE):
         """Pie graph comparing GTDB and NCBI taxonomies."""
         
         # parse GTDB metadata file to determine genomes in each species clusters

@@ -364,7 +364,7 @@ class OptionsParser(object):
                     Defaults.DEFAULT_PLOT_WIDTH,
                     Defaults.DEFAULT_PLOT_HEIGHT)
 
-            out_dir = os.path.join(root_out_dir, 'genomic_stats_-sp_reps_only')
+            out_dir = os.path.join(root_out_dir, 'genomic_stats-sp_reps_only')
             os.makedirs(out_dir, exist_ok=True)
             p = GenomicStats(options.release_number, out_dir)
             p.run(options.bac120_metadata_file,
@@ -423,8 +423,10 @@ class OptionsParser(object):
             out_dir = os.path.join(root_out_dir, 'species_rep_type')
             os.makedirs(out_dir, exist_ok=True)
             p = SpeciesRepType(options.release_number, out_dir)
-            p.run(options.bac120_metadata_file,
-                    options.ar122_metadata_file,
+            bac_mf = MetadataFile.read(options.bac120_metadata_file)
+            arc_mf = MetadataFile.read(options.ar122_metadata_file)
+            p.run(bac_mf,
+                    arc_mf,
                     Defaults.DOMAIN_BOTH,
                     palette)
 
@@ -691,6 +693,6 @@ class OptionsParser(object):
         else:
             self.logger.error('Unknown command: ' +
                               options.subparser_name + '\n')
-            sys.exit()
+            sys.exit(1)
 
         return 0

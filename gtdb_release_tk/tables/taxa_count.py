@@ -24,24 +24,16 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import logging
-<<<<<<< HEAD
 import os
+import logging
 from collections import defaultdict
 from pathlib import PurePath
-=======
-from pathlib import PurePath
-from collections import defaultdict
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
 
 from biolib.taxonomy import Taxonomy
 
 import gtdb_release_tk.HTML as HTML
-<<<<<<< HEAD
-from gtdb_release_tk.common import canonical_taxon_name, summarise_file
-=======
+from gtdb_release_tk.common import summarise_file
 from gtdb_release_tk.taxon_utils import canonical_taxon
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
 
 
 class TaxaCount(object):
@@ -84,11 +76,7 @@ class TaxaCount(object):
 
                         if rank < 5:
                             # canonicalize names above genus
-<<<<<<< HEAD
-                            taxon = canonical_taxon_name(taxon)
-=======
                             taxon = canonical_taxon(taxon)
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
 
                         if gtdb_taxa[0] == 'd__Bacteria':
                             bac_taxa[rank].add(taxon)
@@ -110,7 +98,6 @@ class TaxaCount(object):
             print('\t'.join(row))
 
         out_prefix = f'gtdb_r{self.release_number}_taxa_count'
-<<<<<<< HEAD
         path_html = os.path.join(self.output_dir, f'{out_prefix}.html')
         with open(path_html, 'w') as fout:
             htmlcode = HTML.table(table_data,
@@ -120,15 +107,3 @@ class TaxaCount(object):
                                   cellpadding=6)
             fout.write(htmlcode)
         self.logger.info(summarise_file(path_html))
-=======
-        fout = open(self.output_dir / f'{out_prefix}.html', 'w')
-        htmlcode = HTML.table(table_data,
-                              table_class='taxa_count',
-                              col_styles=['font-size: small'] *
-                              len(table_data[0]),
-                              col_align=['left'] + ['center'] *
-                              (len(table_data[0])-1),
-                              cellpadding=6)
-        fout.write(htmlcode)
-        fout.close()
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28

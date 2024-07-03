@@ -26,8 +26,8 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                    array as np_array)
 
-from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
 from gtdb_release_tk.common import summarise_file
+from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
 
 class NomenclaturalPerRankPlot(AbstractPlot):
@@ -35,9 +35,10 @@ class NomenclaturalPerRankPlot(AbstractPlot):
 
     def __init__(self, options):
         """Initialize."""
+        
         AbstractPlot.__init__(self, options)
 
-    def plot(self, plot_latinized, plot_placeholder, xticklabels, palette=DEFAULT_PALETTE):
+    def plot(self, plot_latinized, plot_placeholder, xticklabels, palette: Palette = DEFAULT_PALETTE):
         """Create stacked bar plot."""
 
         self.fig.clear()
@@ -112,7 +113,7 @@ class NomenclaturalPerRank(object):
 
         return all(c.islower() for c in specific)
 
-    def run(self, bac120_metadata_file, ar120_metadata_file, domain, palette):
+    def run(self, bac120_metadata_file, ar120_metadata_file, domain, palette: Palette = DEFAULT_PALETTE):
         """Plot nomenclatural status of species for each taxonomic rank."""
 
         # parse GTDB metadata file to determine genomes in each species clusters

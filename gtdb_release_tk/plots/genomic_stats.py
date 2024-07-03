@@ -24,12 +24,10 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-
+import os
 import logging
 from pathlib import PurePath
 from collections import namedtuple
-
-from biolib.plots.abstract_plot import AbstractPlot
 
 from numpy import (median as np_median,
                     mean as np_mean,
@@ -39,7 +37,10 @@ from numpy import (median as np_median,
                     
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
+from biolib.plots.abstract_plot import AbstractPlot
+
 import gtdb_release_tk.HTML as HTML
+from gtdb_release_tk.common import summarise_file
 
 
 class GenomicStatsPlot(AbstractPlot):
@@ -336,8 +337,10 @@ class GenomicStats(object):
                             f'{np_percentile(data, 5):.1f}',
                             f'{np_percentile(data, 95):.1f}'))
 
-        plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
-        plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
+        for ext in ('.png', '.svg'):
+            path = os.path.join(self.output_dir, f'{out_prefix}{ext}')
+            plot.save_plot(path, dpi=600)
+            self.logger.info(summarise_file(path))
         
         # write out table
         fout = open(self.output_dir / f'{out_prefix}.tsv','w')

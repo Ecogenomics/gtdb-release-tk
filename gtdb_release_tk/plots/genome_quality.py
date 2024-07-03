@@ -30,12 +30,12 @@ from collections import namedtuple
 from pathlib import PurePath
 
 import matplotlib.lines as mlines
-from biolib.plots.abstract_plot import AbstractPlot
 from matplotlib.ticker import NullFormatter
 
-from gtdb_release_tk.common import summarise_file
+from biolib.plots.abstract_plot import AbstractPlot
 
-from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
+from gtdb_release_tk.common import summarise_file
+from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
 
 class GenomeQualityPlot(AbstractPlot):
@@ -55,7 +55,7 @@ class GenomeQualityPlot(AbstractPlot):
                     num_bins, 
                     xlim=None, 
                     ylim=None,
-                    palette=DEFAULT_PALETTE):
+                    palette: Palette = DEFAULT_PALETTE):
         """Create plot."""
 
         # setup histograms
@@ -310,7 +310,7 @@ class GenomeQuality(object):
     def run(self, 
                 bac120_metadata_file,
                 ar120_metadata_file,
-                palette):
+                palette: Palette = DEFAULT_PALETTE):
         """Scatter plot showing quality of GTDB representative genomes."""
 
         # get genome metadata
