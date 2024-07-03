@@ -25,27 +25,17 @@ __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
 import logging
-<<<<<<< HEAD
-import os
-from collections import defaultdict
 from pathlib import PurePath
-=======
-from pathlib import PurePath
-from collections import defaultdict
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
+from collections import defaultdict, namedtuple
 
 from biolib.taxonomy import Taxonomy
 
 import gtdb_release_tk.HTML as HTML
-<<<<<<< HEAD
-from gtdb_release_tk.common import canonical_taxon_name, summarise_file
-=======
-from gtdb_release_tk.taxon_utils import canonical_taxon
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
+from gtdb_release_tk.taxon_utils import canonical_taxon, is_latin_taxon
 
 
-class TaxaCount(object):
-    """Create table with number of taxa at each taxonomic rank."""
+class LatinCount(object):
+    """Create table indicating percentage of Latin names at each taxonomic rank."""
 
     def __init__(self, release_number, output_dir):
 
@@ -56,10 +46,13 @@ class TaxaCount(object):
         self.logger = logging.getLogger('timestamp')
 
     def run(self, bac120_metadata_file, ar120_metadata_file):
-        """Create table with number of taxa at each taxonomic rank."""
+        """Create table indicating percentage of Latin names at each taxonomic rank."""
 
-        bac_taxa = defaultdict(set)
-        ar_taxa = defaultdict(set)
+        processed_taxa = set()
+        bac_latin = defaultdict(int)
+        bac_placeholder = defaultdict(int)
+        ar_latin = defaultdict(int)
+        ar_placeholder = defaultdict(int)
         for mf in [bac120_metadata_file, ar120_metadata_file]:
             with open(mf, encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
@@ -70,8 +63,6 @@ class TaxaCount(object):
                 for line in f:
                     line_split = line.strip().split('\t')
 
-                    gid = line_split[0]
-
                     gtdb_rep = line_split[gtdb_rep_index]
                     if gtdb_rep != 't':
                         continue
@@ -79,48 +70,68 @@ class TaxaCount(object):
                     taxonomy = line_split[gtdb_taxonomy_index]
                     gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
                     for rank, taxon in enumerate(gtdb_taxa):
-                        if rank == 0:
-                            continue  # skip domain
-
-                        if rank < 5:
-                            # canonicalize names above genus
-<<<<<<< HEAD
-                            taxon = canonical_taxon_name(taxon)
-=======
+                        # suffixed Latin names above the rank of genus
+                        # are not considered to be distinct taxa
+                        if rank <= Taxonomy.FAMILY_INDEX:
                             taxon = canonical_taxon(taxon)
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28
+
+                        # process each name exactly once
+                        if taxon in processed_taxa:
+                            continue
+
+                        processed_taxa.add(taxon)
 
                         if gtdb_taxa[0] == 'd__Bacteria':
-                            bac_taxa[rank].add(taxon)
+                            if is_latin_taxon(taxon):
+                                bac_latin[rank] += 1
+                            else:
+                                bac_placeholder[rank] += 1
                         else:
-                            ar_taxa[rank].add(taxon)
+                            if is_latin_taxon(taxon):
+                                ar_latin[rank] += 1
+                            else:
+                                ar_placeholder[rank] += 1
 
         # write out table with species counts
+        out_prefix = f'gtdb_r{self.release_number}_latin_count'
+        fout = open(self.output_dir / f'{out_prefix}.tsv', 'w')
+
         table_data = []
-        table_data.append(['', 'Bacteria', 'Archaea', 'Total'])
-        print('Rank\tBacteria\tArchaea\tTotal')
+        header = ['', 'Bacteria: Latin', 'Bacteria: Placeholder',
+                  'Archaea: Latin', 'Archaea: Placeholder',
+                  'Latin', 'Placeholder']
+        table_data.append(header)
+        print('\t'.join(header))
+        fout.write('\t'.join(header) + '\n')
         for idx in range(1, 7):
             row = []
             row.append(Taxonomy.rank_labels[idx].capitalize())
-            row.append(f'{len(bac_taxa[idx]):,}')
-            row.append(f'{len(ar_taxa[idx]):,}')
-            row.append(f'{len(bac_taxa[idx]) + len(ar_taxa[idx]):,}')
+
+            bac_total = bac_latin[idx] + bac_placeholder[idx]
+            row.append(
+                f'{bac_latin[idx]:,} ({100.0*bac_latin[idx]/bac_total:.2f}%)')
+            row.append(
+                f'{bac_placeholder[idx]:,} ({100.0*bac_placeholder[idx]/bac_total:.2f}%)')
+
+            ar_total = ar_latin[idx] + ar_placeholder[idx]
+            row.append(
+                f'{ar_latin[idx]:,} ({100.0*ar_latin[idx]/ar_total:.2f}%)')
+            row.append(
+                f'{ar_placeholder[idx]:,} ({100.0*ar_placeholder[idx]/ar_total:.2f}%)')
+
+            total = bac_total + ar_total
+            row.append(
+                f'{bac_latin[idx]+ar_latin[idx]:,} ({100.0*(bac_latin[idx]+ar_latin[idx])/total:.2f}%)')
+            row.append(
+                f'{bac_placeholder[idx]+ar_placeholder[idx]:,} ({100.0*(bac_placeholder[idx]+ar_placeholder[idx])/total:.2f}%)')
 
             table_data.append(row)
             print('\t'.join(row))
+            fout.write('\t'.join(row) + '\n')
 
-        out_prefix = f'gtdb_r{self.release_number}_taxa_count'
-<<<<<<< HEAD
-        path_html = os.path.join(self.output_dir, f'{out_prefix}.html')
-        with open(path_html, 'w') as fout:
-            htmlcode = HTML.table(table_data,
-                                  table_class='taxa_count',
-                                  col_styles=['font-size: small'] * len(table_data[0]),
-                                  col_align=['left'] + ['center'] * (len(table_data[0]) - 1),
-                                  cellpadding=6)
-            fout.write(htmlcode)
-        self.logger.info(summarise_file(path_html))
-=======
+        fout.close()
+
+        # create HTML table
         fout = open(self.output_dir / f'{out_prefix}.html', 'w')
         htmlcode = HTML.table(table_data,
                               table_class='taxa_count',
@@ -131,4 +142,3 @@ class TaxaCount(object):
                               cellpadding=6)
         fout.write(htmlcode)
         fout.close()
->>>>>>> 5fa37f4b23bb84a84a2c6bc4869b662b2b7c8e28

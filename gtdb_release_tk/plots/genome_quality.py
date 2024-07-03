@@ -35,6 +35,8 @@ from matplotlib.ticker import NullFormatter
 
 from gtdb_release_tk.common import summarise_file
 
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
+
 
 class GenomeQualityPlot(AbstractPlot):
     """Create histogram of common genomic statistics."""
@@ -47,12 +49,13 @@ class GenomeQualityPlot(AbstractPlot):
         self.fig.clear()
         self.fig.set_size_inches(self.options.width, self.options.height)
 
-    def plot(self, comp, cont,
-             mimag_category, exception_count,
-             xlabel, ylabel,
-             num_bins,
-             xlim=None,
-             ylim=None):
+    def plot(self, comp, cont, 
+                    mimag_category, exception_count,
+                    xlabel, ylabel, 
+                    num_bins, 
+                    xlim=None, 
+                    ylim=None,
+                    palette=DEFAULT_PALETTE):
         """Create plot."""
 
         # setup histograms
@@ -91,23 +94,20 @@ class GenomeQualityPlot(AbstractPlot):
         p_x = []
         p_y = []
         p_c = []
-        colors = [(237 / 255.0, 102 / 255.0, 93 / 255.0),
-                  (166 / 255.0, 206 / 255.0, 227 / 255.0),
-                  (127 / 255.0, 127 / 255.0, 127 / 255.0)]
 
         for cur_comp, cur_cont, category in zip(comp, cont, mimag_category):
             if category == 'hq':
                 hq_x.append(cur_comp)
                 hq_y.append(cur_cont)
-                hq_c.append(colors[0])
+                hq_c.append(palette.colour3)
             elif category == 'mq':
                 mq_x.append(cur_comp)
                 mq_y.append(cur_cont)
-                mq_c.append(colors[1])
+                mq_c.append(palette.colour2)
             elif category == 'lq':
                 p_x.append(cur_comp)
                 p_y.append(cur_cont)
-                p_c.append(colors[2])
+                p_c.append(palette.colour1)
             else:
                 assert (False)
 
@@ -167,17 +167,17 @@ class GenomeQualityPlot(AbstractPlot):
 
         # plot top histogram
         axes_top_histogram.xaxis.set_major_formatter(NullFormatter())
-        pdf, bins, patches = axes_top_histogram.hist(x,
-                                                     bins=num_bins,
-                                                     weights=weights,
-                                                     color=colors[::-1],
-                                                     edgecolor=(0.2, 0.2, 0.2),
-                                                     lw=0.5,
-                                                     histtype='bar',
-                                                     rwidth=0.9,
-                                                     stacked=True)
-
-        max_y = max(pdf[len(x) - 1])
+        pdf, _bins, _patches = axes_top_histogram.hist(x, 
+                                                    bins=num_bins, 
+                                                    weights=weights,
+                                                    color=[palette.colour1, palette.colour2, palette.colour3],
+                                                    edgecolor=(0.2,0.2,0.2),
+                                                    lw=0.5, 
+                                                    histtype='bar',
+                                                    rwidth=0.9,                                                    
+                                                    stacked=True)
+                                                                                       
+        max_y = max(pdf[len(x)-1])
         axes_top_histogram.yaxis.set_label_position('right')
         axes_top_histogram.set_xlim(axes_scatter.get_xlim())
         axes_top_histogram.set_yticks([int(max_y)])
@@ -189,18 +189,18 @@ class GenomeQualityPlot(AbstractPlot):
         # plot right histogram
         y = [p_y, mq_y, hq_y]
         axes_right_histogram.yaxis.set_major_formatter(NullFormatter())
-        pdf, bins, patches = axes_right_histogram.hist(y,
-                                                       bins=num_bins,
-                                                       orientation='horizontal',
-                                                       weights=weights,
-                                                       color=colors[::-1],
-                                                       edgecolor=(0.2, 0.2, 0.2),
-                                                       lw=0.5,
-                                                       histtype='bar',
-                                                       rwidth=0.9,
-                                                       stacked=True)
-
-        max_x = max(pdf[len(y) - 1])
+        pdf, _bins, _patches = axes_right_histogram.hist(y, 
+                                                        bins=num_bins, 
+                                                        orientation='horizontal',
+                                                        weights=weights,
+                                                        color=[palette.colour1, palette.colour2, palette.colour3],
+                                                        edgecolor=(0.2,0.2,0.2),
+                                                        lw=0.5, 
+                                                        histtype='bar',
+                                                        rwidth=0.9,
+                                                        stacked=True)
+                                                        
+        max_x = max(pdf[len(y)-1])
         axes_right_histogram.set_ylim(axes_scatter.get_ylim())
         axes_right_histogram.set_xticks([int(max_x)])
         axes_right_histogram.set_xticklabels(['%d%%' % int(max_x)])
@@ -306,10 +306,11 @@ class GenomeQuality(object):
                                              mimag_lq=mimag_lq)
 
         return metadata
-
-    def run(self,
-            bac120_metadata_file,
-            ar120_metadata_file):
+ 
+    def run(self, 
+                bac120_metadata_file,
+                ar120_metadata_file,
+                palette):
         """Scatter plot showing quality of GTDB representative genomes."""
 
         # get genome metadata
@@ -354,15 +355,16 @@ class GenomeQuality(object):
                                        tick_font_size=6,
                                        dpi=600)
         plot = GenomeQualityPlot(options)
-
-        plot.plot(comp, cont,
-                  mimag_category,
-                  exception_count,
-                  'Completeness (%)',
-                  'Contamination (%)',
-                  num_bins=25,
-                  xlim=(49, 101),
-                  ylim=(-0.2, 10.2))
+        
+        plot.plot(comp, cont, 
+                    mimag_category,
+                    exception_count,
+                    'Completeness (%)', 
+                    'Contamination (%)', 
+                    num_bins=25,
+                    xlim=(49, 101), 
+                    ylim=(-0.2, 10.2),
+                    palette=palette)
 
         out_prefix = f'gtdb_r{self.release_number}_genome_quality.species'
         for ext in ('.png', '.svg'):

@@ -1,6 +1,6 @@
-import hashlib
 import os
 import sys
+import hashlib
 from collections import namedtuple
 from typing import Optional, Tuple
 
@@ -12,6 +12,7 @@ ENV_CATEGORIES = set(['derived from single cell',
 
 def canonical_taxon_name(taxon: str) -> str:
     """Get canonical version of taxon."""
+    
     if '_' in taxon[3:]:
         taxon = taxon[0:taxon.rfind('_')]
     return taxon

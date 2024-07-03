@@ -15,9 +15,9 @@
 #                                                                             #
 ###############################################################################
 
-import logging
 import os
 import sys
+import logging
 from collections import defaultdict
 from pathlib import PurePath
 
@@ -25,6 +25,8 @@ from biolib.plots.abstract_plot import AbstractPlot
 
 from gtdb_release_tk.common import summarise_file
 from gtdb_release_tk.files.metadata import MetadataFile
+                    
+from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
 
 class SpeciesRepTypePlot(AbstractPlot):
@@ -35,8 +37,9 @@ class SpeciesRepTypePlot(AbstractPlot):
         AbstractPlot.__init__(self, options)
 
     def plot(self, type_strain_categories,
-             latinized_categories,
-             placeholder_categories):
+                    latinized_categories,
+                    placeholder_categories,
+                    palette: Palette = DEFAULT_PALETTE):
         """Create pie chart."""
 
         self.fig.clear()
@@ -50,22 +53,23 @@ class SpeciesRepTypePlot(AbstractPlot):
         colors = []
         for c in [type_strain_categories, latinized_categories, placeholder_categories]:
             sizes.append(c.get('ISOLATE', 0))
-            colors.append('#fdae6b')
-
+            colors.append(palette.colour2)
+            
             sizes.append(c.get('MAG', 0))
-            colors.append('#b3de69')
-
+            colors.append(palette.colour3)
+            
             sizes.append(c.get('SAG', 0))
-            colors.append('#80b1d3')
+            colors.append(palette.colour1)
+            
 
-        wedgeprops = {'linewidth': 1,
-                      'edgecolor': 'white',
-                      'width': 0.6}
-        patches, texts = axis.pie(sizes,
-                                  shadow=False,
-                                  startangle=90,
-                                  colors=colors,
-                                  wedgeprops=wedgeprops)
+        wedgeprops = {'linewidth': 1, 
+                        'edgecolor': 'white',
+                        'width': 0.6}
+        patches, texts = axis.pie(sizes, 
+                                    shadow=False, 
+                                    startangle=90,
+                                    colors=colors,
+                                    wedgeprops=wedgeprops)
         axis.axis('equal')
 
         axis.legend(patches,
@@ -140,10 +144,14 @@ class SpeciesRepType(object):
             return False
 
         return all(c.islower() for c in specific)
-
-    def run(self, bac120_metadata_file: MetadataFile, ar120_metadata_file: MetadataFile, domain):
+ 
+    def run(self, 
+                bac120_metadata_file: MetadataFile, 
+                ar120_metadata_file: MetadataFile,
+                domain: str,
+                palette: Palette):
         """Pie graph comparing GTDB and NCBI taxonomies."""
-
+        
         # parse GTDB metadata file to determine genomes in each species clusters
         self.logger.info('Reading GTDB metadata.')
         gtdb_taxonomy = dict()
@@ -229,7 +237,8 @@ class SpeciesRepType(object):
         plot = SpeciesRepTypePlot(options)
         plot.plot(type_strain_categories,
                   latinized_categories,
-                  placeholder_categories)
+                  placeholder_categories,
+                  palette)
 
         for ext in ('.png', '.svg'):
             path = os.path.join(self.output_dir, f'{out_prefix}{ext}')

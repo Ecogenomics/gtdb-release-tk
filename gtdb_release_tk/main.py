@@ -15,33 +15,42 @@
 #                                                                             #
 ###############################################################################
 
-import logging
 import os
 import sys
+
+import logging
 
 import dendropy
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
 
+import gtdb_release_tk.defaults as Defaults
 from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
+
 from gtdb_release_tk.files.gtdb_dict import GTDBDictFile
 from gtdb_release_tk.files.metadata import MetadataFile
 from gtdb_release_tk.files.sp_clusters import SpClustersFile
 from gtdb_release_tk.files.taxa_count import TaxaCountFile
 from gtdb_release_tk.files.taxonomy import TaxonomyFile, ArcTaxonomyFile, BacTaxonomyFile
 from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
+
+from gtdb_release_tk.website_data import WebsiteData
+from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
-from gtdb_release_tk.litterature import LitteratureParser
+from gtdb_release_tk.literature import LiteratureParser
+from gtdb_release_tk.synonyms import Synonyms
+from gtdb_release_tk.pd import PhylogeneticDiversity
+
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
 from gtdb_release_tk.plots.genome_quality import GenomeQuality
 from gtdb_release_tk.plots.genomic_stats import GenomicStats
 from gtdb_release_tk.plots.ncbi_compare import NCBI_Compare
 from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
 from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
-from gtdb_release_tk.reps_per_rank import RepsPerRank
-from gtdb_release_tk.tables.taxa_count import TaxaCount
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE, COLOR_BLIND_PALETTE
+
 from gtdb_release_tk.tables.top_taxa import TopTaxaFile
-from gtdb_release_tk.website_data import WebsiteData
+from gtdb_release_tk.tables.latin_count import LatinCount
 
 
 class OptionsParser(object):
@@ -175,7 +184,8 @@ class OptionsParser(object):
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
+        w.protein_files(options.user_gid_table, options.taxonomy_file,
+                        options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -186,7 +196,8 @@ class OptionsParser(object):
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file, options.genome_dirs, options.uba_path)
+        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,
+                           options.genome_dirs, options.uba_path)
 
         self.logger.info('Done.')
 
@@ -280,7 +291,8 @@ class OptionsParser(object):
         for node in tree.postorder_node_iter():
             if node.is_leaf():
                 gid = node.taxon.label
-                species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace('s__', '')
+                species = gtdb_taxonomy[gid][Taxonomy.SPECIES_INDEX].replace(
+                    's__', '')
                 node.taxon.label += ' | {}'.format(species)
 
         self.logger.info('Writing output tree.')
@@ -288,6 +300,20 @@ class OptionsParser(object):
                            schema='newick',
                            suppress_rooting=True,
                            unquoted_underscores=True)
+
+        self.logger.info('Done.')
+
+    def synonyms(self, options):
+        """Generate files indicating NCBI names considered synonyms under the GTDB taxonomy."""
+
+        check_file_exists(options.metadata_file)
+        check_file_exists(options.lpsn_gss_metadata)
+        check_file_exists(options.untrustworthy_type_material)
+        make_sure_path_exists(options.output_dir)
+
+        synonyms = Synonyms(options.output_dir)
+        synonyms.run(options.metadata_file, options.lpsn_gss_metadata,
+                     options.untrustworthy_type_material)
 
         self.logger.info('Done.')
 
@@ -317,6 +343,93 @@ class OptionsParser(object):
 
         self.logger.info('Done.')
 
+    def all_release_plots_parser(self, options):
+        """Generate all release plots using default and color blind safe palettes."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        # generate all plots required for website using both the default and color blind safe paleetes
+        default_palette_dir = os.path.join(options.output_dir, 'default_palette')
+        colour_blind_dir = os.path.join(options.output_dir, 'colour_blind_safe_palette')
+        for root_out_dir, palette in [(default_palette_dir, DEFAULT_PALETTE), (colour_blind_dir, COLOR_BLIND_PALETTE)]:
+            # histograms of common genomic statistics; uses a single orange color so doesn't have a color blind save version
+            out_dir = os.path.join(root_out_dir, 'genomic_stats-all_genomes')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomicStats(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    True,
+                    Defaults.DEFAULT_PLOT_WIDTH,
+                    Defaults.DEFAULT_PLOT_HEIGHT)
+
+            out_dir = os.path.join(root_out_dir, 'genomic_stats_-sp_reps_only')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomicStats(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    False,
+                    Defaults.DEFAULT_PLOT_WIDTH,
+                    Defaults.DEFAULT_PLOT_HEIGHT)
+
+            # scatter plot showing quality of GTDB representative genome
+            out_dir = os.path.join(root_out_dir, 'genome_quality')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomeQuality(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    palette)
+
+            # bar plot of MAGs, SAGs, and isolates within each taxonomic rank
+            out_dir = os.path.join(root_out_dir, 'genome_category_per_rank')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomeCategoryPerRank(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    False,
+                    False,
+                    palette)
+
+            # bar plot of nomenclatural status of taxa within each taxonomic rank
+            out_dir = os.path.join(root_out_dir, 'nomenclatural_per_rank')
+            os.makedirs(out_dir, exist_ok=True)
+            p = NomenclaturalPerRank(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+
+            # bar plot comparing GTDB and NCBI taxonomies
+            out_dir = os.path.join(root_out_dir, 'ncbi_compare-all_genomes')
+            os.makedirs(out_dir, exist_ok=True)
+            p = NCBI_Compare(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    True,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+            
+            out_dir = os.path.join(root_out_dir, 'ncbi_compare-sp_rep_only')
+            os.makedirs(out_dir, exist_ok=True)
+            p = NCBI_Compare(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    False,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+
+            # pie chart indicating type information for the GTBD species representatives
+            out_dir = os.path.join(root_out_dir, 'species_rep_type')
+            os.makedirs(out_dir, exist_ok=True)
+            p = SpeciesRepType(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+
+        self.logger.info('Done.')
+
     def genome_category_rank(self, options):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
@@ -326,7 +439,9 @@ class OptionsParser(object):
 
         p = GenomeCategoryPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file)
+              options.ar122_metadata_file,
+              options.ar_only,
+              options.bac_only)
 
         self.logger.info('Done.')
 
@@ -377,14 +492,12 @@ class OptionsParser(object):
 
     def itol(self, options):
         """Generate tree and iTOL files for producing iTOL tree image."""
-
-        check_file_exists(options.bac120_tree)
-        check_file_exists(options.ar122_tree)
+        check_file_exists(options.tree_file)
+        check_file_exists(options.metadata_file)
         make_sure_path_exists(options.output_dir)
 
-        p = iTOL(options.release_number, options.output_dir)
-        p.run(options.bac120_tree,
-              options.ar122_tree)
+        p = iTOL(options.output_dir)
+        p.run(options.tree_file, options.metadata_file)
 
         self.logger.info('Done.')
 
@@ -421,20 +534,18 @@ class OptionsParser(object):
         """Select representative genomes at each taxonomic rank."""
 
         check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar122_metadata_file)
+        check_file_exists(options.ar53_metadata_file)
         check_file_exists(options.bac120_msa_file)
-        check_file_exists(options.ar122_msa_file)
+        check_file_exists(options.ar53_msa_file)
         check_file_exists(options.ssu_fasta_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = RepsPerRank(options.release_number, options.output_dir)
         p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file,
+              options.ar53_metadata_file,
               options.bac120_msa_file,
-              options.ar122_msa_file,
+              options.ar53_msa_file,
               options.ssu_fasta_file,
-              options.user_gid_table,
               options.genomes_per_taxon,
               options.min_ssu_len,
               options.min_msa_perc)
@@ -469,10 +580,39 @@ class OptionsParser(object):
 
         self.logger.info('Done.')
 
+    def latin_count(self, options):
+        """Create table indicating percentage of Latin names at each taxonomic rank."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = LatinCount(options.release_number, options.output_dir)
+        p.run(options.bac120_metadata_file,
+              options.ar122_metadata_file)
+
+        self.logger.info('Done.')
+
+    def pd(self, options):
+        """Phylogenetic diversity of isolate vs. environmental species clusters."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
+        check_file_exists(options.bac120_tree)
+        check_file_exists(options.ar122_tree)
+
+        pd = PhylogeneticDiversity()
+        pd.run(options.bac120_metadata_file,
+               options.ar122_metadata_file,
+               options.bac120_tree,
+               options.ar122_tree)
+
+        self.logger.info('Done.')
+
     def nomenclatural_check(self, options):
         """List latin names present/absent from NCBI,LPSN,Bacdive."""
 
-        p = LitteratureParser(options.output_dir)
+        p = LiteratureParser(options.output_directory)
         p.run(options.ncbi_node_file,
               options.ncbi_name_file,
               options.lpsn_species_file,
@@ -514,6 +654,10 @@ class OptionsParser(object):
             self.validate(options)
         elif options.subparser_name == 'add_sp_label':
             self.add_sp_label(options)
+        elif options.subparser_name == 'synonyms':
+            self.synonyms(options)
+        elif options.subparser_name == 'all_release_plots':
+            self.all_release_plots_parser(options)
         elif options.subparser_name == 'genome_category_rank':
             self.genome_category_rank(options)
         elif options.subparser_name == 'nomenclatural_rank':
@@ -538,6 +682,10 @@ class OptionsParser(object):
             self.taxa_count(options)
         elif options.subparser_name == 'top_taxa':
             self.top_taxa(options)
+        elif options.subparser_name == 'latin_count':
+            self.latin_count(options)
+        elif options.subparser_name == 'pd':
+            self.pd(options)
         elif options.subparser_name == 'nomenclatural_check':
             self.nomenclatural_check(options)
         else:

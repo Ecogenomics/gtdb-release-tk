@@ -15,17 +15,17 @@
 #                                                                             #
 ###############################################################################
 
-import os
-import sys
 import logging
 from pathlib import PurePath
-from collections import defaultdict
 
 from biolib.taxonomy import Taxonomy
 from biolib.plots.abstract_plot import AbstractPlot
 
 from numpy import (arange as np_arange,
                     array as np_array)
+
+from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+
 
 class NCBI_ComparePlot(AbstractPlot):
     """Box and whisker plot."""
@@ -34,7 +34,7 @@ class NCBI_ComparePlot(AbstractPlot):
         """Initialize."""
         AbstractPlot.__init__(self, options)
 
-    def plot(self, unchanged, passive, active, xticklabels, ylabel):
+    def plot(self, unchanged, passive, active, xticklabels, ylabel, palette):
         """Create stacked bar plot."""
         
         self.fig.clear()
@@ -48,9 +48,9 @@ class NCBI_ComparePlot(AbstractPlot):
         passive = np_array(passive)
         active = np_array(active)
 
-        p1 = axis.bar(ind, unchanged, width, color='#80b1d3')
-        p2 = axis.bar(ind, passive, width, bottom=unchanged, color='#fdae6b')
-        p3 = axis.bar(ind, active, width, bottom=unchanged+passive, color='#b3de69')
+        p1 = axis.bar(ind, unchanged, width, color=palette.colour1)
+        p2 = axis.bar(ind, passive, width, bottom=unchanged, color=palette.colour2)
+        p3 = axis.bar(ind, active, width, bottom=unchanged+passive, color=palette.colour3)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))
@@ -95,7 +95,8 @@ class NCBI_Compare(object):
                 bac120_metadata_file, 
                 ar120_metadata_file,
                 all_genomes,
-                domain):
+                domain,
+                palette):
         """Bar plot comparing GTDB and NCBI taxonomies."""
         
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -217,7 +218,7 @@ class NCBI_Compare(object):
                                         tick_font_size=6, 
                                         dpi=600)
         plot = NCBI_ComparePlot(options)
-        plot.plot(plot_unchanged, plot_passive, plot_active, plot_labels, ylabel)
+        plot.plot(plot_unchanged, plot_passive, plot_active, plot_labels, ylabel, palette)
         
         plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
         plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)

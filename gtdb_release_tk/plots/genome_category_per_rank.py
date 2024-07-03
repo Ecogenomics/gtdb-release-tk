@@ -15,9 +15,9 @@
 #                                                                             #
 ###############################################################################
 
-import logging
 import os
 import sys
+import logging
 from collections import defaultdict
 from pathlib import PurePath
 
@@ -29,6 +29,12 @@ from numpy import (arange as np_arange,
 from gtdb_release_tk.common import (ENV_CATEGORIES,
                                     canonical_taxon_name,
                                     sp_cluster_type_category, summarise_file)
+from matplotlib import gridspec
+
+from gtdb_release_tk.common import (ENV_CATEGORIES,
+                                    sp_cluster_type_category)
+from gtdb_release_tk.taxon_utils import canonical_taxon
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
 
 
 class GenomeCateogryPerRankPlot(AbstractPlot):
@@ -38,7 +44,7 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
         """Initialize."""
         AbstractPlot.__init__(self, options)
 
-    def plot(self, both, isolate, env, xticklabels):
+    def plot(self, both, isolate, env, xticklabels, palette=DEFAULT_PALETTE):
         """Create stacked bar plot."""
 
         self.fig.clear()
@@ -52,9 +58,9 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
         isolate = np_array(isolate)
         env = np_array(env)
 
-        p1 = axis.bar(ind, both, width, color='#80b1d3')
-        p2 = axis.bar(ind, isolate, width, bottom=both, color='#fdae6b')
-        p3 = axis.bar(ind, env, width, bottom=both + isolate, color='#b3de69')
+        p1 = axis.bar(ind, both, width, color=palette.colour1)
+        p2 = axis.bar(ind, isolate, width, bottom=both, color=palette.colour2)
+        p3 = axis.bar(ind, env, width, bottom=both+isolate, color=palette.colour3)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))
@@ -97,7 +103,7 @@ class GenomeCategoryPerRank(object):
 
         self.logger = logging.getLogger('timestamp')
 
-    def run(self, bac120_metadata_file, ar120_metadata_file):
+    def run(self, bac120_metadata_file, ar120_metadata_file, ar_only, bac_only, palette):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -106,7 +112,14 @@ class GenomeCategoryPerRank(object):
         gtdb_taxonomy = {}
         sp_clusters = defaultdict(set)
         genome_category = {}
-        for mf in [bac120_metadata_file, ar120_metadata_file]:
+
+        metadata_files = [bac120_metadata_file, ar120_metadata_file]
+        if ar_only and not bac_only:
+            metadata_files = [ar120_metadata_file]
+        if not ar_only and bac_only:
+            metadata_files = [bac120_metadata_file]
+
+        for mf in metadata_files:
             with open(mf, encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
 
@@ -127,7 +140,8 @@ class GenomeCategoryPerRank(object):
                     gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
                     gtdb_taxonomy[gid] = gtdb_taxa
 
-                    sp_clusters[gtdb_taxa[6]].add(gid)
+                    sp = gtdb_taxa[6]
+                    sp_clusters[sp].add(gid)
 
                     genome_category[gid] = line_split[genome_category_index]
 
@@ -138,8 +152,9 @@ class GenomeCategoryPerRank(object):
         # determine genome types in each species cluster
         sp_genome_types = {}
         for sp, gids in sp_clusters.items():
-            sp_genome_types[sp] = sp_cluster_type_category(gids, genome_category)
-
+            sp_genome_types[sp] = sp_cluster_type_category(
+                gids, genome_category)
+            
         # get species in each taxa
         sp_in_taxa = defaultdict(lambda: defaultdict(set))
         for taxa in gtdb_taxonomy.values():
@@ -147,7 +162,7 @@ class GenomeCategoryPerRank(object):
                 cur_taxon = taxa[rank_index]
                 if rank_index < 5:
                     # canonicalize names above genus
-                    cur_taxon = canonical_taxon_name(cur_taxon)
+                    cur_taxon = canonical_taxon(cur_taxon)
                 sp_in_taxa[rank_index][cur_taxon].add(taxa[6])
 
         # tabulate number of genome types at each rank
@@ -161,7 +176,7 @@ class GenomeCategoryPerRank(object):
 
         plot_both = []
         plot_isolate = []
-        plot_end = []
+        plot_env = []
         plot_labels = []
         for rank_index in range(1, 7):
             fout_count.write(Taxonomy.rank_labels[rank_index])
@@ -183,27 +198,48 @@ class GenomeCategoryPerRank(object):
                 elif 'ENV' in taxon_categories:
                     env.add(taxon)
                 else:
-                    self.logger.error(f'Genomes in species have an unassigned category: {taxon_categories}')
+                    self.logger.error(
+                        f'Genomes in species have an unassigned category: {taxon_categories}')
                     sys.exit(-1)
 
             total_taxa = len(both) + len(isolate) + len(env)
-            fout_count.write(f'\t{total_taxa}\t{len(both)}\t{len(isolate)}\t{len(env)}\n')
+            fout_count.write(
+                f'\t{total_taxa}\t{len(both)}\t{len(isolate)}\t{len(env)}\n')
 
             fout_taxa.write('\t{}\t{}\t{}\t{}\n'.format(
-                total_taxa,
-                ', '.join(sorted(both)),
-                ', '.join(sorted(isolate)),
-                ', '.join(sorted(env))))
+                            total_taxa,
+                            ', '.join(sorted(both)),
+                            ', '.join(sorted(isolate)),
+                            ', '.join(sorted(env))))
 
-            plot_both.append(len(both) * 100.0 / total_taxa)
-            plot_isolate.append(len(isolate) * 100.0 / total_taxa)
-            plot_end.append(len(env) * 100.0 / total_taxa)
+            plot_both.append(len(both)*100.0/total_taxa)
+            plot_isolate.append(len(isolate)*100.0/total_taxa)
+            plot_env.append(len(env)*100.0/total_taxa)
             plot_labels.append('{}\n{:,}'.format(
                 Taxonomy.rank_labels[rank_index].capitalize(),
                 total_taxa))
 
-        isolate_genomes = sum([1 for c in genome_category.values() if c not in ENV_CATEGORIES])
-        env_genomes = sum([1 for c in genome_category.values() if c in ENV_CATEGORIES])
+        # create plot for taxa at each rank
+        self.logger.info('Creating plot.')
+        options = AbstractPlot.Options(width=4,
+                                       height=3,
+                                       label_font_size=7,
+                                       tick_font_size=6,
+                                       dpi=600)
+        plot = GenomeCateogryPerRankPlot(options)
+        plot.plot(1, 
+                  plot_both, 
+                  plot_isolate, 
+                  plot_env,
+                  plot_labels, 
+                  ylabel='Taxa (%)', 
+                  palette=palette)
+
+        # create seperate plot with genomes
+        isolate_genomes = sum(
+            [1 for c in genome_category.values() if c not in ENV_CATEGORIES])
+        env_genomes = sum(
+            [1 for c in genome_category.values() if c in ENV_CATEGORIES])
         fout_count.write('Genomes\t{}\t{}\t{}\t{}\n'.format(
             len(genome_category),
             0,
@@ -212,7 +248,7 @@ class GenomeCategoryPerRank(object):
 
         plot_both.append(0)
         plot_isolate.append(isolate_genomes * 100.0 / len(genome_category))
-        plot_end.append(env_genomes * 100.0 / len(genome_category))
+        plot_env.append(env_genomes * 100.0 / len(genome_category))
         plot_labels.append('{}\n{:,}'.format(
             'Genomes',
             len(genome_category)))
@@ -228,7 +264,7 @@ class GenomeCategoryPerRank(object):
                                        tick_font_size=6,
                                        dpi=600)
         plot = GenomeCateogryPerRankPlot(options)
-        plot.plot(plot_both, plot_isolate, plot_end, plot_labels)
+        plot.plot(plot_both, plot_isolate, plot_env, plot_labels, palette)
 
         for ext in ('.png', '.svg'):
             path = os.path.join(self.output_dir, f'{out_prefix}{ext}')

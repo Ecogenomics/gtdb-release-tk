@@ -25,20 +25,14 @@ __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
 import os
-import sys
 import logging
-import argparse
-import ntpath
-import csv
-import random
 import operator
+import gzip
 from pathlib import PurePath
 from collections import defaultdict, namedtuple
 
 from biolib.taxonomy import Taxonomy
 from biolib.seq_io import read_seq
-
-from gtdb_release_tk.common import parse_user_gid_table
 
    
 class RepsPerRank(object):
@@ -90,7 +84,11 @@ class RepsPerRank(object):
 
         metadata = {}
         for mf in [bac120_metadata_file, ar120_metadata_file]:
-            with open(mf, encoding='utf-8') as f:
+            maybe_gzip_open = open
+            if mf.endswith('.gz'):
+                maybe_gzip_open = gzip.open
+
+            with maybe_gzip_open(mf, mode = 'rt', encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
 
                 genome_index = header.index('accession')
@@ -99,7 +97,7 @@ class RepsPerRank(object):
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
                 ncbi_taxonomy_index = header.index('ncbi_taxonomy')
                 gtdb_rep_index = header.index('gtdb_representative')
-                gtdb_type_index = header.index('gtdb_type_designation')
+                gtdb_type_index = header.index('gtdb_type_designation_ncbi_taxa')
                     
                 for line in f:
                     line_split = line.strip().split('\t')
@@ -205,8 +203,7 @@ class RepsPerRank(object):
                         genomes_in_rank, 
                         metadata,
                         ssu_length, min_ssu_len,
-                        ar122_msa_per, bac120_msa_per, min_msa_perc,
-                        rev_user_gids):
+                        ar122_msa_per, bac120_msa_per, min_msa_perc):
         """Sample genomes from taxa."""
         
         rank_label = Taxonomy.rank_labels[rank_to_sample]
@@ -289,7 +286,7 @@ class RepsPerRank(object):
                     desc = 'GTDB representative genome'
                 
                 fout.write('{}\t{}\t{}\t{}\t{:.2f}\t{:.2f}\t{:.2f}\t{}\n'.format(
-                                rev_user_gids.get(gid, gid),
+                                gid,
                                 taxon, 
                                 ';'.join(metadata[gid].gtdb_taxonomy),
                                 metadata[gid].ncbi_taxonomy, 
@@ -302,7 +299,7 @@ class RepsPerRank(object):
                 fout_missing.write('{}\n'.format(taxon))
                 for gid in genome_ids:
                     fout_missing.write('\t{}\t{}\n'.format(
-                                        rev_user_gids.get(gid, gid), 
+                                        gid, 
                                         filtered_desc[gid]))
                 no_taxon_rep.add(taxon)
                 
@@ -319,30 +316,22 @@ class RepsPerRank(object):
         
     def run(self, 
                 bac120_metadata_file,
-                ar120_metadata_file,
+                ar53_metadata_file,
                 bac120_msa_file,
-                ar122_msa_file,
+                ar53_msa_file,
                 ssu_fasta_file,
-                user_gid_table,
                 genomes_per_taxon,
                 min_ssu_len,
                 min_msa_perc):
         """Select representative genomes at each taxonomic rank."""
-        
-        # create reverse lookup table for User genome IDs
-        user_gids = parse_user_gid_table(user_gid_table)
-        rev_user_gids = {}
-        for user_id, target_id in user_gids.items():
-            if target_id.startswith('UBA'):
-                rev_user_gids[target_id] = user_id
-        
+                
         # get genome metadata
         self.logger.info('Reading GTDB metadata.')
-        metadata = self.read_metadata(bac120_metadata_file, ar120_metadata_file)
+        metadata = self.read_metadata(bac120_metadata_file, ar53_metadata_file)
         
         # get percentage of amino acids in MSAs
         self.logger.info('Determining percentage of amino acids in MSAs.')
-        ar122_msa_per = self.read_msa_file(ar122_msa_file)
+        ar122_msa_per = self.read_msa_file(ar53_msa_file)
         bac120_msa_per = self.read_msa_file(bac120_msa_file)
 
         # get length of SSU sequences
@@ -365,5 +354,4 @@ class RepsPerRank(object):
                                         genomes_in_rank, 
                                         metadata,
                                         ssu_length, min_ssu_len,
-                                        ar122_msa_per, bac120_msa_per, min_msa_perc,
-                                        rev_user_gids)
+                                        ar122_msa_per, bac120_msa_per, min_msa_perc)

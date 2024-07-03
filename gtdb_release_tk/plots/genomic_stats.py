@@ -24,16 +24,10 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
-import os
-import sys
+
 import logging
-import argparse
-import ntpath
-import csv
-import random
-import operator
 from pathlib import PurePath
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 
 from biolib.plots.abstract_plot import AbstractPlot
 
@@ -41,15 +35,12 @@ from numpy import (median as np_median,
                     mean as np_mean,
                     std as np_std,
                     percentile as np_percentile,
-                    arange as np_arange,
-                    array as np_array,
-                    ones_like as np_ones_like,
-                    bincount as np_bincount)
+                    ones_like as np_ones_like)
                     
 from matplotlib.ticker import FuncFormatter, MaxNLocator
-from matplotlib.offsetbox import AnchoredText
 
 import gtdb_release_tk.HTML as HTML
+
 
 class GenomicStatsPlot(AbstractPlot):
     """Create histogram of common genomic statistics."""
@@ -162,7 +153,7 @@ class GenomicStats(object):
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
                 ncbi_taxonomy_index = header.index('ncbi_taxonomy')
                 gtdb_rep_index = header.index('gtdb_representative')
-                gtdb_type_index = header.index('gtdb_type_designation')
+                gtdb_type_index = header.index('gtdb_type_designation_ncbi_taxa')
                     
                 for line in f:
                     line_split = line.strip().split('\t')

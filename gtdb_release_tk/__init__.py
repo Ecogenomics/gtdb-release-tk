@@ -42,5 +42,6 @@ def version():
     str
         The current version number (e.g. 0.2.2).
     """
+    
     with open(os.path.join(__path__[0], 'VERSION'), 'r') as f:
         return f.readline().strip()
