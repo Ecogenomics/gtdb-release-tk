@@ -17,15 +17,14 @@
 
 import os
 import sys
-import csv
-import re
 import logging
-from collections import defaultdict
 
 import dendropy
 
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
+
+import gtdb_release_tk.defaults as Defaults
 
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
@@ -44,6 +43,8 @@ from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
 from gtdb_release_tk.tables.taxa_count import TaxaCount
 from gtdb_release_tk.tables.top_taxa import TopTaxa
 from gtdb_release_tk.tables.latin_count import LatinCount
+
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE, COLOR_BLIND_PALETTE
 
 
 class OptionsParser():
@@ -341,6 +342,93 @@ class OptionsParser():
                            options.metadata_file)
         self.logger.info('Done.')
 
+    def all_release_plots_parser(self, options):
+        """Generate all release plots using default and color blind safe palettes."""
+
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar122_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        # generate all plots required for website using both the default and color blind safe paleetes
+        default_palette_dir = os.path.join(options.output_dir, 'default_palette')
+        colour_blind_dir = os.path.join(options.output_dir, 'colour_blind_safe_palette')
+        for root_out_dir, palette in [(default_palette_dir, DEFAULT_PALETTE), (colour_blind_dir, COLOR_BLIND_PALETTE)]:
+            # histograms of common genomic statistics; uses a single orange color so doesn't have a color blind save version
+            out_dir = os.path.join(root_out_dir, 'genomic_stats-all_genomes')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomicStats(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    True,
+                    Defaults.DEFAULT_PLOT_WIDTH,
+                    Defaults.DEFAULT_PLOT_HEIGHT)
+
+            out_dir = os.path.join(root_out_dir, 'genomic_stats_-sp_reps_only')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomicStats(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    False,
+                    Defaults.DEFAULT_PLOT_WIDTH,
+                    Defaults.DEFAULT_PLOT_HEIGHT)
+
+            # scatter plot showing quality of GTDB representative genome
+            out_dir = os.path.join(root_out_dir, 'genome_quality')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomeQuality(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    palette)
+
+            # bar plot of MAGs, SAGs, and isolates within each taxonomic rank
+            out_dir = os.path.join(root_out_dir, 'genome_category_per_rank')
+            os.makedirs(out_dir, exist_ok=True)
+            p = GenomeCategoryPerRank(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    False,
+                    False,
+                    palette)
+
+            # bar plot of nomenclatural status of taxa within each taxonomic rank
+            out_dir = os.path.join(root_out_dir, 'nomenclatural_per_rank')
+            os.makedirs(out_dir, exist_ok=True)
+            p = NomenclaturalPerRank(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+
+            # bar plot comparing GTDB and NCBI taxonomies
+            out_dir = os.path.join(root_out_dir, 'ncbi_compare-all_genomes')
+            os.makedirs(out_dir, exist_ok=True)
+            p = NCBI_Compare(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    True,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+            
+            out_dir = os.path.join(root_out_dir, 'ncbi_compare-sp_rep_only')
+            os.makedirs(out_dir, exist_ok=True)
+            p = NCBI_Compare(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    False,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+
+            # pie chart indicating type information for the GTBD species representatives
+            out_dir = os.path.join(root_out_dir, 'species_rep_type')
+            os.makedirs(out_dir, exist_ok=True)
+            p = SpeciesRepType(options.release_number, out_dir)
+            p.run(options.bac120_metadata_file,
+                    options.ar122_metadata_file,
+                    Defaults.DOMAIN_BOTH,
+                    palette)
+
+        self.logger.info('Done.')
+
     def genome_category_rank(self, options):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
@@ -562,6 +650,8 @@ class OptionsParser():
             self.add_sp_label(options)
         elif options.subparser_name == 'synonyms':
             self.synonyms(options)
+        elif options.subparser_name == 'all_release_plots':
+            self.all_release_plots_parser(options)
         elif options.subparser_name == 'genome_category_rank':
             self.genome_category_rank(options)
         elif options.subparser_name == 'nomenclatural_rank':

@@ -22,7 +22,7 @@ from collections import defaultdict
 
 from biolib.plots.abstract_plot import AbstractPlot
                     
-from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
 
 
 class SpeciesRepTypePlot(AbstractPlot):
@@ -34,7 +34,8 @@ class SpeciesRepTypePlot(AbstractPlot):
 
     def plot(self, type_strain_categories,
                     latinized_categories,
-                    placeholder_categories):
+                    placeholder_categories,
+                    palette=DEFAULT_PALETTE):
         """Create pie chart."""
         
         self.fig.clear()
@@ -48,13 +49,13 @@ class SpeciesRepTypePlot(AbstractPlot):
         colors = []
         for c in [type_strain_categories, latinized_categories, placeholder_categories]:
             sizes.append(c.get('ISOLATE', 0))
-            colors.append(COLOR_BLIND_PALETTE.orange)
+            colors.append(palette.colour2)
             
             sizes.append(c.get('MAG', 0))
-            colors.append(COLOR_BLIND_PALETTE.blue)
+            colors.append(palette.colour3)
             
             sizes.append(c.get('SAG', 0))
-            colors.append(COLOR_BLIND_PALETTE.grey)
+            colors.append(palette.colour1)
             
 
         wedgeprops = {'linewidth': 1, 
@@ -143,7 +144,8 @@ class SpeciesRepType(object):
     def run(self, 
                 bac120_metadata_file, 
                 ar120_metadata_file,
-                domain):
+                domain,
+                palette):
         """Bar plot comparing GTDB and NCBI taxonomies."""
         
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -245,7 +247,8 @@ class SpeciesRepType(object):
         plot = SpeciesRepTypePlot(options)
         plot.plot(type_strain_categories,
                     latinized_categories,
-                    placeholder_categories)
+                    placeholder_categories,
+                    palette)
         
         plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
         plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)

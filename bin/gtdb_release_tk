@@ -34,6 +34,7 @@ from biolib.logger import logger_setup
 
 from gtdb_release_tk import version
 from gtdb_release_tk.main import OptionsParser
+import gtdb_release_tk.defaults as Defaults
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -71,6 +72,7 @@ def print_help():
       reps_per_rank -> Select representative genomes at each taxonomic rank
 
     Plots:
+      all_release_plots     -> Generate all release plots using default and color blind safe palettes
       genomic_stats         -> Histograms of common genomic statistics (e.g., genome size, coding density)
       genome_quality        -> Scatter plot showing quality of GTDB representative genomes
       genome_category_rank  -> Bar plot of MAGs, SAGs, and isolates within each taxonomic rank
@@ -417,6 +419,21 @@ if __name__ == '__main__':
     json_tree_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
+    # generate all release plots using default and color blind safe palettes
+    all_release_plots_parser = subparsers.add_parser('all_release_plots',
+                                                 formatter_class=CustomHelpFormatter,
+                                                 description='Generate all release plots using default and color blind safe palettes.')
+    all_release_plots_parser.add_argument(
+        'bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    all_release_plots_parser.add_argument(
+        'ar122_metadata_file', help='metadata for archaeal GTDB genomes')
+    all_release_plots_parser.add_argument(
+        'release_number', help='release number (ex. 86)')
+    all_release_plots_parser.add_argument('output_dir', help='output directory')
+
+    all_release_plots_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
     # plot of common genomic statistics
     genomic_stats_parser = subparsers.add_parser('genomic_stats',
                                                  formatter_class=CustomHelpFormatter,
@@ -432,9 +449,9 @@ if __name__ == '__main__':
                                       help='create plot over all genomes instead of all GTDB species representatives',
                                       action='store_true')
     genomic_stats_parser.add_argument(
-        '--width', help='width of plot (inches)', type=float, default=6.5)
+        '--width', help='width of plot (inches)', type=float, default=Defaults.DEFAULT_PLOT_WIDTH)
     genomic_stats_parser.add_argument(
-        '--height', help='height of plot (inches)', type=float, default=4)
+        '--height', help='height of plot (inches)', type=float, default=Defaults.DEFAULT_PLOT_HEIGHT)
     genomic_stats_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
@@ -486,8 +503,10 @@ if __name__ == '__main__':
     nomenclatural_rank_parser.add_argument('--domain',
                                            help='restrict plot to genomes from specified domain',
                                            choices=[
-                                               'Both', 'Archaea', 'Bacteria'],
-                                           default='Both')
+                                               Defaults.DOMAIN_BOTH, 
+                                               Defaults.DOMAIN_ARCHAEA, 
+                                               Defaults.DOMAIN_BACTERIA],
+                                           default=Defaults.DOMAIN_BOTH)
     nomenclatural_rank_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 

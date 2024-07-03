@@ -34,7 +34,7 @@ from biolib.plots.abstract_plot import AbstractPlot
 from matplotlib.ticker import NullFormatter
 import matplotlib.lines as mlines
 
-from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
 
 
 class GenomeQualityPlot(AbstractPlot):
@@ -53,7 +53,8 @@ class GenomeQualityPlot(AbstractPlot):
                     xlabel, ylabel, 
                     num_bins, 
                     xlim=None, 
-                    ylim=None):
+                    ylim=None,
+                    palette=DEFAULT_PALETTE):
         """Create plot."""
         
         # setup histograms
@@ -94,15 +95,15 @@ class GenomeQualityPlot(AbstractPlot):
             if category == 'hq':
                 hq_x.append(cur_comp)
                 hq_y.append(cur_cont)
-                hq_c.append(COLOR_BLIND_PALETTE.orange)
+                hq_c.append(palette.colour3)
             elif category == 'mq':
                 mq_x.append(cur_comp)
                 mq_y.append(cur_cont)
-                mq_c.append(COLOR_BLIND_PALETTE.blue)
+                mq_c.append(palette.colour2)
             elif category == 'lq':
                 p_x.append(cur_comp)
                 p_y.append(cur_cont)
-                p_c.append(COLOR_BLIND_PALETTE.grey)
+                p_c.append(palette.colour1)
             else:
                 assert(False)
 
@@ -165,7 +166,7 @@ class GenomeQualityPlot(AbstractPlot):
         pdf, _bins, _patches = axes_top_histogram.hist(x, 
                                                     bins=num_bins, 
                                                     weights=weights,
-                                                    color=[COLOR_BLIND_PALETTE.grey, COLOR_BLIND_PALETTE.orange, COLOR_BLIND_PALETTE.blue],
+                                                    color=[palette.colour1, palette.colour2, palette.colour3],
                                                     edgecolor=(0.2,0.2,0.2),
                                                     lw=0.5, 
                                                     histtype='bar',
@@ -189,7 +190,7 @@ class GenomeQualityPlot(AbstractPlot):
                                                         bins=num_bins, 
                                                         orientation='horizontal',
                                                         weights=weights,
-                                                        color=[COLOR_BLIND_PALETTE.grey, COLOR_BLIND_PALETTE.orange, COLOR_BLIND_PALETTE.blue],
+                                                        color=[palette.colour1, palette.colour2, palette.colour3],
                                                         edgecolor=(0.2,0.2,0.2),
                                                         lw=0.5, 
                                                         histtype='bar',
@@ -305,7 +306,8 @@ class GenomeQuality(object):
  
     def run(self, 
                 bac120_metadata_file,
-                ar120_metadata_file):
+                ar120_metadata_file,
+                palette):
         """Scatter plot showing quality of GTDB representative genomes."""
 
         # get genome metadata
@@ -358,7 +360,8 @@ class GenomeQuality(object):
                     'Contamination (%)', 
                     num_bins=25,
                     xlim=(49, 101), 
-                    ylim=(-0.2, 10.2))
+                    ylim=(-0.2, 10.2),
+                    palette=palette)
 
         out_prefix = f'gtdb_r{self.release_number}_genome_quality.species'
         plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)

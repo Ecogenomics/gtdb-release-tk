@@ -25,7 +25,7 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                    array as np_array)
 
-from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
 
 
 class NomenclaturalPerRankPlot(AbstractPlot):
@@ -35,7 +35,7 @@ class NomenclaturalPerRankPlot(AbstractPlot):
         """Initialize."""
         AbstractPlot.__init__(self, options)
 
-    def plot(self, plot_latinized, plot_placeholder, xticklabels):
+    def plot(self, plot_latinized, plot_placeholder, xticklabels, palette=DEFAULT_PALETTE):
         """Create stacked bar plot."""
 
         self.fig.clear()
@@ -48,9 +48,8 @@ class NomenclaturalPerRankPlot(AbstractPlot):
         plot_latinized = np_array(plot_latinized)
         plot_placeholder = np_array(plot_placeholder)
 
-        p1 = axis.bar(ind, plot_latinized, width, color=COLOR_BLIND_PALETTE.orange)
-        p2 = axis.bar(ind, plot_placeholder, width,
-                      bottom=plot_latinized, color=COLOR_BLIND_PALETTE.blue)
+        p1 = axis.bar(ind, plot_latinized, width, color=palette.colour1)
+        p2 = axis.bar(ind, plot_placeholder, width, bottom=plot_latinized, color=palette.colour2)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))
@@ -111,7 +110,7 @@ class NomenclaturalPerRank(object):
 
         return all(c.islower() for c in specific)
 
-    def run(self, bac120_metadata_file, ar120_metadata_file, domain):
+    def run(self, bac120_metadata_file, ar120_metadata_file, domain, palette):
         """Plot nomenclatural status of species for each taxonomic rank."""
 
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -196,7 +195,7 @@ class NomenclaturalPerRank(object):
                                        tick_font_size=6,
                                        dpi=600)
         plot = NomenclaturalPerRankPlot(options)
-        plot.plot(plot_latinized, plot_placeholder, plot_labels)
+        plot.plot(plot_latinized, plot_placeholder, plot_labels, palette)
 
         plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
         plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
