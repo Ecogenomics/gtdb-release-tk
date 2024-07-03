@@ -31,7 +31,7 @@ from matplotlib import gridspec
 from gtdb_release_tk.common import (ENV_CATEGORIES,
                                     sp_cluster_type_category)
 from gtdb_release_tk.taxon_utils import canonical_taxon
-from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
 
 
 class GenomeCateogryPerRankPlot(AbstractPlot):
@@ -47,7 +47,7 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
         self.spec = gridspec.GridSpec(
             ncols=2, nrows=1, width_ratios=[8, 1], wspace=0.5)
 
-    def plot(self, plot_num, both, isolate, env, xticklabels, ylabel='Taxa (%)'):
+    def plot(self, plot_num, both, isolate, env, xticklabels, ylabel='Taxa (%)', palette=DEFAULT_PALETTE):
         """Create stacked bar plot."""
 
         axis = self.fig.add_subplot(self.spec[plot_num-1])
@@ -59,9 +59,9 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
         isolate = np_array(isolate)
         env = np_array(env)
 
-        p1 = axis.bar(ind, both, width, color=COLOR_BLIND_PALETTE.grey)
-        p2 = axis.bar(ind, isolate, width, bottom=both, color=COLOR_BLIND_PALETTE.orange)
-        p3 = axis.bar(ind, env, width, bottom=both+isolate, color=COLOR_BLIND_PALETTE.blue)
+        p1 = axis.bar(ind, both, width, color=palette.colour1)
+        p2 = axis.bar(ind, isolate, width, bottom=both, color=palette.colour2)
+        p3 = axis.bar(ind, env, width, bottom=both+isolate, color=palette.colour3)
 
         axis.set_ylim([0, 100])
         axis.set_yticks(range(0, 101, 10))
@@ -105,7 +105,7 @@ class GenomeCategoryPerRank(object):
 
         self.logger = logging.getLogger('timestamp')
 
-    def run(self, bac120_metadata_file, ar120_metadata_file, ar_only, bac_only):
+    def run(self, bac120_metadata_file, ar120_metadata_file, ar_only, bac_only, palette):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -229,8 +229,13 @@ class GenomeCategoryPerRank(object):
                                        tick_font_size=6,
                                        dpi=600)
         plot = GenomeCateogryPerRankPlot(options)
-        plot.plot(1, plot_both, plot_isolate, plot_env,
-                  plot_labels, ylabel='Taxa (%)')
+        plot.plot(1, 
+                  plot_both, 
+                  plot_isolate, 
+                  plot_env,
+                  plot_labels, 
+                  ylabel='Taxa (%)', 
+                  palette=palette)
 
         # create seperate plot with genomes
         isolate_genomes = sum(
@@ -249,8 +254,13 @@ class GenomeCategoryPerRank(object):
         plot_isolate = [isolate_genomes*100.0/len(genome_category)]
         plot_env = [env_genomes*100.0/len(genome_category)]
         plot_label = ['{}\n{:,}'.format('Genomes', len(genome_category))]
-        plot.plot(2, plot_both, plot_isolate, plot_env,
-                  plot_label, ylabel='Genomes (%)')
+        plot.plot(2, 
+                  plot_both, 
+                  plot_isolate, 
+                  plot_env,
+                  plot_label, 
+                  ylabel='Genomes (%)',
+                  palette=palette)
 
         plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
         plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
