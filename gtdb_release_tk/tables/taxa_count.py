@@ -24,13 +24,15 @@ __maintainer__ = 'Donovan Parks'
 __email__ = 'donovan.parks@gmail.com'
 __status__ = 'Development'
 
+import os
 import logging
-from pathlib import PurePath
 from collections import defaultdict
+from pathlib import PurePath
 
 from biolib.taxonomy import Taxonomy
 
 import gtdb_release_tk.HTML as HTML
+from gtdb_release_tk.common import summarise_file
 from gtdb_release_tk.taxon_utils import canonical_taxon
 
 
@@ -96,13 +98,12 @@ class TaxaCount(object):
             print('\t'.join(row))
 
         out_prefix = f'gtdb_r{self.release_number}_taxa_count'
-        fout = open(self.output_dir / f'{out_prefix}.html', 'w')
-        htmlcode = HTML.table(table_data,
-                              table_class='taxa_count',
-                              col_styles=['font-size: small'] *
-                              len(table_data[0]),
-                              col_align=['left'] + ['center'] *
-                              (len(table_data[0])-1),
-                              cellpadding=6)
-        fout.write(htmlcode)
-        fout.close()
+        path_html = os.path.join(self.output_dir, f'{out_prefix}.html')
+        with open(path_html, 'w') as fout:
+            htmlcode = HTML.table(table_data,
+                                  table_class='taxa_count',
+                                  col_styles=['font-size: small'] * len(table_data[0]),
+                                  col_align=['left'] + ['center'] * (len(table_data[0]) - 1),
+                                  cellpadding=6)
+            fout.write(htmlcode)
+        self.logger.info(summarise_file(path_html))

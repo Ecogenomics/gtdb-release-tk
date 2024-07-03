@@ -56,17 +56,14 @@ class WebsiteData(object):
 
     def taxonomy_files(self,
                        metadata_file,
-                       gtdb_sp_clusters_file,
-                       user_gid_table):
+                       gtdb_sp_clusters_file):
         """Generate taxonomy files for GTDB website."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
 
         # get GTDB species clusters
         self.logger.info('Parsing all species clusters from GTDB metadata.')
-        sp_clusters = parse_species_clusters(gtdb_sp_clusters_file, user_gids)
+        sp_clusters = parse_species_clusters(gtdb_sp_clusters_file)
 
         genome_rep_id = {}
         for rep_id, gids in sp_clusters.items():
@@ -79,7 +76,7 @@ class WebsiteData(object):
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        reps = parse_rep_genomes(metadata_file, user_gids)
+        reps = parse_rep_genomes(metadata_file)
         self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
             sum([1 for t in reps.values()]),
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
@@ -286,17 +283,16 @@ class WebsiteData(object):
         self.gtdb_ssu_file(reps, sp_clusters, genome_paths)
 
     def sp_cluster_file(self, metadata_file,
-                        gtdb_sp_clusters_file,
-                        user_gid_table):
+                        gtdb_sp_clusters_file):
         """Generate file indicating GTDB species clusters."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
+        # self.logger.info('Parsing user genome ID mapping table.')
+        # user_gids = parse_user_gid_table(user_gid_table)
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        reps = parse_rep_genomes(metadata_file, user_gids)
+        reps = parse_rep_genomes(metadata_file)
         self.logger.info(' - identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
@@ -313,20 +309,19 @@ class WebsiteData(object):
         with open(gtdb_sp_clusters_file) as f:
             header = f.readline().strip().split('\t')
 
-            type_genome_index = header.index('Type genome')
-            ani_index = header.index('ANI radius')
+            type_genome_index = header.index('Representative genome')
+            ani_index = header.index('ANI circumscription radius')
             cluster_size_index = header.index('No. clustered genomes')
-            mean_ani_index = header.index('Mean ANI')
-            min_ani_index = header.index('Min ANI')
-            mean_af_index = header.index('Mean AF')
-            min_af_index = header.index('Min AF')
+            mean_ani_index = header.index('Mean intra-species ANI')
+            min_ani_index = header.index('Min intra-species ANI')
+            mean_af_index = header.index('Mean intra-species AF')
+            min_af_index = header.index('Min intra-species AF')
             clustered_genomes_index = header.index('Clustered genomes')
 
             for line in f:
                 line_split = line.strip().split('\t')
 
                 type_genome = line_split[type_genome_index]
-                type_genome = user_gids.get(type_genome, type_genome)
 
                 ani = line_split[ani_index]
                 cluster_size = int(line_split[cluster_size_index])
@@ -335,10 +330,10 @@ class WebsiteData(object):
                 mean_af = line_split[mean_af_index]
                 min_af = line_split[min_af_index]
 
-                clustered_genomes = set([type_genome])
+                clustered_genomes = {type_genome}
                 if cluster_size > 0:
                     for cid in line_split[clustered_genomes_index].split(','):
-                        clustered_genomes.add(user_gids.get(cid, cid))
+                        clustered_genomes.add(cid)
 
                 fout.write('{}\t{}\t{}\t{}'.format(
                     type_genome,
@@ -356,17 +351,16 @@ class WebsiteData(object):
         fout.close()
 
     def hq_genome_file(self,
-                        metadata_file,
-                        user_gid_table):
+                        metadata_file):
         """Generate file indicating HQ genomes."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
+        # self.logger.info('Parsing user genome ID mapping table.')
+        # user_gids = parse_user_gid_table(user_gid_table)
 
         # get representative genome for each GTDB species cluster
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        reps = parse_rep_genomes(metadata_file, user_gids)
+        reps = parse_rep_genomes(metadata_file)
         self.logger.info(' - identified {:,} bacterial and {:,} archaeal representative genomes.'.format(
             sum([1 for t in reps.values() if t[0] == 'd__Bacteria']),
             sum([1 for t in reps.values() if t[0] == 'd__Archaea'])))
@@ -383,8 +377,7 @@ class WebsiteData(object):
             'mimag_high_quality',
             'mimag_medium_quality',
             'mimag_low_quality',
-            'gtdb_taxonomy'],
-            user_gids)
+            'gtdb_taxonomy'])
 
         fout = open(self.output_dir /
                     'hq_mimag_genomes_r{}.tsv'.format(self.release_number), 'w')
@@ -459,13 +452,12 @@ class WebsiteData(object):
     def tree_files(self,
                    metadata_file,
                    bac_tree,
-                   ar_tree,
-                   user_gid_table):
+                   ar_tree):
         """Generate tree files spanning representative genomes."""
 
         # parse user genome ID mapping table
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
+        # self.logger.info('Parsing user genome ID mapping table.')
+        # user_gids = parse_user_gid_table(user_gid_table)
 
         # ensure proper genome IDs for bacterial tree
         self.logger.info('Reading GTDB bacterial reference tree.')
@@ -479,7 +471,7 @@ class WebsiteData(object):
         for leaf in bac_tree.leaf_node_iter():
             gid = leaf.taxon.label
             assert(not gid.startswith('D-'))
-            leaf.taxon.label = user_gids.get(gid, gid)
+            leaf.taxon.label = gid
 
         bac_tree.write_to_path(self.output_dir / f'bac120_r{self.release_number}.tree',
                                schema='newick',
@@ -498,7 +490,7 @@ class WebsiteData(object):
         for leaf in ar_tree.leaf_node_iter():
             gid = leaf.taxon.label
             assert(not gid.startswith('D-'))
-            leaf.taxon.label = user_gids.get(gid, gid)
+            leaf.taxon.label = gid
 
         ar_tree.write_to_path(self.output_dir / f'ar122_r{self.release_number}.tree',
                               schema='newick',
@@ -507,7 +499,7 @@ class WebsiteData(object):
 
         # create trees with species assignments as terminal labels
         self.logger.info('Parsing representative genomes from GTDB metadata.')
-        gtdb_reps = parse_rep_genomes(metadata_file, user_gids)
+        gtdb_reps = parse_rep_genomes(metadata_file)
         self.logger.info(' ...identified {:,} representative genomes ({:,} bacterial, {:,} archaeal).'.format(
             sum([1 for t in gtdb_reps.values()]),
             sum([1 for t in gtdb_reps.values() if t[0] == 'd__Bacteria']),
@@ -1439,9 +1431,10 @@ class WebsiteData(object):
                         tax_dict[drank][prank][crank][orank][frank][grank][srank] = []
                     tax_dict[drank][prank][crank][orank][frank][grank][srank].append(
                         genome)
-        with open('genome_taxonomy_r{}_count.json'.format(self.release_number), 'w') as outfile:
+        out_path = os.path.join(self.output_dir, 'genome_taxonomy_r{}_count.json'.format(self.release_number))
+        with open(out_path, 'w') as outfile:
             json.dump({"name": "Domain", "type": "root", "children": list(self.conv(
-                k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False)
+                k, tax_dict[k], meta_information, type_spe_list) for k in sorted(tax_dict.keys()))}, outfile, check_circular=False, sort_keys=True)
 
     def parse_metadata(self, metadatafile):
         result = {}

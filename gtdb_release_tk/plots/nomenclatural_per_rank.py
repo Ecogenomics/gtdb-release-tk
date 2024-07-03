@@ -15,6 +15,7 @@
 #                                                                             #
 ###############################################################################
 
+import os
 import logging
 from pathlib import PurePath
 from collections import defaultdict
@@ -25,7 +26,8 @@ from biolib.plots.abstract_plot import AbstractPlot
 from numpy import (arange as np_arange,
                    array as np_array)
 
-from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
+from gtdb_release_tk.common import summarise_file
+from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
 
 class NomenclaturalPerRankPlot(AbstractPlot):
@@ -33,9 +35,10 @@ class NomenclaturalPerRankPlot(AbstractPlot):
 
     def __init__(self, options):
         """Initialize."""
+        
         AbstractPlot.__init__(self, options)
 
-    def plot(self, plot_latinized, plot_placeholder, xticklabels, palette=DEFAULT_PALETTE):
+    def plot(self, plot_latinized, plot_placeholder, xticklabels, palette: Palette = DEFAULT_PALETTE):
         """Create stacked bar plot."""
 
         self.fig.clear()
@@ -110,19 +113,17 @@ class NomenclaturalPerRank(object):
 
         return all(c.islower() for c in specific)
 
-    def run(self, bac120_metadata_file, ar120_metadata_file, domain, palette):
+    def run(self, bac120_metadata_file, ar120_metadata_file, domain, palette: Palette = DEFAULT_PALETTE):
         """Plot nomenclatural status of species for each taxonomic rank."""
 
         # parse GTDB metadata file to determine genomes in each species clusters
         self.logger.info('Reading GTDB metadata.')
         gtdb_taxonomy = {}
-        ncbi_taxonomy = {}
         for mf in [bac120_metadata_file, ar120_metadata_file]:
             with open(mf, encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
 
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')
-                ncbi_taxonomy_index = header.index('ncbi_taxonomy')
                 gtdb_rep_index = header.index('gtdb_representative')
 
                 for line in f:
@@ -139,7 +140,6 @@ class NomenclaturalPerRank(object):
 
                     gtdb_domain = gtdb_taxa[0]
                     if domain == 'Both' or domain in gtdb_domain:
-
                         gtdb_taxonomy[gid] = gtdb_taxa
 
         self.logger.info(
@@ -154,38 +154,37 @@ class NomenclaturalPerRank(object):
         # determine nomenclatural category for each taxa at each rank
         out_prefix = f'gtdb_r{self.release_number}_nomenclatural_per_rank'
         self.logger.info('Determining nomenclatural type of taxa.')
-        fout = open(self.output_dir / f'{out_prefix}.species.tsv', 'w')
+        path_tsv = os.path.join(self.output_dir, f'{out_prefix}.species.tsv')
+        with open(path_tsv, 'w') as fout:
+            plot_latinized = []
+            plot_placeholder = []
+            plot_labels = []
+            for rank_index in range(1, 7):
+                fout.write(Taxonomy.rank_labels[rank_index])
 
-        plot_latinized = []
-        plot_placeholder = []
-        plot_labels = []
-        for rank_index in range(1, 7):
-            fout.write(Taxonomy.rank_labels[rank_index])
-
-            latinized = 0
-            placeholder = 0
-            for taxon in gtdb_taxa_at_rank[rank_index]:
-                if rank_index != 6:
-                    if self.latinized_taxon(taxon):
-                        latinized += 1
+                latinized = 0
+                placeholder = 0
+                for taxon in gtdb_taxa_at_rank[rank_index]:
+                    if rank_index != 6:
+                        if self.latinized_taxon(taxon):
+                            latinized += 1
+                        else:
+                            placeholder += 1
                     else:
-                        placeholder += 1
-                else:
-                    if self.latinized_species(taxon):
-                        latinized += 1
-                    else:
-                        placeholder += 1
+                        if self.latinized_species(taxon):
+                            latinized += 1
+                        else:
+                            placeholder += 1
 
-            total_taxa = latinized + placeholder
-            fout.write(f'\t{total_taxa}\t{latinized}\t{placeholder}\n')
+                total_taxa = latinized + placeholder
+                fout.write(f'\t{total_taxa}\t{latinized}\t{placeholder}\n')
 
-            plot_latinized.append(latinized*100.0/total_taxa)
-            plot_placeholder.append(placeholder*100.0/total_taxa)
-            plot_labels.append('{}\n{:,}'.format(
-                Taxonomy.rank_labels[rank_index].capitalize(),
-                total_taxa))
-
-        fout.close()
+                plot_latinized.append(latinized*100.0/total_taxa)
+                plot_placeholder.append(placeholder*100.0/total_taxa)
+                plot_labels.append('{}\n{:,}'.format(
+                                    Taxonomy.rank_labels[rank_index].capitalize(),
+                                    total_taxa))
+        self.logger.info(summarise_file(path_tsv))
 
         # create plot
         self.logger.info('Creating plot.')
@@ -197,5 +196,7 @@ class NomenclaturalPerRank(object):
         plot = NomenclaturalPerRankPlot(options)
         plot.plot(plot_latinized, plot_placeholder, plot_labels, palette)
 
-        plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
-        plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
+        for ext in ('.png', '.svg'):
+            path = os.path.join(self.output_dir, f'{out_prefix}{ext}')
+            plot.save_plot(path, dpi=600)
+            self.logger.info(summarise_file(path))

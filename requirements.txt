@@ -1,4 +1,4 @@
-biolib
+biolib >= 0.1.0
 dendropy
 unidecode
 requests

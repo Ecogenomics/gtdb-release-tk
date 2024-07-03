@@ -17,14 +17,22 @@
 
 import os
 import sys
+
 import logging
 
 import dendropy
-
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
 
 import gtdb_release_tk.defaults as Defaults
+from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
+
+from gtdb_release_tk.files.gtdb_dict import GTDBDictFile
+from gtdb_release_tk.files.metadata import MetadataFile
+from gtdb_release_tk.files.sp_clusters import SpClustersFile
+from gtdb_release_tk.files.taxa_count import TaxaCountFile
+from gtdb_release_tk.files.taxonomy import TaxonomyFile, ArcTaxonomyFile, BacTaxonomyFile
+from gtdb_release_tk.files.website_tree_json import WebsiteTreeJsonFile
 
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
@@ -34,20 +42,18 @@ from gtdb_release_tk.synonyms import Synonyms
 from gtdb_release_tk.pd import PhylogeneticDiversity
 
 from gtdb_release_tk.plots.genome_category_per_rank import GenomeCategoryPerRank
-from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
-from gtdb_release_tk.plots.genomic_stats import GenomicStats
 from gtdb_release_tk.plots.genome_quality import GenomeQuality
+from gtdb_release_tk.plots.genomic_stats import GenomicStats
 from gtdb_release_tk.plots.ncbi_compare import NCBI_Compare
+from gtdb_release_tk.plots.nomenclatural_per_rank import NomenclaturalPerRank
 from gtdb_release_tk.plots.species_rep_type import SpeciesRepType
-
-from gtdb_release_tk.tables.taxa_count import TaxaCount
-from gtdb_release_tk.tables.top_taxa import TopTaxa
-from gtdb_release_tk.tables.latin_count import LatinCount
-
 from gtdb_release_tk.plots.palette import DEFAULT_PALETTE, COLOR_BLIND_PALETTE
 
+from gtdb_release_tk.tables.top_taxa import TopTaxaFile
+from gtdb_release_tk.tables.latin_count import LatinCount
 
-class OptionsParser():
+
+class OptionsParser(object):
     def __init__(self):
         """Initialization"""
 
@@ -55,16 +61,17 @@ class OptionsParser():
 
     def taxonomy_files(self, options):
         """Generate taxonomy files for GTDB website."""
+        assert_file_exists(options.metadata_file)
+        assert_file_exists(options.gtdb_sp_clusters_file)
+        assert_dir_exists(options.output_dir)
 
-        check_file_exists(options.metadata_file)
-        check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
-        make_sure_path_exists(options.output_dir)
+        metadata_file = MetadataFile.read(options.metadata_file)
+        sp_clusters_file = SpClustersFile.read(options.gtdb_sp_clusters_file)
 
-        p = WebsiteData(options.release_number, options.output_dir)
-        p.taxonomy_files(options.metadata_file,
-                         options.gtdb_sp_clusters_file,
-                         options.user_gid_table)
+        arc_path = os.path.join(options.output_dir, f'ar122_taxonomy_r{options.release_number}.tsv')
+        bac_path = os.path.join(options.output_dir, f'bac120_taxonomy_r{options.release_number}.tsv')
+        ArcTaxonomyFile.create(metadata_file, sp_clusters_file).write(arc_path)
+        BacTaxonomyFile.create(metadata_file, sp_clusters_file).write(bac_path)
 
         self.logger.info('Done.')
 
@@ -74,14 +81,12 @@ class OptionsParser():
         check_file_exists(options.metadata_file)
         check_file_exists(options.bac_tree)
         check_file_exists(options.ar_tree)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.tree_files(options.metadata_file,
                      options.bac_tree,
-                     options.ar_tree,
-                     options.user_gid_table)
+                     options.ar_tree)
 
         self.logger.info('Done.')
 
@@ -90,13 +95,11 @@ class OptionsParser():
 
         check_file_exists(options.metadata_file)
         check_file_exists(options.gtdb_sp_clusters_file)
-        check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
         p.sp_cluster_file(options.metadata_file,
-                          options.gtdb_sp_clusters_file,
-                          options.user_gid_table)
+                          options.gtdb_sp_clusters_file)
 
         self.logger.info('Done.')
 
@@ -104,13 +107,10 @@ class OptionsParser():
         """Generate file indicating HQ genomes."""
 
         check_file_exists(options.metadata_file)
-        if options.user_gid_table.lower() != 'none':
-            check_file_exists(options.user_gid_table)
         make_sure_path_exists(options.output_dir)
 
         p = WebsiteData(options.release_number, options.output_dir)
-        p.hq_genome_file(options.metadata_file,
-                         options.user_gid_table)
+        p.hq_genome_file(options.metadata_file)
 
         self.logger.info('Done.')
 
@@ -220,12 +220,11 @@ class OptionsParser():
 
     def dict_file(self, options):
         """Generate GTDB dictionary file."""
-
-        check_file_exists(options.taxonomy_file)
+        assert_file_exists(options.taxonomy_file)
         make_sure_path_exists(options.output_dir)
 
-        p = WebsiteData(options.release_number, options.output_dir)
-        p.dict_file(options.taxonomy_file)
+        tf = TaxonomyFile.read(options.taxonomy_file)
+        GTDBDictFile.create(tf).write(options.output_dir, options.release_number)
 
         self.logger.info('Done.')
 
@@ -336,10 +335,12 @@ class OptionsParser():
 
     def json_tree_parser(self, options):
         """generate Json file used to create the tree in http://gtdb.ecogenomic.org/tree"""
+        tf = TaxonomyFile.read(options.taxonomy_file)
+        mf = MetadataFile.read(options.metadata_file)
+        wtj = WebsiteTreeJsonFile.create(tf, mf)
+        path_out = os.path.join(options.output_dir, f'genome_taxonomy_r{options.release_number}_count.json')
+        wtj.write(path_out)
 
-        p = WebsiteData(options.release_number, options.output_dir)
-        p.json_tree_parser(options.taxonomy_file,
-                           options.metadata_file)
         self.logger.info('Done.')
 
     def all_release_plots_parser(self, options):
@@ -363,7 +364,7 @@ class OptionsParser():
                     Defaults.DEFAULT_PLOT_WIDTH,
                     Defaults.DEFAULT_PLOT_HEIGHT)
 
-            out_dir = os.path.join(root_out_dir, 'genomic_stats_-sp_reps_only')
+            out_dir = os.path.join(root_out_dir, 'genomic_stats-sp_reps_only')
             os.makedirs(out_dir, exist_ok=True)
             p = GenomicStats(options.release_number, out_dir)
             p.run(options.bac120_metadata_file,
@@ -422,8 +423,10 @@ class OptionsParser():
             out_dir = os.path.join(root_out_dir, 'species_rep_type')
             os.makedirs(out_dir, exist_ok=True)
             p = SpeciesRepType(options.release_number, out_dir)
-            p.run(options.bac120_metadata_file,
-                    options.ar122_metadata_file,
+            bac_mf = MetadataFile.read(options.bac120_metadata_file)
+            arc_mf = MetadataFile.read(options.ar122_metadata_file)
+            p.run(bac_mf,
+                    arc_mf,
                     Defaults.DOMAIN_BOTH,
                     palette)
 
@@ -481,9 +484,11 @@ class OptionsParser():
         make_sure_path_exists(options.output_dir)
 
         p = SpeciesRepType(options.release_number, options.output_dir)
-        p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file,
-              options.domain)
+
+        bac_mf = MetadataFile.read(options.bac120_metadata_file)
+        arc_mf = MetadataFile.read(options.ar122_metadata_file)
+
+        p.run(bac_mf, arc_mf, options.domain)
 
         self.logger.info('Done.')
 
@@ -551,14 +556,15 @@ class OptionsParser():
 
     def taxa_count(self, options):
         """Create table with number of taxa at each taxonomic rank."""
-
-        check_file_exists(options.bac120_metadata_file)
-        check_file_exists(options.ar122_metadata_file)
+        assert_file_exists(options.bac120_metadata_file)
+        assert_file_exists(options.ar122_metadata_file)
         make_sure_path_exists(options.output_dir)
 
-        p = TaxaCount(options.release_number, options.output_dir)
-        p.run(options.bac120_metadata_file,
-              options.ar122_metadata_file)
+        bac_mf = MetadataFile.read(options.bac120_metadata_file)
+        arc_mf = MetadataFile.read(options.ar122_metadata_file)
+
+        tcf = TaxaCountFile.create(bac_mf, arc_mf)
+        tcf.write_html(options.output_dir, options.release_number)
 
         self.logger.info('Done.')
 
@@ -568,9 +574,11 @@ class OptionsParser():
         check_file_exists(options.gtdb_sp_clusters_file)
         make_sure_path_exists(options.output_dir)
 
-        p = TopTaxa(options.release_number, options.output_dir)
-        p.run(options.gtdb_sp_clusters_file,
-              options.num_taxa)
+        spf = SpClustersFile.read(options.gtdb_sp_clusters_file)
+
+        ttf = TopTaxaFile.create(spf)
+        ttf.write_genomes(options.output_dir, options.release_number, options.num_taxa)
+        ttf.write_species(options.output_dir, options.release_number, options.num_taxa)
 
         self.logger.info('Done.')
 
@@ -685,6 +693,6 @@ class OptionsParser():
         else:
             self.logger.error('Unknown command: ' +
                               options.subparser_name + '\n')
-            sys.exit()
+            sys.exit(1)
 
         return 0

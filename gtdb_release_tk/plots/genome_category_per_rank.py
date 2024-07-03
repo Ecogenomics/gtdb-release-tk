@@ -15,6 +15,7 @@
 #                                                                             #
 ###############################################################################
 
+import os
 import sys
 import logging
 from pathlib import PurePath
@@ -29,9 +30,10 @@ from numpy import (arange as np_arange,
 from matplotlib import gridspec
 
 from gtdb_release_tk.common import (ENV_CATEGORIES,
-                                    sp_cluster_type_category)
+                                    sp_cluster_type_category,
+                                    summarise_file)
 from gtdb_release_tk.taxon_utils import canonical_taxon
-from gtdb_release_tk.plots.palette import DEFAULT_PALETTE
+from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
 
 class GenomeCateogryPerRankPlot(AbstractPlot):
@@ -39,6 +41,7 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
 
     def __init__(self, options):
         """Initialize."""
+        
         AbstractPlot.__init__(self, options)
 
         self.fig.clear()
@@ -47,7 +50,7 @@ class GenomeCateogryPerRankPlot(AbstractPlot):
         self.spec = gridspec.GridSpec(
             ncols=2, nrows=1, width_ratios=[8, 1], wspace=0.5)
 
-    def plot(self, plot_num, both, isolate, env, xticklabels, ylabel='Taxa (%)', palette=DEFAULT_PALETTE):
+    def plot(self, plot_num, both, isolate, env, xticklabels, ylabel, palette: Palette):
         """Create stacked bar plot."""
 
         axis = self.fig.add_subplot(self.spec[plot_num-1])
@@ -105,7 +108,7 @@ class GenomeCategoryPerRank(object):
 
         self.logger = logging.getLogger('timestamp')
 
-    def run(self, bac120_metadata_file, ar120_metadata_file, ar_only, bac_only, palette):
+    def run(self, bac120_metadata_file, ar120_metadata_file, ar_only, bac_only, palette: Palette = DEFAULT_PALETTE):
         """Plot number of MAGs, SAGs, and isolates for each taxonomic rank."""
 
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -142,8 +145,7 @@ class GenomeCategoryPerRank(object):
                     gtdb_taxa = [t.strip() for t in taxonomy.split(';')]
                     gtdb_taxonomy[gid] = gtdb_taxa
 
-                    sp = gtdb_taxa[6]
-                    sp_clusters[sp].add(gid)
+                    sp_clusters[gtdb_taxa[6]].add(gid)
 
                     genome_category[gid] = line_split[genome_category_index]
 
@@ -156,7 +158,7 @@ class GenomeCategoryPerRank(object):
         for sp, gids in sp_clusters.items():
             sp_genome_types[sp] = sp_cluster_type_category(
                 gids, genome_category)
-            
+
         # get species in each taxa
         sp_in_taxa = defaultdict(lambda: defaultdict(set))
         for taxa in gtdb_taxonomy.values():
@@ -229,13 +231,8 @@ class GenomeCategoryPerRank(object):
                                        tick_font_size=6,
                                        dpi=600)
         plot = GenomeCateogryPerRankPlot(options)
-        plot.plot(1, 
-                  plot_both, 
-                  plot_isolate, 
-                  plot_env,
-                  plot_labels, 
-                  ylabel='Taxa (%)', 
-                  palette=palette)
+        plot.plot(1, plot_both, plot_isolate, plot_env,
+                  plot_labels, ylabel='Taxa (%)', palette=palette)
 
         # create seperate plot with genomes
         isolate_genomes = sum(
@@ -254,13 +251,10 @@ class GenomeCategoryPerRank(object):
         plot_isolate = [isolate_genomes*100.0/len(genome_category)]
         plot_env = [env_genomes*100.0/len(genome_category)]
         plot_label = ['{}\n{:,}'.format('Genomes', len(genome_category))]
-        plot.plot(2, 
-                  plot_both, 
-                  plot_isolate, 
-                  plot_env,
-                  plot_label, 
-                  ylabel='Genomes (%)',
-                  palette=palette)
+        plot.plot(2, plot_both, plot_isolate, plot_env,
+                  plot_label, ylabel='Genomes (%)', palette=palette)
 
-        plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
-        plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
+        for ext in ('.png', '.svg'):
+            path = os.path.join(self.output_dir, f'{out_prefix}{ext}')
+            plot.save_plot(path, dpi=600)
+            self.logger.info(summarise_file(path))

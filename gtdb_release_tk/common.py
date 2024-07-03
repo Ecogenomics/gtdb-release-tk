@@ -1,5 +1,8 @@
+import os
 import sys
-from collections import defaultdict, namedtuple
+import hashlib
+from collections import namedtuple, defaultdict
+from typing import Optional
 
 
 ENV_CATEGORIES = set(['derived from single cell',
@@ -56,7 +59,7 @@ def parse_user_gid_table(user_gid_table):
     return user_gids
 
 
-def parse_rep_genomes(gtdb_metadata_file, user_gids):
+def parse_rep_genomes(gtdb_metadata_file):
     """Parse species representative genomes and their GTDB taxonomy."""
 
     reps = {}
@@ -74,9 +77,7 @@ def parse_rep_genomes(gtdb_metadata_file, user_gids):
             if gtdb_rep.lower().startswith('f'):
                 continue
 
-            gid = user_gids.get(gid, gid)
-            gtdb_taxa = [t.strip()
-                         for t in line_split[gtdb_taxonomy_index].split(';')]
+            gtdb_taxa = [t.strip() for t in line_split[gtdb_taxonomy_index].split(';')]
             reps[gid] = gtdb_taxa
 
     return reps
@@ -98,7 +99,7 @@ def parse_genomic_path_file(genome_path_file, user_gids):
     return genome_paths
 
 
-def parse_species_clusters(gtdb_sp_clusters_file, user_gids={}):
+def parse_species_clusters(gtdb_sp_clusters_file):
     """Parse GTDB species clusters."""
 
     sp_clusters = {}
@@ -116,19 +117,17 @@ def parse_species_clusters(gtdb_sp_clusters_file, user_gids={}):
             line_split = line.strip().split('\t')
 
             rid = line_split[type_genome_index]
-            rid = user_gids.get(rid, rid)
             sp_clusters[rid] = set([rid])
 
             cluster_size = int(line_split[cluster_size_index])
             if cluster_size > 0:
                 for cid in line_split[clustered_genomes_index].split(','):
-                    cid = user_gids.get(cid, cid)
                     sp_clusters[rid].add(cid)
 
     return sp_clusters
 
 
-def parse_gtdb_metadata(metadata_file, fields, user_gids):
+def parse_gtdb_metadata(metadata_file, fields):
     """Parse genome quality from GTDB metadata.
 
     Parameters
@@ -159,7 +158,6 @@ def parse_gtdb_metadata(metadata_file, fields, user_gids):
         for line in f:
             line_split = line.strip().split('\t')
             gid = line_split[genome_index]
-            gid = user_gids.get(gid, gid)
 
             values = []
             for i in indices:
@@ -240,3 +238,53 @@ def parse_taxonomy_file(path):
             gid, tax = line.strip().split('\t')
             out[gid.replace('RS_', '').replace('GB_', '')] = tax
     return out
+
+
+def assert_file_exists(path: str) -> None:
+    """Checks if a file exists, raises an exception if it doesn't."""
+    if not os.path.exists(path) or not os.path.isfile(path):
+        raise IOError(f'Input file does not exist: {path}')
+
+
+def assert_dir_exists(path: str) -> None:
+    """Checks if a directory exists, raises an exception if it doesn't"""
+    if not os.path.exists(path) or not os.path.isdir(path):
+        raise IOError(f'Input directory does not exist: {path}')
+
+
+def optional_int(string: str) -> Optional[int]:
+    try:
+        return int(string)
+    except ValueError:
+        return None
+
+
+def optional_float(string: str) -> Optional[float]:
+    try:
+        return float(string)
+    except ValueError:
+        return None
+
+
+def sha256(input_file: str) -> str:
+    block_size = 65536
+    hash_obj = hashlib.sha256()
+    with open(input_file, 'rb') as f:
+        buf = f.read(block_size)
+        while len(buf) > 0:
+            hash_obj.update(buf)
+            buf = f.read(block_size)
+    return hash_obj.hexdigest()
+
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'):
+        if abs(num) < 1000:
+            return "%3.1f %s%s" % (num, unit, suffix)
+        num /= 1000
+    return "%.1f %s%s" % (num, 'Y', suffix)
+
+
+def summarise_file(path) -> str:
+    """Returns the hash and size of a file"""
+    return f'{os.path.basename(path)} ({sizeof_fmt(os.path.getsize(path))}) {sha256(path)} '

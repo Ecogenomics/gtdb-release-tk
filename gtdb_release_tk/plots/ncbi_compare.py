@@ -15,16 +15,18 @@
 #                                                                             #
 ###############################################################################
 
+import os
 import logging
 from pathlib import PurePath
-
-from biolib.taxonomy import Taxonomy
-from biolib.plots.abstract_plot import AbstractPlot
 
 from numpy import (arange as np_arange,
                     array as np_array)
 
-from gtdb_release_tk.plots.palette import COLOR_BLIND_PALETTE
+from biolib.taxonomy import Taxonomy
+from biolib.plots.abstract_plot import AbstractPlot
+
+from gtdb_release_tk.common import summarise_file
+from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
 
 class NCBI_ComparePlot(AbstractPlot):
@@ -32,9 +34,10 @@ class NCBI_ComparePlot(AbstractPlot):
 
     def __init__(self, options):
         """Initialize."""
+        
         AbstractPlot.__init__(self, options)
 
-    def plot(self, unchanged, passive, active, xticklabels, ylabel, palette):
+    def plot(self, unchanged, passive, active, xticklabels, ylabel, palette: Palette = DEFAULT_PALETTE):
         """Create stacked bar plot."""
         
         self.fig.clear()
@@ -96,7 +99,7 @@ class NCBI_Compare(object):
                 ar120_metadata_file,
                 all_genomes,
                 domain,
-                palette):
+                palette: Palette = DEFAULT_PALETTE):
         """Bar plot comparing GTDB and NCBI taxonomies."""
         
         # parse GTDB metadata file to determine genomes in each species clusters
@@ -220,5 +223,7 @@ class NCBI_Compare(object):
         plot = NCBI_ComparePlot(options)
         plot.plot(plot_unchanged, plot_passive, plot_active, plot_labels, ylabel, palette)
         
-        plot.save_plot(self.output_dir / f'{out_prefix}.png', dpi=600)
-        plot.save_plot(self.output_dir / f'{out_prefix}.svg', dpi=600)
+        for ext in ('.png', '.svg'):
+            path = os.path.join(self.output_dir, f'{out_prefix}{ext}')
+            plot.save_plot(path, dpi=600)
+            self.logger.info(summarise_file(path))
