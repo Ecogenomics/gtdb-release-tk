@@ -530,6 +530,14 @@ class WebsiteData(object):
             gid = canonical_gids.get(gid, gid)
             leaf.taxon.label = gid
 
+        # we add a bootstrap value of 100 to the nodes that do not have one
+        self.logger.info('Adding bootstrap values to internal nodes.')
+        for node in bac_tree.preorder_node_iter():
+            if node.label is None:
+                node.label = 100
+            elif ':' not in node.label:
+                node.label = f'100:{node.label}'
+
         bac_tree.write_to_path(self.output_dir / f'bac120_r{self.release_number}.tree',
                                schema='newick',
                                suppress_rooting=True,
@@ -549,6 +557,14 @@ class WebsiteData(object):
             assert(not gid.startswith('D-'))
             gid = canonical_gids.get(gid, gid)
             leaf.taxon.label = gid
+
+        # we add a bootstrap value of 100 to the nodes that do not have one
+        self.logger.info('Adding bootstrap values to internal nodes.')
+        for node in ar_tree.preorder_node_iter():
+            if node.label is None:
+                node.label = 100
+            elif not node.label.isdigit() and ':' not in node.label:
+                node.label = f'100:{node.label}'
 
         ar_tree.write_to_path(self.output_dir / f'ar53_r{self.release_number}.tree',
                               schema='newick',
