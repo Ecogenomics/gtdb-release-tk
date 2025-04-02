@@ -27,6 +27,7 @@ import dendropy
 from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
 from biolib.taxonomy import Taxonomy
 
+from gtdb_release_tk.link_generator import LinkGenerator
 from gtdb_release_tk.website_data import WebsiteData
 from gtdb_release_tk.reps_per_rank import RepsPerRank
 from gtdb_release_tk.itol import iTOL
@@ -129,6 +130,15 @@ class OptionsParser():
         p.lpsn_urls(options.lpsn_species_file)
 
         self.logger.info('Done.')
+
+    def sandpiper_links(self, options):
+        """ Generate a file with links to sandpiper for each rank"""
+        check_file_exists(options.table_file)
+        make_sure_path_exists(options.output_dir)
+
+        p = LinkGenerator(options.release_number, options.output_dir)
+        p.generate_sandpiper_links(options.table_file)
+
 
     def ssu_files(self, options):
         """Generate 16S rRNA FASTA files for GTDB website."""
@@ -591,6 +601,8 @@ class OptionsParser():
             self.sp_rep_type(options)
         elif options.subparser_name == 'itol':
             self.itol(options)
+        elif options.subparser_name == 'sandpiper_links':
+            self.sandpiper_links(options)
         elif options.subparser_name == 'tax_comp_files':
             self.tax_comp_files(options)
         elif options.subparser_name == 'json_tree_file':

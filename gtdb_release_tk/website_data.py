@@ -535,8 +535,14 @@ class WebsiteData(object):
         for node in bac_tree.preorder_node_iter():
             if node.label is None:
                 node.label = 100
+
             elif ':' not in node.label:
-                node.label = f'100:{node.label}'
+                try:
+                    float(node.label)
+                    # nothing to do
+                except ValueError:
+                    print(f'add 100 to node label: {node.label}')
+                    node.label = f'100:{node.label}'
 
         bac_tree.write_to_path(self.output_dir / f'bac120_r{self.release_number}.tree',
                                schema='newick',
@@ -563,8 +569,14 @@ class WebsiteData(object):
         for node in ar_tree.preorder_node_iter():
             if node.label is None:
                 node.label = 100
-            elif not node.label.isdigit() and ':' not in node.label:
-                node.label = f'100:{node.label}'
+
+            elif ':' not in node.label:
+                try:
+                    float(node.label)
+                    # nothing to do
+                except ValueError:
+                    print(f'add 100 to node label: {node.label}')
+                    node.label = f'100:{node.label}'
 
         ar_tree.write_to_path(self.output_dir / f'ar53_r{self.release_number}.tree',
                               schema='newick',

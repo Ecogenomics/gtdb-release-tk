@@ -85,6 +85,9 @@ def print_help():
       taxa_count  -> Create table with number of taxa at each taxonomic rank
       top_taxa    -> Create table with most abundant taxa at each taxonomic rank
       latin_count -> Create table indicating percentage of Latin names at each taxonomic rank
+      
+    Links:
+    sandpiper_links -> Generate links to Sandpiper for each GTDB rank
 
     Other:
       pd -> Phylogenetic diversity of isolate vs. environmental species clusters
@@ -707,6 +710,16 @@ if __name__ == '__main__':
     all_fna_parser.add_argument(
         'output_dir', help='Output directory')
     all_fna_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+
+    sandpiper_links_parser = subparsers.add_parser('sandpiper_links',
+                                                   formatter_class=CustomHelpFormatter,
+                                                   description='Generate links to Sandpiper for each GTDB rank.')
+    sandpiper_links_parser.add_argument("table_file", help="Table file with all GTDB ranks and their keys in the "
+                                                           "web database.")
+    sandpiper_links_parser.add_argument("release_number", help="Release number (e.g. 220).")
+    sandpiper_links_parser.add_argument("output_dir", help="Output directory.")
+    sandpiper_links_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
     # get and check options
