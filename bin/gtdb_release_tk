@@ -216,13 +216,9 @@ if __name__ == '__main__':
     prot_file_parser.add_argument(
         '--taxonomy_file', help='tsv of gid and taxonomy')
     prot_file_parser.add_argument(
-        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    prot_file_parser.add_argument(
         '--release_number', help='release number (e.g. 86)')
     prot_file_parser.add_argument(
         '--genome_dirs', help='File listing the path to all NCBI genome files.')
-    prot_file_parser.add_argument(
-        '--uba_path', help='root path for files not present in NCBI (UBA).')
     prot_file_parser.add_argument('--output_dir', help="output directory")
     prot_file_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
@@ -236,13 +232,9 @@ if __name__ == '__main__':
     nuc_file_parser.add_argument(
         '--taxonomy_file', help='tsv of gid and taxonomy')
     nuc_file_parser.add_argument(
-        '--user_gid_table', help='table indicate NCBI accession and UBA IDs for user genomes')
-    nuc_file_parser.add_argument(
         '--release_number', help='release number (e.g. 86)')
     nuc_file_parser.add_argument(
         '--genome_dirs', help='File listing the path to all NCBI genome files.')
-    nuc_file_parser.add_argument(
-        '--uba_path', help='root path for files not present in NCBI (UBA).')
     nuc_file_parser.add_argument('--output_dir', help="output directory")
     nuc_file_parser.add_argument(
         '--silent', help="suppress output", action='store_true')

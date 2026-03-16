@@ -180,24 +180,20 @@ class OptionsParser(object):
     def protein_files(self, options):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
-        check_file_exists(options.user_gid_table)
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.user_gid_table, options.taxonomy_file,
-                        options.genome_dirs, options.uba_path)
+        w.protein_files(options.taxonomy_file, options.genome_dirs)
 
         self.logger.info('Done.')
 
     def nucleotide_files(self, options):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
-        check_file_exists(options.user_gid_table)
         check_file_exists(options.genome_dirs)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.user_gid_table, options.taxonomy_file,
-                           options.genome_dirs, options.uba_path)
+        w.nucleotide_files(options.taxonomy_file, options.genome_dirs)
 
         self.logger.info('Done.')
 

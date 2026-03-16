@@ -336,10 +336,8 @@ def get_main_parser():
                    'Generate the archive containing all protein (AA) for representative genomes.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
             __taxonomy_file(grp)
-            __user_gid_table(grp)
             __release_number(grp)
             __genome_dirs(grp)
-            __uba_path(grp)
             __output_dir(grp)
             __cpus(grp)
         with arg_group(parser, 'optional arguments') as grp:
@@ -352,10 +350,8 @@ def get_main_parser():
                    'Generate the archive containing all protein (nucl) for representative genomes.') as parser:
         with arg_group(parser, 'required named arguments') as grp:
             __taxonomy_file(grp)
-            __user_gid_table(grp)
             __release_number(grp)
             __genome_dirs(grp)
-            __uba_path(grp)
             __output_dir(grp)
             __cpus(grp)
         with arg_group(parser, 'optional arguments') as grp:
