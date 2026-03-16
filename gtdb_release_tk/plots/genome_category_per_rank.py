@@ -17,6 +17,7 @@
 
 import os
 import sys
+import gzip
 import logging
 from pathlib import PurePath
 from collections import defaultdict
@@ -125,7 +126,12 @@ class GenomeCategoryPerRank(object):
             metadata_files = [bac120_metadata_file]
 
         for mf in metadata_files:
-            with open(mf, encoding='utf-8') as f:
+            if mf.endswith('.gz'):
+                open_file = gzip.open
+            else:
+                open_file = open
+
+            with open_file(mf, 'rt', encoding='utf-8') as f:
                 header = f.readline().strip().split('\t')
 
                 gtdb_taxonomy_index = header.index('gtdb_taxonomy')

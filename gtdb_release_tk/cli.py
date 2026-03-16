@@ -151,7 +151,14 @@ def __new_taxonomy_file(group):
 def __output_dir(group, required=False):
     group.add_argument(f'--output_dir', required=required,
                        help='output directory')
+    
+def __ar_only(group, required=False):
+    group.add_argument('--ar_only', action="store_true", default=False,
+                       help='only consider Archaea')
 
+def __bac_only(group, required=False):
+    group.add_argument('--bac_only', action="store_true", default=False,
+                       help='only consider Bacteria')
 
 def __changes_only(group):
     group.add_argument('--changes_only', action="store_true", default=False,
@@ -544,6 +551,8 @@ def get_main_parser():
             __release_number(grp)
             __output_dir(grp)
         with arg_group(parser, 'optional arguments') as grp:
+            __ar_only(grp)
+            __bac_only(grp)
             __silent(grp)
             __debug(grp)
             __help(grp)
