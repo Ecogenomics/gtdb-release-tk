@@ -15,6 +15,7 @@
 #                                                                             #
 ###############################################################################
 
+import sys
 import json
 import logging
 import ntpath
@@ -22,17 +23,14 @@ import os
 import shutil
 import multiprocessing as mp
 import glob
-
-from biolib.common import make_sure_path_exists
-from tqdm import tqdm
-import sys
-from collections import Counter
-from collections import defaultdict
-
+from collections import Counter, defaultdict
 from pathlib import Path, PurePath
 
-import biolib.seq_io as seq_io
+from tqdm import tqdm
 import dendropy
+
+from biolib.common import make_sure_path_exists, canonical_gid
+import biolib.seq_io as seq_io
 
 from gtdb_release_tk.common import (parse_user_gid_table,
                                     parse_rep_genomes,
@@ -750,14 +748,11 @@ class WebsiteData(object):
 
         self.logger.info('Done.')
 
-    def protein_files(self, user_gid_table, path_taxonomy, genome_dirs, uba_path):
+    def protein_files(self, path_taxonomy, genome_dirs):
         # Get a mapping of accession to directory
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
-        inv_user_gids = {v.replace('GB_', '').replace(
-            'RS_', ''): k for k, v in user_gids.items()}
-
-        genome_paths = parse_genomic_path_file(genome_dirs, user_gids)
+        self.logger.info('Parsing genome directory file.')
+        genome_paths = parse_genomic_path_file(genome_dirs, {})
+        canonical_gid_to_gid = { canonical_gid(gid): gid for gid in genome_paths }
 
         # Parse the metadata file
         self.logger.info('Parsing taxonomy file.')
@@ -767,36 +762,36 @@ class WebsiteData(object):
         make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
         make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
 
-        for gid, tax in user_tax.items():
+        for gid, tax in tqdm(user_tax.items()):
+            gid = canonical_gid_to_gid.get(gid, gid)
+
             domain = None
             if tax.startswith('d__Archaea'):
                 domain = 'archaea'
             else:
                 domain = 'bacteria'
-            if gid.startswith('U'):
-                dir_prodigal = os.path.join(os.path.join(
-                    uba_path, inv_user_gids.get(gid)), 'prodigal')
-
+   
+            if gid in genome_paths:
+                dir_prodigal = os.path.join(genome_paths[gid], 'prodigal')
             else:
-                print(gid)
-                if gid in genome_paths:
-                    dir_prodigal = os.path.join(
-                        genome_paths.get(gid), 'prodigal')
-                else:
-                    dir_prodigal = os.path.join(
-                        uba_path, inv_user_gids.get(gid), 'prodigal')
-            protein_file = path_pfam_th = glob.glob(f'{dir_prodigal}/*_protein.faa')[0]
+                self.logger.error(f'Missing genome path for {gid}.')
+                sys.exit()
+                    
+            protein_file = glob.glob(f'{dir_prodigal}/*_protein.faa.gz')[0]
+
+            if gid.startswith('GCA_'):
+                gid = f'GB_{gid}'
+            elif gid.startswith('GCF_'):
+                gid = f'RS_{gid}'
+
             shutil.copy(protein_file, os.path.join(
-                self.output_dir, domain, gid + '_protein.faa'))
+                self.output_dir, domain, gid + '_protein.faa.gz'))
 
-    def nucleotide_files(self, user_gid_table, path_taxonomy, genome_dirs, uba_path):
+    def nucleotide_files(self, path_taxonomy, genome_dirs):
         # Get a mapping of accession to directory
-        self.logger.info('Parsing user genome ID mapping table.')
-        user_gids = parse_user_gid_table(user_gid_table)
-        inv_user_gids = {v.replace('GB_', '').replace(
-            'RS_', ''): k for k, v in user_gids.items()}
-
-        genome_paths = parse_genomic_path_file(genome_dirs, user_gids)
+        self.logger.info('Parsing genome directory file.')
+        genome_paths = parse_genomic_path_file(genome_dirs, {})
+        canonical_gid_to_gid = { canonical_gid(gid): gid for gid in genome_paths }
 
         # Parse the metadata file
         self.logger.info('Parsing taxonomy file.')
@@ -806,27 +801,31 @@ class WebsiteData(object):
         make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
         make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
 
-        for gid, tax in user_tax.items():
+        for gid, tax in tqdm(user_tax.items()):
+            gid = canonical_gid_to_gid.get(gid, gid)
+
             domain = None
             if tax.startswith('d__Archaea'):
                 domain = 'archaea'
             else:
                 domain = 'bacteria'
-            if gid.startswith('U'):
-                dir_prodigal = os.path.join(os.path.join(
-                    uba_path, inv_user_gids.get(gid)), 'prodigal')
 
+
+            if gid in genome_paths:
+                dir_prodigal = os.path.join(genome_paths[gid], 'prodigal')
             else:
-                print(gid)
-                if gid in genome_paths:
-                    dir_prodigal = os.path.join(
-                        genome_paths.get(gid), 'prodigal')
-                else:
-                    dir_prodigal = os.path.join(
-                        uba_path, inv_user_gids.get(gid), 'prodigal')
-            protein_file = path_pfam_th = glob.glob(f'{dir_prodigal}/*_protein.fna')[0]
+                self.logger.error(f'Missing genome path for {gid}.')
+                sys.exit()
+
+            protein_file = glob.glob(f'{dir_prodigal}/*_protein.fna.gz')[0]
+
+            if gid.startswith('GCA_'):
+                gid = f'GB_{gid}'
+            elif gid.startswith('GCF_'):
+                gid = f'RS_{gid}'
+
             shutil.copy(protein_file, os.path.join(
-                self.output_dir, domain, gid + '_protein.fna'))
+                self.output_dir, domain, gid + '_protein.fna.gz'))
 
     def metadata_files(self, metadata_file,
                        metadata_fields,
