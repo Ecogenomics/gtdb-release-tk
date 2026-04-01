@@ -46,6 +46,8 @@ from gtdb_release_tk.tables.taxa_count import TaxaCount
 from gtdb_release_tk.tables.top_taxa import TopTaxa
 from gtdb_release_tk.tables.latin_count import LatinCount
 
+from gtdb_release_tk.tables.utils import convert_canonical_to_full_ids,create_ena_xreference_table
+
 
 class OptionsParser():
     def __init__(self):
@@ -501,6 +503,19 @@ class OptionsParser():
 
         self.logger.info('Done.')
 
+    def xreference(self, options):
+        check_file_exists(options.bac120_metadata_file)
+        check_file_exists(options.ar53_metadata_file)
+        make_sure_path_exists(options.output_dir)
+
+        create_ena_xreference_table(options.bac120_metadata_file,
+                                    options.ar53_metadata_file,
+                                    options.release_number,
+                                    options.output_dir)
+
+        self.logger.info('Done.')
+
+
     def latin_count(self, options):
         """Create table indicating percentage of Latin names at each taxonomic rank."""
 
@@ -540,6 +555,15 @@ class OptionsParser():
               options.gtdb_taxonomy,
               options.rank_release_file)
 
+        self.logger.info('Done.')
+
+    def convert_canonical_to_full_ids(self, options):
+        """Convert canonical ids to full ids in the taxonomy file."""
+
+        check_file_exists(options.tree_file)
+        check_file_exists(options.canonical_gid_table)
+
+        convert_canonical_to_full_ids(options.tree_file, options.canonical_gid_table,options.output_tree)
         self.logger.info('Done.')
 
     def all_genome_faa(self, options):
@@ -619,8 +643,12 @@ class OptionsParser():
             self.top_taxa(options)
         elif options.subparser_name == 'latin_count':
             self.latin_count(options)
+        elif options.subparser_name == 'xreference':
+            self.xreference(options)
         elif options.subparser_name == 'pd':
             self.pd(options)
+        elif options.subparser_name == 'convert_canonical_to_full_ids':
+            self.convert_canonical_to_full_ids(options)
         elif options.subparser_name == 'nomenclatural_check':
             self.nomenclatural_check(options)
         elif options.subparser_name == 'all_genome_faa':
@@ -633,3 +661,4 @@ class OptionsParser():
             sys.exit()
 
         return 0
+

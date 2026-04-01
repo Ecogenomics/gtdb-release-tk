@@ -1659,27 +1659,44 @@ class WebsiteData(object):
         for k in to_pop:
             results_dict.pop(k)
 
+        # --- OPTIMIZATION START: Pre-compute parent rank mappings ---
+        # Determine the key for the parent rank (safeguard against checking 'd')
+        rank_idx = orderrank.index(rank)
+        parent_rank_key = orderrank[rank_idx - 1] if rank_idx > 0 else None
+
+        old_parent_map = {}
+        new_parent_map = {}
+
+        if parent_rank_key:
+            for sv in olddict.values():
+                if sv.get(rank) and sv.get(rank) not in old_parent_map:
+                    old_parent_map[sv.get(rank)] = sv.get(parent_rank_key)
+
+            for sv in newdict.values():
+                if sv.get(rank) and sv.get(rank) not in new_parent_map:
+                    new_parent_map[sv.get(rank)] = sv.get(parent_rank_key)
+        # --- OPTIMIZATION END --- #
+
         outf = open(outfile, "w")
         outf.write("{0} {1}\tNo. genomes\tNo. {2} {3}\t{2} {3}\n".format(
             old_taxonomy_name,
             rank_label,
             new_taxonomy_name,
             plural_rank_label))
-        for k, v in results_dict.items():
-            for sk, sv in olddict.items():
-                if sv.get(rank) == k:
-                    prankold = sv.get(orderrank[orderrank.index(rank) - 1])
-                    break
-            number_sub = len(v.get("genomes"))
 
+        for k, v in results_dict.items():
+            # Fast O(1) lookup instead of looping
+            prankold = old_parent_map.get(k, "") if parent_rank_key else ""
+
+            number_sub = len(v.get("genomes"))
             results = []
+
             for newg in v.get("genomes"):
                 newg_name = newg[0]
                 newg_numb = float(newg[1])
-                for sk, sv in newdict.items():
-                    if sv.get(rank) == newg_name:
-                        pranknew = sv.get(orderrank[orderrank.index(rank) - 1])
-                        break
+
+                # Fast O(1) lookup instead of looping
+                pranknew = new_parent_map.get(newg_name, "") if parent_rank_key else ""
 
                 res = newg_name
                 if not newg_name.startswith('s__') or newg_name == 's__':

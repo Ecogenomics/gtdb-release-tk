@@ -85,6 +85,7 @@ def print_help():
       taxa_count  -> Create table with number of taxa at each taxonomic rank
       top_taxa    -> Create table with most abundant taxa at each taxonomic rank
       latin_count -> Create table indicating percentage of Latin names at each taxonomic rank
+      xreference  -> Create cross reference table for ENA
       
     Links:
     sandpiper_links -> Generate links to Sandpiper for each GTDB rank
@@ -142,6 +143,8 @@ if __name__ == '__main__':
     tree_files_parser.add_argument('output_dir', help="output directory")
     tree_files_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
+
+
 
     # generate file indicating GTDB species clusters
     sp_cluster_file_parser = subparsers.add_parser('sp_cluster_file',
@@ -630,6 +633,18 @@ if __name__ == '__main__':
     latin_count_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
 
+    # create x-reference table for ENA mapping
+    ena_xref_parser = subparsers.add_parser('xreference',
+                                            formatter_class=CustomHelpFormatter,
+                                            description='Create table mapping GTDB genomes to ENA accessions.')
+    ena_xref_parser.add_argument('bac120_metadata_file', help='metadata for bacterial GTDB genomes')
+    ena_xref_parser.add_argument('ar53_metadata_file', help='metadata for archaeal GTDB genomes')
+    ena_xref_parser.add_argument('release_number', help='GTDB release number (e.g. 10 for 226)')
+    ena_xref_parser.add_argument('output_dir', help='output directory')
+    ena_xref_parser.add_argument('--silent', help="suppress output", action='store_true')
+
+
+
     # determine phylogenetic diversity statistics for species clusters
     pd_parser = subparsers.add_parser('pd',
                                       formatter_class=CustomHelpFormatter,
@@ -721,6 +736,19 @@ if __name__ == '__main__':
     sandpiper_links_parser.add_argument("output_dir", help="Output directory.")
     sandpiper_links_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
+
+    convert_canonical_to_full_parser = subparsers.add_parser('convert_canonical_to_full_ids',
+                                        formatter_class=CustomHelpFormatter,
+                                        description='Convert a tree from canonical to full ids.')
+    convert_canonical_to_full_parser.add_argument(
+        'tree_file', help='tree file with canonical ids')
+    convert_canonical_to_full_parser.add_argument(
+        'canonical_gid_table', help='table indicates the canonical id and the NCBI accession.')
+    convert_canonical_to_full_parser.add_argument(
+        'output_tree', help='output tree with full ids')
+    convert_canonical_to_full_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+    
 
     # get and check options
     args = None
