@@ -145,14 +145,20 @@ class WebsiteData(object):
             best_hit_str = None
             with open(hmm_summary) as f:
                 header = f.readline()
+
+                seq_id_idx = header.index('Sequence Id')
+                hmm_start_idx = header.index('HMM start')
+                hmm_end_idx = header.index('HMM end')
+                gene_len_idx = header.index('Gene length')
+                seq_len_idx = header.index('Sequence length')
+                
                 for line in f:
                     line_split = line.strip().split('\t')
-                    contig_id = line_split[0]
-                    evalue = float(line_split[2])
-                    start_hit = int(line_split[3])
-                    end_hit = int(line_split[4])
-                    ssu_len = int(line_split[5])
-                    contig_len = int(line_split[-1])
+                    contig_id = line_split[seq_id_idx]
+                    start_hit = int(line_split[hmm_start_idx])
+                    end_hit = int(line_split[hmm_end_idx])
+                    ssu_len = int(line_split[gene_len_idx])
+                    contig_len = int(line_split[seq_len_idx])
 
                     if ssu_len < min_gene_len:
                         failed_ssu_len += 1
@@ -219,16 +225,21 @@ class WebsiteData(object):
 
                 with open(hmm_summary) as f:
                     header = f.readline()
+
+                    seq_id_idx = header.index('Sequence Id')
+                    hmm_start_idx = header.index('HMM start')
+                    hmm_end_idx = header.index('HMM end')
+                    gene_len_idx = header.index('Gene length')
+                    seq_len_idx = header.index('Sequence length')
+
                     for line in f:
                         line_split = line.strip().split('\t')
-                        contig_id = line_split[0]
-                        evalue = float(line_split[2])
-                        start_hit = int(line_split[3])
-                        end_hit = int(line_split[4])
-                        ssu_len = int(line_split[5])
-                        contig_len = int(line_split[-1])
+                        contig_id = line_split[seq_id_idx]
+                        start_hit = int(line_split[hmm_start_idx])
+                        end_hit = int(line_split[hmm_end_idx])
+                        ssu_len = int(line_split[gene_len_idx])
+                        contig_len = int(line_split[seq_len_idx])
 
-                        assert(not gid.startswith('U_'))
                         fout.write('>{}~{} {} [location={}..{}] [ssu_len={}] [contig_len={}]\n'.format(
                             gid,
                             contig_id,
