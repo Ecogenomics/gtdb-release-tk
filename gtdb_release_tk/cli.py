@@ -700,6 +700,11 @@ def main():
     for logger_name in ('timestamp', 'no_timestamp'):
         logging.getLogger(logger_name).propagate = False
 
+    # gtdblib also sets the root logger to level NOTSET on import, which causes
+    # DEBUG messages from third-party libraries (e.g. matplotlib) to be shown.
+    # This must be set before gtdb_release_tk.main, and hence matplotlib, is imported.
+    logging.getLogger().setLevel(logging.INFO)
+
     try:
         logger_setup(args.output_dir,
                      'gtdb_release_tk.log',
