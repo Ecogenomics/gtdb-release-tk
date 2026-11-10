@@ -22,8 +22,8 @@ from pathlib import PurePath
 from numpy import (arange as np_arange,
                     array as np_array)
 
-from biolib.taxonomy import Taxonomy
-from biolib.plots.abstract_plot import AbstractPlot
+from gtdblib.taxonomy.taxonomy import Taxonomy
+from gtdb_release_tk.plots.abstract_plot import AbstractPlot
 
 from gtdb_release_tk.common import summarise_file
 from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
@@ -165,7 +165,7 @@ class NCBI_Compare(object):
         active_change_no_species = set()
         active_or_passive_change = set()
         for rank_index in range(1, 7):
-            fout.write(Taxonomy.rank_labels[rank_index])
+            fout.write(Taxonomy.RANK_LABELS[rank_index])
             
             unchanged = 0
             passive = 0
@@ -177,7 +177,7 @@ class NCBI_Compare(object):
                 if ncbi_taxon == gtdb_taxon:
                     unchanged += 1
                     classification = 'unchanged'
-                elif ncbi_taxon == Taxonomy.rank_prefixes[rank_index]:
+                elif ncbi_taxon == Taxonomy.RANK_PREFIXES[rank_index]:
                     passive += 1
                     classification = 'passive change'
                     active_or_passive_change.add(gid)
@@ -199,7 +199,7 @@ class NCBI_Compare(object):
             plot_passive.append(passive*100.0/total_taxa)
             plot_active.append(active*100.0/total_taxa)
             plot_labels.append('{}'.format(
-                                Taxonomy.rank_labels[rank_index].capitalize()))
+                                Taxonomy.RANK_LABELS[rank_index].capitalize()))
             
             if all_genomes:
                 ylabel = 'Genomes (%)\n({:,})'.format(total_taxa)

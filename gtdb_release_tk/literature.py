@@ -37,7 +37,7 @@ import re
 from collections import namedtuple, defaultdict
 import numpy as np
 
-from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
+from gtdblib.util.shell.gtdbshutil import check_file_exists, make_sure_path_exists, check_dir_exists
 
 
 class TaxonomyNCBI(object):

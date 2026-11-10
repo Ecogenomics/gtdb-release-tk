@@ -20,8 +20,8 @@ import sys
 import logging
 from itertools import takewhile
 
-from biolib.taxonomy import Taxonomy
-from biolib.common import canonical_gid
+from gtdblib.taxonomy.taxonomy import Taxonomy
+from gtdblib.util.bio.accession import canonical_gid
 
 
 def longest_common_prefix(*s):
@@ -353,6 +353,6 @@ def read_gtdb_taxonomy(metadata_file):
             if taxa_str and taxa_str != 'none':
                 taxonomy[genome_id] = [t.strip() for t in taxa_str.split(';')]
             else:
-                taxonomy[genome_id] = list(Taxonomy.rank_prefixes)
+                taxonomy[genome_id] = list(Taxonomy.RANK_PREFIXES)
 
     return taxonomy

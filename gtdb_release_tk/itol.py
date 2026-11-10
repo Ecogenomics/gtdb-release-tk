@@ -31,7 +31,7 @@ from pathlib import Path
 import dendropy
 import pandas as pd
 import seaborn as sns
-from biolib.newick import parse_label
+from gtdblib.util.bio.newick import parse_label
 from gtdblib.file.itol.collapse import iTolCollapseFile
 from gtdblib.file.itol.dataset_color_strip import iTolDatasetColorStripFile
 from gtdblib.file.itol.label import iTolLabelFile

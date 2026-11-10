@@ -21,8 +21,8 @@ import sys
 import logging
 
 import dendropy
-from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
-from biolib.taxonomy import Taxonomy
+from gtdblib.util.shell.gtdbshutil import check_file_exists, make_sure_path_exists, check_dir_exists
+from gtdblib.taxonomy.taxonomy import Taxonomy, read_taxonomy
 
 import gtdb_release_tk.defaults as Defaults
 from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
@@ -181,9 +181,13 @@ class OptionsParser(object):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
         check_file_exists(options.genome_dirs)
+        check_file_exists(options.ar_taxonomy_file)
+        check_file_exists(options.bac_taxonomy_file)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.taxonomy_file, options.genome_dirs)
+        w.protein_files(options.ar_taxonomy_file,
+                        options.bac_taxonomy_file,
+                        options.genome_dirs)
 
         self.logger.info('Done.')
 
@@ -191,9 +195,13 @@ class OptionsParser(object):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
         check_file_exists(options.genome_dirs)
+        check_file_exists(options.ar_taxonomy_file)
+        check_file_exists(options.bac_taxonomy_file)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.taxonomy_file, options.genome_dirs)
+        w.nucleotide_files(options.ar_taxonomy_file,
+                           options.bac_taxonomy_file,
+                           options.genome_dirs)
 
         self.logger.info('Done.')
 
@@ -275,7 +283,7 @@ class OptionsParser(object):
         check_file_exists(options.tree_file)
 
         self.logger.info('Reading GTDB taxonomy.')
-        gtdb_taxonomy = Taxonomy().read(options.taxonomy_file)
+        gtdb_taxonomy = read_taxonomy(options.taxonomy_file)
 
         self.logger.info('Reading input tree.')
         tree = dendropy.Tree.get_from_path(options.tree_file,

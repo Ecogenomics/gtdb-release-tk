@@ -30,8 +30,8 @@ import itertools
 from pathlib import PurePath
 from collections import defaultdict, namedtuple
 
-from biolib.taxonomy import Taxonomy
-from biolib.common import canonical_gid
+from gtdblib.taxonomy.taxonomy import Taxonomy
+from gtdblib.util.bio.accession import canonical_gid
 
 from gtdb_release_tk.lpsn import LPSN
 from gtdb_release_tk.taxon_utils import is_latin_taxon, generic_name

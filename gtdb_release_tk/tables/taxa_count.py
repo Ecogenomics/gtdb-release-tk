@@ -29,7 +29,7 @@ import logging
 from collections import defaultdict
 from pathlib import PurePath
 
-from biolib.taxonomy import Taxonomy
+from gtdblib.taxonomy.taxonomy import Taxonomy
 
 import gtdb_release_tk.HTML as HTML
 from gtdb_release_tk.common import summarise_file
@@ -89,7 +89,7 @@ class TaxaCount(object):
         print('Rank\tBacteria\tArchaea\tTotal')
         for idx in range(1, 7):
             row = []
-            row.append(Taxonomy.rank_labels[idx].capitalize())
+            row.append(Taxonomy.RANK_LABELS[idx].capitalize())
             row.append(f'{len(bac_taxa[idx]):,}')
             row.append(f'{len(ar_taxa[idx]):,}')
             row.append(f'{len(bac_taxa[idx]) + len(ar_taxa[idx]):,}')

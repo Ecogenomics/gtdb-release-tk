@@ -21,8 +21,8 @@ import logging
 from pathlib import PurePath
 from collections import defaultdict
 
-from biolib.taxonomy import Taxonomy
-from biolib.plots.abstract_plot import AbstractPlot
+from gtdblib.taxonomy.taxonomy import Taxonomy
+from gtdb_release_tk.plots.abstract_plot import AbstractPlot
 
 from numpy import (arange as np_arange,
                    array as np_array)
@@ -183,8 +183,8 @@ class GenomeCategoryPerRank(object):
         plot_env = []
         plot_labels = []
         for rank_index in range(1, 7):
-            fout_count.write(Taxonomy.rank_labels[rank_index])
-            fout_taxa.write(Taxonomy.rank_labels[rank_index])
+            fout_count.write(Taxonomy.RANK_LABELS[rank_index])
+            fout_taxa.write(Taxonomy.RANK_LABELS[rank_index])
 
             both = set()
             env = set()
@@ -220,7 +220,7 @@ class GenomeCategoryPerRank(object):
             plot_isolate.append(len(isolate)*100.0/total_taxa)
             plot_env.append(len(env)*100.0/total_taxa)
             plot_labels.append('{}\n{:,}'.format(
-                Taxonomy.rank_labels[rank_index].capitalize(),
+                Taxonomy.RANK_LABELS[rank_index].capitalize(),
                 total_taxa))
 
         # create plot for taxa at each rank

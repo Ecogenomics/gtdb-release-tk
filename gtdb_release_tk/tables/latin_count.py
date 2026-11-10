@@ -28,7 +28,7 @@ import logging
 from pathlib import PurePath
 from collections import defaultdict, namedtuple
 
-from biolib.taxonomy import Taxonomy
+from gtdblib.taxonomy.taxonomy import Taxonomy
 
 import gtdb_release_tk.HTML as HTML
 from gtdb_release_tk.taxon_utils import canonical_taxon, is_latin_taxon
@@ -105,7 +105,7 @@ class LatinCount(object):
         fout.write('\t'.join(header) + '\n')
         for idx in range(1, 7):
             row = []
-            row.append(Taxonomy.rank_labels[idx].capitalize())
+            row.append(Taxonomy.RANK_LABELS[idx].capitalize())
 
             bac_total = bac_latin[idx] + bac_placeholder[idx]
             row.append(
