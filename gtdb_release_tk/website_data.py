@@ -778,14 +778,17 @@ class WebsiteData(object):
 
         self.logger.info('Done.')
 
-    def _prodigal_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
-                        file_suffix, path_file_name, file_desc):
-        """Copy Prodigal gene files for genomes into NCBI-style directories.
+    def _copy_genome_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                           find_source_file, out_file_suffix, path_file_name, file_desc):
+        """Copy a file for each genome into NCBI-style directories.
 
-        Files are written to <domain>/<NCBI subdir>/<genome ID><file_suffix>,
+        Files are written to <domain>/<NCBI subdir>/<genome ID><out_file_suffix>,
         e.g. archaea/GCA/012/345/678/GB_GCA_012345678.1_protein.faa.gz,
         and the relative path to each file is written to path_file_name
         in the output directory.
+
+        find_source_file is called with the directory of a genome and must
+        return the path of the file to copy, or None if it does not exist.
         """
 
         # Get a mapping of accession to directory
@@ -803,7 +806,8 @@ class WebsiteData(object):
             domain_gids.extend((gid, domain) for gid in gids)
 
         # Resolve the genome path and output location of every genome before
-        # copying any files so problems are reported before work is done
+        # copying any files so invalid genome IDs are reported before work is
+        # done; this requires no file system access
         jobs = []
         for gid, domain in domain_gids:
             gid = canonical_gid_to_gid.get(gid, gid)
@@ -823,37 +827,71 @@ class WebsiteData(object):
             else:
                 out_gid = f'RS_{gid}'
 
-            rel_path = f'{domain}/{ncbi_subdir}/{out_gid}{file_suffix}'
-            jobs.append((out_gid, genome_paths[gid], rel_path))
+            rel_path = f'{domain}/{ncbi_subdir}/{out_gid}{out_file_suffix}'
+            jobs.append((gid, out_gid, genome_paths[gid], rel_path))
 
         # Copy files into NCBI-style directory structure and
         # record the relative path to each file
         make_sure_path_exists(self.output_dir)
         path_file = os.path.join(self.output_dir, path_file_name)
         with open(path_file, 'w') as fout:
-            for out_gid, genome_path, rel_path in tqdm(jobs):
-                dir_prodigal = os.path.join(genome_path, 'prodigal')
-                gene_file = glob.glob(f'{dir_prodigal}/*{file_suffix}')[0]
+            for gid, out_gid, genome_path, rel_path in tqdm(jobs):
+                source_file = find_source_file(genome_path)
+                if source_file is None:
+                    self.logger.error(f'Missing {file_desc} file for {gid} in: {genome_path}')
+                    sys.exit(1)
 
                 out_file = os.path.join(self.output_dir, rel_path)
                 make_sure_path_exists(os.path.dirname(out_file))
-                shutil.copy(gene_file, out_file)
+                shutil.copy(source_file, out_file)
 
                 fout.write(f'{out_gid}\t{rel_path}\n')
 
         self.logger.info(f'Wrote path to {len(jobs):,} {file_desc} files to: {path_file}')
 
+    @staticmethod
+    def _prodigal_file_finder(file_suffix):
+        """Get function that finds Prodigal file with given suffix in a genome directory."""
+
+        def find(genome_path):
+            files = glob.glob(os.path.join(genome_path, 'prodigal', f'*{file_suffix}'))
+            return files[0] if files else None
+
+        return find
+
+    @staticmethod
+    def _genomic_fasta_file(genome_path):
+        """Get NCBI genomic FASTA file in a genome directory.
+
+        The file is identified by its exact name, <assembly>_genomic.fna.gz,
+        where <assembly> is the name of the genome directory, so files such as
+        <assembly>_cds_from_genomic.fna.gz are never selected.
+        """
+
+        assembly = os.path.basename(os.path.normpath(genome_path))
+        genomic_file = os.path.join(genome_path, f'{assembly}_genomic.fna.gz')
+        return genomic_file if os.path.isfile(genomic_file) else None
+
     def protein_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs):
         """Copy protein (AA) gene files for genomes into NCBI-style directories."""
 
-        self._prodigal_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
-                             '_protein.faa.gz', 'protein_files.tsv', 'protein')
+        self._copy_genome_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                                self._prodigal_file_finder('_protein.faa.gz'),
+                                '_protein.faa.gz', 'protein_files.tsv', 'protein')
 
     def nucleotide_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs):
         """Copy nucleotide (nt) gene files for genomes into NCBI-style directories."""
 
-        self._prodigal_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
-                             '_protein.fna.gz', 'nucleotide_files.tsv', 'nucleotide')
+        self._copy_genome_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                                self._prodigal_file_finder('_protein.fna.gz'),
+                                '_protein.fna.gz', 'nucleotide_files.tsv', 'nucleotide')
+
+    def genomic_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs):
+        """Copy genomic FASTA files for genomes into NCBI-style directories."""
+
+        self._copy_genome_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                                self._genomic_fasta_file,
+                                '_genomic.fna.gz', 'genomic_files.tsv', 'genomic')
 
     def metadata_files(self, metadata_file,
                        metadata_fields,

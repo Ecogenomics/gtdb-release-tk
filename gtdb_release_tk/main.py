@@ -205,6 +205,20 @@ class OptionsParser(object):
 
         self.logger.info('Done.')
 
+    def genomic_files(self, options):
+        """Generate the archive containing all genomic FASTA files for representative genomes."""
+        make_sure_path_exists(options.output_dir)
+        check_file_exists(options.genome_dirs)
+        check_file_exists(options.ar_taxonomy_file)
+        check_file_exists(options.bac_taxonomy_file)
+
+        w = WebsiteData(options.release_number, options.output_dir)
+        w.genomic_files(options.ar_taxonomy_file,
+                        options.bac_taxonomy_file,
+                        options.genome_dirs)
+
+        self.logger.info('Done.')
+
     def metadata_files(self, options):
         """Generate GTDB metadata files."""
 
@@ -650,6 +664,8 @@ class OptionsParser(object):
             self.protein_files(options)
         elif options.subparser_name == 'nucleotide_files':
             self.nucleotide_files(options)
+        elif options.subparser_name == 'genomic_files':
+            self.genomic_files(options)
         elif options.subparser_name == 'metadata_files':
             self.metadata_files(options)
         elif options.subparser_name == 'dict_file':

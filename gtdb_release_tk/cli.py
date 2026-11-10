@@ -42,22 +42,23 @@ def print_help():
     print('''\
 
     External files for GTDB website:
-      taxonomy_files  -> Generate GTDB taxonomy files
-      tree_files      -> Generate tree files spanning representative genomes
-      sp_cluster_file -> Generate file indicating GTDB species clusters
-      hq_genome_file  -> Generate file indicating HQ MIMAG genomes
-      ssu_files       -> Generate 16S rRNA FASTA files
-      marker_files    -> Generate marker gene files
-      protein_files   -> Generate the archive containing all protein (AA) for representative genomes.
-      nucleotide_files-> Generate the archive containing all protein (nt) for representative genomes.
-      msa_files       -> Generate concatenated MSA files
-      gene_files      -> Generate untrimmed ar122/bac120 gene files.
-      metadata_files  -> Generate GTDB metadata files
-      dict_file       -> Generate dictionary containing all GTDB taxa
-      arb_files       -> Generate ARB metadata file
-      validate        -> Perform validation checks on GTDB website files
-      add_sp_label    -> Generate tree with species labels
-      synonyms        -> Generate files indicating NCBI names considered synonyms under the GTDB taxonomy
+      taxonomy_files   -> Generate GTDB taxonomy files
+      tree_files       -> Generate tree files spanning representative genomes
+      sp_cluster_file  -> Generate file indicating GTDB species clusters
+      hq_genome_file   -> Generate file indicating HQ MIMAG genomes
+      ssu_files        -> Generate 16S rRNA FASTA files
+      marker_files     -> Generate marker gene files
+      protein_files    -> Generate the archive containing all protein (AA) for representative genomes.
+      nucleotide_files -> Generate the archive containing all protein (NT) for representative genomes.
+      genomic_files    -> Generate the archive containing all genomic FASTA files for representative genomes.
+      msa_files        -> Generate concatenated MSA files
+      gene_files       -> Generate untrimmed ar122/bac120 gene files.
+      metadata_files   -> Generate GTDB metadata files
+      dict_file        -> Generate dictionary containing all GTDB taxa
+      arb_files        -> Generate ARB metadata file
+      validate         -> Perform validation checks on GTDB website files
+      add_sp_label     -> Generate tree with species labels
+      synonyms         -> Generate files indicating NCBI names considered synonyms under the GTDB taxonomy
 
     Internal files for GTDB website:
       tax_comp_files  -> Generate comparison files between 2 taxonomy ordered by degree of polyphyly
@@ -244,6 +245,26 @@ def get_main_parser():
     nuc_file_parser.add_argument(
         '--silent', help="suppress output", action='store_true')
     nuc_file_parser.add_argument(
+        '--cpus', default=1, type=int, help="number of threads to use (default: 1)")
+
+    # generate package with genomic FASTA files for all rep genomes
+    genomic_file_parser = subparsers.add_parser('genomic_files',
+                                                formatter_class=CustomHelpFormatter,
+                                                description='Generate the archive containing all genomic FASTA files for representative genomes.')
+    genomic_file_parser.add_argument(
+        '--ar_taxonomy_file', required=True,
+        help='indicates archaeal genomes in GTDB release; taxonomy unused')
+    genomic_file_parser.add_argument(
+        '--bac_taxonomy_file', required=True,
+        help='indicates bacterial genomes in GTDB release; taxonomy unused')
+    genomic_file_parser.add_argument(
+        '--release_number', help='release number (e.g. 86)')
+    genomic_file_parser.add_argument(
+        '--genome_dirs', help='File listing the path to all NCBI genome files.')
+    genomic_file_parser.add_argument('--output_dir', help="output directory")
+    genomic_file_parser.add_argument(
+        '--silent', help="suppress output", action='store_true')
+    genomic_file_parser.add_argument(
         '--cpus', default=1, type=int, help="number of threads to use (default: 1)")
 
     # generate concatenated MSA files
