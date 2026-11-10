@@ -229,7 +229,7 @@ class LiteratureParser(object):
         for rk in gtdb_ranks:
             count_rank += 1
             print('{}/{} of gtdb ranks'.format(count_rank, len(gtdb_ranks)), end='\r')
-            if re.search("^[A-Za-z\s]+$", rk):
+            if re.search(r"^[A-Za-z\s]+$", rk):
                 if any(rk in s for s in all_ranks):
                     gtdb_name_in_ncbi.write(
                         '{}\t{}\n'.format(rk, dict_gtdbranks.get(rk)))
