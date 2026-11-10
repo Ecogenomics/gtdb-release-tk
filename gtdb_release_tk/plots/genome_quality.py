@@ -32,7 +32,7 @@ from pathlib import PurePath
 import matplotlib.lines as mlines
 from matplotlib.ticker import NullFormatter
 
-from biolib.plots.abstract_plot import AbstractPlot
+from gtdb_release_tk.plots.abstract_plot import AbstractPlot
 
 from gtdb_release_tk.common import summarise_file
 from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE

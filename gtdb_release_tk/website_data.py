@@ -30,8 +30,9 @@ from pathlib import Path, PurePath
 from tqdm import tqdm
 import dendropy
 
-from biolib.common import make_sure_path_exists, canonical_gid
-import biolib.seq_io as seq_io
+from gtdblib.util.shell.gtdbshutil import make_sure_path_exists
+from gtdblib.util.bio.accession import canonical_gid
+import gtdblib.util.bio.seq_io as seq_io
 
 from gtdb_release_tk.common import (parse_user_gid_table,
                                     parse_rep_genomes,

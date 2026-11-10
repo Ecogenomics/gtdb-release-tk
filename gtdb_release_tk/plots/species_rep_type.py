@@ -25,7 +25,7 @@ from gtdb_release_tk.common import summarise_file
 from gtdb_release_tk.files.metadata import MetadataFile                    
 from gtdb_release_tk.plots.palette import Palette, DEFAULT_PALETTE
 
-from biolib.plots.abstract_plot import AbstractPlot
+from gtdb_release_tk.plots.abstract_plot import AbstractPlot
 
 
 class SpeciesRepTypePlot(AbstractPlot):

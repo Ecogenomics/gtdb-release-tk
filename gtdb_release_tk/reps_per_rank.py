@@ -31,8 +31,8 @@ import gzip
 from pathlib import PurePath
 from collections import defaultdict, namedtuple
 
-from biolib.taxonomy import Taxonomy
-from biolib.seq_io import read_seq
+from gtdblib.taxonomy.taxonomy import Taxonomy
+from gtdblib.util.bio.seq_io import read_seq
 
    
 class RepsPerRank(object):
@@ -206,7 +206,7 @@ class RepsPerRank(object):
                         ar122_msa_per, bac120_msa_per, min_msa_perc):
         """Sample genomes from taxa."""
         
-        rank_label = Taxonomy.rank_labels[rank_to_sample]
+        rank_label = Taxonomy.RANK_LABELS[rank_to_sample]
 
         # sample genomes
         output_file = os.path.join(self.output_dir, 'gtdb_r{}_selected_genomes.{}.{}.tsv'.format(

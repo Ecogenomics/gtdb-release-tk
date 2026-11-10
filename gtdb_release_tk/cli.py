@@ -27,8 +27,8 @@ import sys
 import logging
 import argparse
 
-from biolib.misc.custom_help_formatter import CustomHelpFormatter
-from biolib.logger import logger_setup
+from gtdblib.cli.custom_help_formatter import CustomHelpFormatter
+from gtdb_release_tk.logger import logger_setup
 
 from gtdb_release_tk import version
 import gtdb_release_tk.defaults as Defaults

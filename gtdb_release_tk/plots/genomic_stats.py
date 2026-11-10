@@ -37,7 +37,7 @@ from numpy import (median as np_median,
                     
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
-from biolib.plots.abstract_plot import AbstractPlot
+from gtdb_release_tk.plots.abstract_plot import AbstractPlot
 
 import gtdb_release_tk.HTML as HTML
 from gtdb_release_tk.common import summarise_file

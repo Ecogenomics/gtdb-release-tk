@@ -1,7 +1,9 @@
-biolib >= 0.1.0
+gtdblib >= 1.10.2
 dendropy
 unidecode
 requests
 matplotlib
 numpy
 tqdm
+pandas
+seaborn

@@ -21,8 +21,8 @@ import sys
 import logging
 
 import dendropy
-from biolib.common import check_file_exists, make_sure_path_exists, check_dir_exists
-from biolib.taxonomy import Taxonomy
+from gtdblib.util.shell.gtdbshutil import check_file_exists, make_sure_path_exists, check_dir_exists
+from gtdblib.taxonomy.taxonomy import Taxonomy, read_taxonomy
 
 import gtdb_release_tk.defaults as Defaults
 from gtdb_release_tk.common import assert_dir_exists, assert_file_exists
@@ -283,7 +283,7 @@ class OptionsParser(object):
         check_file_exists(options.tree_file)
 
         self.logger.info('Reading GTDB taxonomy.')
-        gtdb_taxonomy = Taxonomy().read(options.taxonomy_file)
+        gtdb_taxonomy = read_taxonomy(options.taxonomy_file)
 
         self.logger.info('Reading input tree.')
         tree = dendropy.Tree.get_from_path(options.tree_file,
