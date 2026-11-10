@@ -16,6 +16,7 @@
 ###############################################################################
 
 import sys
+import re
 import json
 import logging
 import ntpath
@@ -38,6 +39,22 @@ from gtdb_release_tk.common import (parse_user_gid_table,
                                     parse_species_clusters,
                                     parse_gtdb_metadata, parse_tophit_file, parse_taxonomy_file)
 from gtdb_release_tk.config import SSU_DIR, MAX_SSU_LEN, BAC120_MARKERS, AR122_MARKERS
+
+
+NCBI_ACCESSION_RE = re.compile(r'^(GC[AF])_(\d{3})(\d{3})(\d{3})\.\d+$')
+
+
+def ncbi_accession_subdir(gid):
+    """Get NCBI-style subdirectory for a genome accession.
+
+    Example: GCA_012345678.1 -> GCA/012/345/678
+    """
+
+    m = NCBI_ACCESSION_RE.match(gid)
+    if not m:
+        raise ValueError(f'Genome ID is not an NCBI assembly accession: {gid}')
+
+    return '/'.join(m.groups())
 
 
 class WebsiteData(object):
@@ -759,84 +776,82 @@ class WebsiteData(object):
 
         self.logger.info('Done.')
 
-    def protein_files(self, path_taxonomy, genome_dirs):
+    def _prodigal_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                        file_suffix, path_file_name, file_desc):
+        """Copy Prodigal gene files for genomes into NCBI-style directories.
+
+        Files are written to <domain>/<NCBI subdir>/<genome ID><file_suffix>,
+        e.g. archaea/GCA/012/345/678/GB_GCA_012345678.1_protein.faa.gz,
+        and the relative path to each file is written to path_file_name
+        in the output directory.
+        """
+
         # Get a mapping of accession to directory
         self.logger.info('Parsing genome directory file.')
         genome_paths = parse_genomic_path_file(genome_dirs, {})
         canonical_gid_to_gid = { canonical_gid(gid): gid for gid in genome_paths }
 
-        # Parse the metadata file
-        self.logger.info('Parsing taxonomy file.')
-        user_tax = parse_taxonomy_file(path_taxonomy)
+        # Determine genomes in each domain; the taxonomy strings are unused
+        self.logger.info('Parsing archaeal and bacterial taxonomy files.')
+        domain_gids = []
+        for domain, path_taxonomy in [('archaea', ar_taxonomy_file),
+                                      ('bacteria', bac_taxonomy_file)]:
+            gids = parse_taxonomy_file(path_taxonomy)
+            self.logger.info(f' - identified {len(gids):,} {domain} genomes')
+            domain_gids.extend((gid, domain) for gid in gids)
 
-        domain = None
-        make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
-        make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
-
-        for gid, tax in tqdm(user_tax.items()):
+        # Resolve the genome path and output location of every genome before
+        # copying any files so problems are reported before work is done
+        jobs = []
+        for gid, domain in domain_gids:
             gid = canonical_gid_to_gid.get(gid, gid)
 
-            domain = None
-            if tax.startswith('d__Archaea'):
-                domain = 'archaea'
-            else:
-                domain = 'bacteria'
-   
-            if gid in genome_paths:
-                dir_prodigal = os.path.join(genome_paths[gid], 'prodigal')
-            else:
-                self.logger.error(f'Missing genome path for {gid}.')
-                sys.exit()
-                    
-            protein_file = glob.glob(f'{dir_prodigal}/*_protein.faa.gz')[0]
-
-            if gid.startswith('GCA_'):
-                gid = f'GB_{gid}'
-            elif gid.startswith('GCF_'):
-                gid = f'RS_{gid}'
-
-            shutil.copy(protein_file, os.path.join(
-                self.output_dir, domain, gid + '_protein.faa.gz'))
-
-    def nucleotide_files(self, path_taxonomy, genome_dirs):
-        # Get a mapping of accession to directory
-        self.logger.info('Parsing genome directory file.')
-        genome_paths = parse_genomic_path_file(genome_dirs, {})
-        canonical_gid_to_gid = { canonical_gid(gid): gid for gid in genome_paths }
-
-        # Parse the metadata file
-        self.logger.info('Parsing taxonomy file.')
-        user_tax = parse_taxonomy_file(path_taxonomy)
-
-        domain = None
-        make_sure_path_exists(os.path.join(self.output_dir, 'archaea'))
-        make_sure_path_exists(os.path.join(self.output_dir, 'bacteria'))
-
-        for gid, tax in tqdm(user_tax.items()):
-            gid = canonical_gid_to_gid.get(gid, gid)
-
-            domain = None
-            if tax.startswith('d__Archaea'):
-                domain = 'archaea'
-            else:
-                domain = 'bacteria'
-
-
-            if gid in genome_paths:
-                dir_prodigal = os.path.join(genome_paths[gid], 'prodigal')
-            else:
+            if gid not in genome_paths:
                 self.logger.error(f'Missing genome path for {gid}.')
                 sys.exit()
 
-            protein_file = glob.glob(f'{dir_prodigal}/*_protein.fna.gz')[0]
+            try:
+                ncbi_subdir = ncbi_accession_subdir(gid)
+            except ValueError as e:
+                self.logger.error(str(e))
+                sys.exit(1)
 
             if gid.startswith('GCA_'):
-                gid = f'GB_{gid}'
-            elif gid.startswith('GCF_'):
-                gid = f'RS_{gid}'
+                out_gid = f'GB_{gid}'
+            else:
+                out_gid = f'RS_{gid}'
 
-            shutil.copy(protein_file, os.path.join(
-                self.output_dir, domain, gid + '_protein.fna.gz'))
+            rel_path = f'{domain}/{ncbi_subdir}/{out_gid}{file_suffix}'
+            jobs.append((out_gid, genome_paths[gid], rel_path))
+
+        # Copy files into NCBI-style directory structure and
+        # record the relative path to each file
+        make_sure_path_exists(self.output_dir)
+        path_file = os.path.join(self.output_dir, path_file_name)
+        with open(path_file, 'w') as fout:
+            for out_gid, genome_path, rel_path in tqdm(jobs):
+                dir_prodigal = os.path.join(genome_path, 'prodigal')
+                gene_file = glob.glob(f'{dir_prodigal}/*{file_suffix}')[0]
+
+                out_file = os.path.join(self.output_dir, rel_path)
+                make_sure_path_exists(os.path.dirname(out_file))
+                shutil.copy(gene_file, out_file)
+
+                fout.write(f'{out_gid}\t{rel_path}\n')
+
+        self.logger.info(f'Wrote path to {len(jobs):,} {file_desc} files to: {path_file}')
+
+    def protein_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs):
+        """Copy protein (AA) gene files for genomes into NCBI-style directories."""
+
+        self._prodigal_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                             '_protein.faa.gz', 'protein_files.tsv', 'protein')
+
+    def nucleotide_files(self, ar_taxonomy_file, bac_taxonomy_file, genome_dirs):
+        """Copy nucleotide (nt) gene files for genomes into NCBI-style directories."""
+
+        self._prodigal_files(ar_taxonomy_file, bac_taxonomy_file, genome_dirs,
+                             '_protein.fna.gz', 'nucleotide_files.tsv', 'nucleotide')
 
     def metadata_files(self, metadata_file,
                        metadata_fields,

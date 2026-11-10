@@ -181,9 +181,13 @@ class OptionsParser(object):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
         check_file_exists(options.genome_dirs)
+        check_file_exists(options.ar_taxonomy_file)
+        check_file_exists(options.bac_taxonomy_file)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.protein_files(options.taxonomy_file, options.genome_dirs)
+        w.protein_files(options.ar_taxonomy_file,
+                        options.bac_taxonomy_file,
+                        options.genome_dirs)
 
         self.logger.info('Done.')
 
@@ -191,9 +195,13 @@ class OptionsParser(object):
         """Generate the archive containing all protein (AA) for representative genomes."""
         make_sure_path_exists(options.output_dir)
         check_file_exists(options.genome_dirs)
+        check_file_exists(options.ar_taxonomy_file)
+        check_file_exists(options.bac_taxonomy_file)
 
         w = WebsiteData(options.release_number, options.output_dir)
-        w.nucleotide_files(options.taxonomy_file, options.genome_dirs)
+        w.nucleotide_files(options.ar_taxonomy_file,
+                           options.bac_taxonomy_file,
+                           options.genome_dirs)
 
         self.logger.info('Done.')
 
