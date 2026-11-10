@@ -1,5 +1,5 @@
 
-SSU_DIR = 'rna_silva_132'
+SSU_DIR = 'rna_silva_138.2'
 MAX_SSU_LEN = 2500 # based on longest SSU sequence in LTP v132 being 2,246 bp
 
 

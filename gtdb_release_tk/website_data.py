@@ -162,19 +162,19 @@ class WebsiteData(object):
             best_contig_id = None
             best_hit_str = None
             with open(hmm_summary) as f:
-                header = f.readline()
+                header = f.readline().rstrip('\n').split('\t')
 
                 seq_id_idx = header.index('Sequence Id')
-                hmm_start_idx = header.index('HMM start')
-                hmm_end_idx = header.index('HMM end')
+                seq_start_idx = header.index('Sequence start')
+                seq_end_idx = header.index('Sequence end')
                 gene_len_idx = header.index('Gene length')
                 seq_len_idx = header.index('Sequence length')
                 
                 for line in f:
                     line_split = line.strip().split('\t')
                     contig_id = line_split[seq_id_idx]
-                    start_hit = int(line_split[hmm_start_idx])
-                    end_hit = int(line_split[hmm_end_idx])
+                    start_hit = int(line_split[seq_start_idx])
+                    end_hit = int(line_split[seq_end_idx])
                     ssu_len = int(line_split[gene_len_idx])
                     contig_len = int(line_split[seq_len_idx])
 
@@ -184,10 +184,11 @@ class WebsiteData(object):
                     if contig_len < min_contig_len:
                         failed_contig_len += 1
 
-                    if contig_len > MAX_SSU_LEN:
+                    if ssu_len > MAX_SSU_LEN:
                         failed_max_ssu_len += 1
 
-                    if ssu_len >= min_gene_len and contig_len >= min_contig_len:
+                    if (min_gene_len <= ssu_len <= MAX_SSU_LEN
+                            and contig_len >= min_contig_len):
                         if best_ssu_len < ssu_len:
                             # get longest identified SSU sequence
                             best_ssu_len = ssu_len
@@ -242,19 +243,19 @@ class WebsiteData(object):
                 seqs = seq_io.read(ssu_fasta.as_posix())
 
                 with open(hmm_summary) as f:
-                    header = f.readline()
+                    header = f.readline().rstrip('\n').split('\t')
 
                     seq_id_idx = header.index('Sequence Id')
-                    hmm_start_idx = header.index('HMM start')
-                    hmm_end_idx = header.index('HMM end')
+                    seq_start_idx = header.index('Sequence start')
+                    seq_end_idx = header.index('Sequence end')
                     gene_len_idx = header.index('Gene length')
                     seq_len_idx = header.index('Sequence length')
 
                     for line in f:
                         line_split = line.strip().split('\t')
                         contig_id = line_split[seq_id_idx]
-                        start_hit = int(line_split[hmm_start_idx])
-                        end_hit = int(line_split[hmm_end_idx])
+                        start_hit = int(line_split[seq_start_idx])
+                        end_hit = int(line_split[seq_end_idx])
                         ssu_len = int(line_split[gene_len_idx])
                         contig_len = int(line_split[seq_len_idx])
 
